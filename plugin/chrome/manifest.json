@@ -1,0 +1,24 @@
+{
+  "manifest_version": 2,
+
+  "name": "JumpBox",
+  "description": "This extension is the Stegotorus client's conduit to the Stegotorus server.",
+  "version": "1.0",
+
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "popup.html"
+  },
+
+  "background": {
+    "scripts": ["background.js"]           
+   },
+
+
+  "permissions": [
+    "background",
+    "<all_urls>",         
+    "webRequest",
+    "webRequestBlocking"
+  ]
+}
