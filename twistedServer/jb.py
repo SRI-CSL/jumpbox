@@ -22,7 +22,7 @@ class StegoClient(Resource):
 
 class StegoResponse(Resource):
    #delay can be 0; 1 just quietens things down; 0.1 is OK too.
-   delay = 0.1
+   delay = 1
    stegotorus = 'http://127.0.0.1:8000/ss_push'
    cycle = 0
 

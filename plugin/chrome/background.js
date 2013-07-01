@@ -48,8 +48,24 @@
  */
 
 
+//Some of these are destined for the bit bucket, others for glory.
+var Controls, Debug, JumpBox, Circuitous, Translator, Headers, Errors;
 
-var Debug, JumpBox, Circuitous, Translator, Headers, Errors;
+Controls = {
+    running : true,
+
+    stop : function() { 
+        Controls.running = false; 
+    }, 
+
+    start : function() { 
+        Controls.running = true;
+        Circuitous.jb_pull();
+    }, 
+
+    status : function() { return Controls.running; }
+
+}
 
 
 Debug = {
@@ -103,7 +119,9 @@ Circuitous = {
     handle_jb_push_response : function (request) {
         if (request.readyState === 4 && request.status === 200) {
             //not much to do here; just error checking I suppose
-            Circuitous.jb_pull();
+            if(Controls.running){
+                Circuitous.jb_pull();
+            }
         }
     }
 
