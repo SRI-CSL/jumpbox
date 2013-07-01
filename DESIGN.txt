@@ -1,0 +1,34 @@
+Jeroen and Ian need to puff this up into a real description.
+
+
+Ian's current idea of the design will require that:
+
+
+===  Jump Box API ===
+
+In response to a **pull** request:
+
+jump_box should serve the content of the stegotorus client's request with the following
+additional headers:
+
+DJB_URI: <this should be the uri of the stegotorus client request>
+DJB_METHOD: <this should be the method (i.e. GET or POST) of the stegotorus client request>
+
+DJB_CONTENT_TYPE: <this should be the content-type of the stegotorus client request> (only POSTs?)
+
+DJB_COOKIE: <this should be *instead of* any cookie header in the stegotorus client request>
+
+
+In handling a **push** request:
+
+jump_box should pay attention to the
+
+DJB_SET_COOKIE: 
+
+and convert it to the usual Set-Cookie header before passing it on to the stegotorus client (actually
+this could easily be done by the chrome plugin).
+
+
+
+
+
