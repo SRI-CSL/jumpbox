@@ -1,5 +1,6 @@
 from twisted.web.resource import Resource
 
+import tempfile
 
 class Rendezvous(Resource):
     #fake everything, till the real thing comes along.
@@ -25,9 +26,12 @@ class Rendezvous(Resource):
             print 'POST: %s submitted %s\n' % (self.name, content)
             return Rendezvous.freedom_request 
         elif self.name == 'image':
-            imagefile = open("onion.jpg", "wb")
+            #need to pass back the file url of the image (currently it is hard coded).
+            imagefile = tempfile.NamedTemporaryFile(mode='wb', suffix='.jpg', prefix='onion', dir=None, delete=False)
             imagefile.write(request.content.read())
+            path = imagefile.name
             imagefile.close()
-            print 'POST: %s submitted %s\n' % (self.name, request.getHeader('Content-Length'))
-            return ''
+            print 'POST: %s submitted %s which I wrote to %s\n' % (self.name, request.getHeader('Content-Length'), path)
+            return 'file://' + path
+
 

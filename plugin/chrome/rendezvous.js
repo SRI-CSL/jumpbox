@@ -7,13 +7,8 @@
  *   be better to do this in the reverse order, since the jump box could write it out to a file, and
  *   let us know its file url.
  *
-
- http://blogs.adobe.com/webplatform/2012/01/17/displaying-xhr-downloaded-images-using-the-file-api/
- http://stackoverflow.com/questions/9977046/getting-an-image-from-an-xmlhttprequest-and-displaying-it
- http://www.philten.com/us-xmlhttprequest-image/
- http://jsperf.com/encoding-xhr-image-data/14
-
-
+ * http://www.html5rocks.com/en/tutorials/file/xhr2/
+ * 
  *  Step 3: Ask for the status of the onion (should respond with a status and perhaps an activity)
  *  Step 4: Repeat step 3 until we have a net. Once we have a net we need to do the dance.
  *  Ideas on this Jeroen?
@@ -128,7 +123,7 @@ Rendezvous = {
         if (request.readyState === 4) {
             if (request.status === 200) {
                 Rendezvous.set_status('Image post OK');
-                document.querySelector('#onion_image').src = 'file:///Users/iam/Repositories/isc/jumpbox/twistedServer/onion.jpg';
+                document.querySelector('#onion_image').src = request.responseText; 
             } else {
                 Rendezvous.set_status('Image post **NOT** OK');
             }
