@@ -26,7 +26,7 @@ class Rendezvous(Resource):
             print 'POST: %s submitted %s\n' % (self.name, content)
             return Rendezvous.freedom_request 
         elif self.name == 'image':
-            #need to pass back the file url of the image (currently it is hard coded).
+            #need to pass back the file url of the image.
             imagefile = tempfile.NamedTemporaryFile(mode='wb', suffix='.jpg', prefix='onion', dir=None, delete=False)
             imagefile.write(request.content.read())
             path = imagefile.name
