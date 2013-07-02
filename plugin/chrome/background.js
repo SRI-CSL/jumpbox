@@ -76,8 +76,8 @@ Debug = {
 
 /* the stegotorus address is in the headers of the jb_pull_url response */
 JumpBox = {
-    jb_pull_url : 'http://127.0.0.1:8000/jb_pull',
-    jb_push_url : 'http://127.0.0.1:8000/jb_push'
+    jb_pull_url : 'http://127.0.0.1:8000/stegotorus/jb_pull',
+    jb_push_url : 'http://127.0.0.1:8000/stegotorus/jb_push'
 };
 
 

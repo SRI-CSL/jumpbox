@@ -15,6 +15,8 @@ var on_off_toggle = function () {
 };
 
 var rendezvous = function(){
+    //should look to see if there is already one, and just bring it to the front.
+    //try and keep teir cardinality <= 1
     chrome.tabs.create({ url : 'rendezvous.html' });
 };
 
