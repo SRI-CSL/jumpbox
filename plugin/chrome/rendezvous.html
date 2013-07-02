@@ -3,9 +3,25 @@
   <head>
     <title>Rendezvous</title>
     <script src="rendezvous.js"></script>
+    <style>
+      img {
+        margin: 5px;
+        border: 2px solid black;
+        vertical-align: middle;
+        width: 300px;
+        height: 300px;
+      }
+    </style>
   </head>
   <body>
     <h1>Rendezvous to you too!</h1>
+    <h2><label id="status">Status:</label></h2>
+      <table>
+        <tr>
+          <td><input type="text" size="50" name="mod_freedom_uri" id="mod_freedom_uri"></td><td><button id="mod_freedom" type="button">Go</button></td>
+        </tr>
+      </table> 
+      <div id="onion_image_div"><img id="onion_image" alt="" src="" /></div>
   </body>
 </html>
 
