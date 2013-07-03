@@ -20,6 +20,10 @@ var rendezvous = function(){
     chrome.tabs.create({ url : 'rendezvous.html' });
 };
 
+var acsdancer = function(){
+    chrome.tabs.create({ url : 'acsdancer.html' });
+};
+
 
 var popupGenerator = {
     
@@ -30,8 +34,11 @@ var popupGenerator = {
         var stop_start_button = document.getElementById("stop_start");
         stop_start_button.addEventListener('click', on_off_toggle);
 
-        var rendezvous_button = document.getElementById("rendezvous");
+        var rendezvous_button = document.querySelector('#rendezvous');
         rendezvous_button.addEventListener('click', rendezvous);
+
+        var acsdancer_button = document.querySelector('#acsdancer');
+        acsdancer_button.addEventListener('click', acsdancer);
 
         if(bkg && bkg.Controls.status()){
             stop_start_button.innerHTML = 'Stop';
