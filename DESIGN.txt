@@ -1,5 +1,6 @@
 Jeroen and Ian need to puff this up into a real description.
 
+Ian says: plugin/chrome/background.js  explains the stegotorus pipe better.
 
 Ian's current idea of the design will require that:
 
