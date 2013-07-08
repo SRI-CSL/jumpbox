@@ -1,4 +1,4 @@
-/*jslint browser: true, devel: true, sloppy: true, global chrome*/
+/*jslint browser: true, devel: true, sloppy: true*/
 
 /*
  * sc = stegotorus client
@@ -54,24 +54,24 @@ var Controls, Debug, JumpBox, Circuitous, Translator, Headers, Errors;
 Controls = {
     running : true,
 
-    stop : function() { 
-        Controls.running = false; 
-    }, 
+    stop : function () {
+        Controls.running = false;
+    },
 
-    start : function() { 
+    start : function () {
         Controls.running = true;
         Circuitous.jb_pull();
-    }, 
+    },
 
-    status : function() { return Controls.running; }
+    status : function () { return Controls.running; }
 
-}
+};
 
 
 Debug = {
     debug : true,
     verbose : false,
-    log : function(msg) { if (Debug.debug) { console.log(msg); }  }
+    log : function (msg) { if (Debug.debug) { console.log(msg); }  }
 };
 
 /* the stegotorus address is in the headers of the jb_pull_url response */
@@ -119,7 +119,7 @@ Circuitous = {
     handle_jb_push_response : function (request) {
         if (request.readyState === 4 && request.status === 200) {
             //not much to do here; just error checking I suppose
-            if(Controls.running){
+            if (Controls.running) {
                 Circuitous.jb_pull();
             }
         }
@@ -198,7 +198,7 @@ Translator = {
 };
 
 Headers = {
-    onBeforeSendHeaders: function(details) {
+    onBeforeSendHeaders: function (details) {
         var index, over_wire = true, header = null, djb_cookie_header = null;
         for (index = 0; index < details.requestHeaders.length; index += 1) {
             header = details.requestHeaders[index];
@@ -222,7 +222,7 @@ Headers = {
         }
         return {requestHeaders: details.requestHeaders};
     },
-    onHeadersReceived: function(details) {
+    onHeadersReceived: function (details) {
         var index, header = null;
         for (index = 0; index < details.responseHeaders.length; index += 1) {
             header = details.responseHeaders[index];
@@ -238,7 +238,7 @@ Headers = {
 
 Errors = {
     //till the real thing comes along
-    recover: function(msg) { Debug.log('jb_pull request failed: ' + msg); }
+    recover: function (msg) { Debug.log('jb_pull request failed: ' + msg); }
 };
 
 chrome.webRequest.onBeforeSendHeaders.addListener(Headers.onBeforeSendHeaders, {urls: ["<all_urls>"]}, ["blocking", "requestHeaders"]);

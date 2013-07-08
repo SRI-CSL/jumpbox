@@ -1,3 +1,6 @@
+/*jslint browser: true, devel: true, sloppy: true, global chrome*/
+
+
 /*
  *
  *  Given the name of a server:
@@ -15,11 +18,6 @@
  */
 
 var Rendezvous;
-
-
-
-
-
 
 
 Rendezvous = {
