@@ -30,7 +30,6 @@ Rendezvous = {
     
     populate: function() {
         document.querySelector('#mod_freedom').addEventListener('click', Rendezvous.send_url);
-
         Rendezvous.reset();
     },
     
@@ -46,9 +45,10 @@ Rendezvous = {
     reset_response: function(request){
         if (request.readyState === 4) {
             if (request.status === 200) {
-                console.log('Rendezvous.reset OK');
+                Rendezvous.set_status('Enter the name of a mod_freedom server and press <em>Go!</em>');
             } else {
-                console.log('Rendezvous.reset **NOT** OK');
+                //not sure why this would happen unless the jumpbox crashed
+                Rendezvous.set_status('Rendezvous.reset **NOT** OK');
             }
         }
     },
@@ -118,16 +118,44 @@ Rendezvous = {
     },
 
     image_post_response: function(request){
+        var robj;
         if (request.readyState === 4) {
             if (request.status === 200) {
-                Rendezvous.set_status('Image post OK');
-                document.querySelector('#onion_image').src = request.responseText; 
+                Rendezvous.set_status('This image contains your stegged onion!');
+                robj = JSON.parse(request.responseText);
+                if(robj && robj.image){
+                    Rendezvous.prepare_for_peeling(robj.image);
+                } else {
+                    Rendezvous.set_status('Image post response failed to parse as JSON');
+                }
             } else {
                 Rendezvous.set_status('Image post **NOT** OK');
             }
         }
-    }
+    },
+    
+    prepare_for_peeling: function (image_url) {
+        var child, image, image_div, onion_fetching_controls, grab_bag;
+        /* display the stegged onion */
+        image = document.querySelector('#onion_image');
+        image.src = image_url; 
+        image_div = document.querySelector('#onion_image_div');
+        image_div.appendChild(image);
+        /* move the url fetching controls over to the grab_bag */
+        onion_fetching_controls = document.querySelector('#onion_fetching_controls');
+        grab_bag = document.querySelector('#grab_bag');
+        
+        while (onion_fetching_controls.hasChildNodes()) {
+            child = onion_fetching_controls.lastChild;
+            onion_fetching_controls.removeChild(child);
+            grab_bag.appendChild(child);
+        }
 
+        //document.querySelector('#onion_fetching_controls').innerHTML = '';
+
+        /* adding the peeler controls */
+        document.querySelector('#onion_peeling_controls').appendChild(document.querySelector('#peeler'));
+    }
 
 
 };

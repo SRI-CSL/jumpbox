@@ -31,7 +31,8 @@ class Rendezvous(Resource):
             imagefile.write(request.content.read())
             path = imagefile.name
             imagefile.close()
+            request.setHeader('Content-Type', 'application/json')
             print 'POST: %s submitted %s which I wrote to %s\n' % (self.name, request.getHeader('Content-Length'), path)
-            return 'file://' + path
+            return '{ "image": "file://' + path + '" }'
 
 

@@ -16,12 +16,29 @@
   <body>
     <h1>Rendezvous to you too!</h1>
     <h2><label id="status">Status:</label></h2>
-      <table>
+      <div id="onion_fetching_controls">
+      <table id="fetcher">
         <tr>
           <td><input type="text" size="50" name="mod_freedom_uri" id="mod_freedom_uri"></td><td><button id="mod_freedom" type="button">Go</button></td>
         </tr>
       </table> 
-      <div id="onion_image_div"><img id="onion_image" alt="" src="" /></div>
+      </div>
+      <div id="onion_image_div"></div>
+      <div id="onion_peeling_controls"></div>
+      <div id="onion_captcha_div"></div>
+
+      <div id="grab_bag" style="display: none;">
+        <img id="onion_image" alt="" src="" />
+        <img id="onion_captcha" alt="" src="" />
+        <div id="onion_captcha_div"><img id="onion_captcha" alt="" src="" /></div>
+        <table id="peeler">
+          <tr><td><label id="peeling_intructions">Peeling Instructions:</label></td></tr>
+          <tr>
+            <td><input type="text" size="50" name="captcha_text" id="captcha_text"></td><td><button id="peeler_button" type="button">OK</button></td>
+          </tr>
+        </table> 
+      </div>
   </body>
+
 </html>
 

@@ -11,7 +11,7 @@
  *    sc ----request----> ss   method = X in {GET, POST}
  *    sc <---response---  ss
  *
- * into a three XHR transactions:
+ * into three XHR transactions:
  *   
  *  Leg 1.  p --- XHR ---> jb   (this is a GET )
  *  Leg 2.  p --- XHR ---> ss   (this could be either a GET or a POST (i.e. X))
