@@ -1,35 +1,59 @@
-Jeroen and Ian need to puff this up into a real description.
+Authors: Ian Mason + Jeroen Massar
 
-Ian says: plugin/chrome/background.js  explains the stegotorus pipe better.
+== Javascript details ==
 
-Ian's current idea of the design will require that:
+Details about the current Javascript (plugin) implementation are to be found in:
+ plugin/chrome/background.js
+which contains an introduction on how these requests work
 
+== Jump Box API ==
 
-===  Jump Box API ===
+djb (Jumpbox server) provides a webinterface at http://localhost:6543.
 
-In response to a **pull** request:
+=== Proxy requests ===
 
-jump_box should serve the content of the stegotorus client's request with the following
+StegoTorus sends requests to http://<something>/<url> using djb as a HTTP proxy (at localhost:6543).
+As requests landing at djb are not pointing at http://localhost djb knows these are requests not for djb
+but those that it needs to proxy. This avoids the need to modify any HTTP client (like StegoTorus) using this setup.
+
+As we listen on localhost we do not have to worry (too much) that other clients use our HTTP proxy.
+
+djb accepts the request from StegoTorus and forwards this to plugins that requests next packets.
+
+=== Pull ===
+
+For requesting a packet from djb we have a 'pull' request (GET http://localhost:6543/pull/). 
+
+When that URL is hit, djb returns content of the Stegotorus Client's request with the following
 additional headers:
 
-DJB_URI: <this should be the uri of the stegotorus client request>
-DJB_METHOD: <this should be the method (i.e. GET or POST) of the stegotorus client request>
+* DJB-URI: <URI of the Stegotorus Request>
+* DJB-Method: <HTTP Method of Stegotorus Request>
+* DJB-Content-Type: <Content-Type of StegoTorus Request>
+* DJB-Cookie: <this should be *instead of* any cookie header in the Stegotorus Client request>
+* DJB-SeqNo: Packet Sequence Number (assigned by djb)
 
-DJB_CONTENT_TYPE: <this should be the content-type of the stegotorus client request> (only POSTs?)
+At this point the request is forwarded by the plugin, when it receives an answer it pushes the answer
+to djb using a 'push' request.
 
-DJB_COOKIE: <this should be *instead of* any cookie header in the stegotorus client request>
+=== Push ===
 
+The plugin can return data using a 'POST http://localhost:6543/push/' along with the following headers:
 
-In handling a **push** request:
+* DJB-Set-Cookie: <Cookie for this request>
+* DJB-SeqNo: Packet Sequence Number (assigned by djb)
 
-jump_box should pay attention to the
+The SeqNo is used to match this 'answer' up to the actual request, so that we can pass it to the right
+StegoTorus client (there might be multiple).
 
-DJB_SET_COOKIE: 
+The DJB-Set-Cookie header is translated into a Set-Cookie to allow this header to be forwarded by the plugin.
 
-and convert it to the usual Set-Cookie header before passing it on to the stegotorus client (actually
-this could easily be done by the chrome plugin).
+=== djb errors ===
 
+djb reports errors using standard HTTP errorcodes, As a reference, some are listed here:
 
+200 = All okay
 
-
+408 = Request Timeout, typically for 'pull' when for a long time no request needed to be sent.
+      The plugin can retry the request at a later point.
 
