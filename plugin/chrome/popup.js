@@ -32,19 +32,23 @@ var preferences = function(){
 var popupGenerator = {
     
   populate: function () {
-
+        var logo, stop_start_button, rendezvous_button, acsdancer_button, preferences_button;
         bkg = chrome.extension.getBackgroundPage();
+
+        logo = document.querySelector('#logo');
+        logo.src = 'jumpBox.png';
+        logo.setAttribute('alt', 'jumpBox');
         
-        var stop_start_button = document.getElementById("stop_start");
+        stop_start_button = document.getElementById("stop_start");
         stop_start_button.addEventListener('click', on_off_toggle);
 
-        var rendezvous_button = document.querySelector('#rendezvous');
+        rendezvous_button = document.querySelector('#rendezvous');
         rendezvous_button.addEventListener('click', rendezvous);
 
-        var acsdancer_button = document.querySelector('#acsdancer');
+        acsdancer_button = document.querySelector('#acsdancer');
         acsdancer_button.addEventListener('click', acsdancer);
 
-        var preferences_button = document.querySelector('#preferences');
+        preferences_button = document.querySelector('#preferences');
         preferences_button.addEventListener('click', preferences);
 
         if(bkg && bkg.Controls.status()){
@@ -52,12 +56,6 @@ var popupGenerator = {
         } else {
             stop_start_button.innerHTML = 'Start';
         }
-
-        var img = document.createElement('img');
-        img.src = 'jumpBox.png';
-        img.setAttribute('alt', 'jumpBox');
-        document.body.appendChild(img);
-        
 
 
     }
