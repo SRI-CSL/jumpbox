@@ -28,7 +28,18 @@ Rendezvous = {
 
     image_url: 'http://127.0.0.1:8000/rendezvous/image',
     
-    populate: function() {
+    init: function() {
+        var server, port;
+        server = localStorage['server_name'];
+        port = localStorage['jumpbox_port'];
+        if(server){ 
+            document.querySelector('#mod_freedom_uri').value = server; 
+        }
+        if(port){
+            Rendezvous.reset_url = 'http://127.0.0.1:' + port + '/rendezvous/reset';
+            Rendezvous.gen_request_url = 'http://127.0.0.1:' + port + '/rendezvous/gen_request';
+            Rendezvous.image_url = 'http://127.0.0.1:' + port + '/rendezvous/image';
+        }
         document.querySelector('#mod_freedom').addEventListener('click', Rendezvous.send_url);
         Rendezvous.reset();
     },
@@ -96,6 +107,7 @@ Rendezvous = {
         freedom_request.open('GET', freedom_uri);
         freedom_request.responseType = 'blob';       
         freedom_request.send(null);
+        Rendezvous.set_status('Sending request: ' + freedom_uri);
     },
 
     process_image: function(request){
@@ -161,6 +173,6 @@ Rendezvous = {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-        Rendezvous.populate();
+        Rendezvous.init();
     });
 

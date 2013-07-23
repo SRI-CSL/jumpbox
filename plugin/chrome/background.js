@@ -77,13 +77,23 @@ Debug = {
 /* the stegotorus address is in the headers of the jb_pull_url response */
 JumpBox = {
     jb_pull_url : 'http://127.0.0.1:8000/stegotorus/jb_pull',
-    jb_push_url : 'http://127.0.0.1:8000/stegotorus/jb_push'
+    jb_push_url : 'http://127.0.0.1:8000/stegotorus/jb_push',
+
+    init : function () {
+        var port = localStorage['jumpbox_port'];
+        if(port){
+            JumpBox.jb_pull_url = 'http://127.0.0.1:' + port + '/stegotorus/jb_pull';
+            JumpBox.jb_push_url = 'http://127.0.0.1:' + port + '/stegotorus/jb_push';
+        }
+    }
+
 };
 
 
 Circuitous = {
     jb_pull : function () {
         var jb_pull_request = new XMLHttpRequest();
+        JumpBox.init();
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request); };
         jb_pull_request.open('GET', JumpBox.jb_pull_url);
         // this flag is to distinguish this request from a stegotorus server request, to the webRequest API; when testing on localhost

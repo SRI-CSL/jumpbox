@@ -16,12 +16,16 @@ var on_off_toggle = function () {
 
 var rendezvous = function(){
     //should look to see if there is already one, and just bring it to the front.
-    //try and keep teir cardinality <= 1
+    //try and keep their cardinality <= 1
     chrome.tabs.create({ url : 'rendezvous.html' });
 };
 
 var acsdancer = function(){
     chrome.tabs.create({ url : 'acsdancer.html' });
+};
+
+var preferences = function(){
+    chrome.tabs.create({ url : 'options.html' });
 };
 
 
@@ -39,6 +43,9 @@ var popupGenerator = {
 
         var acsdancer_button = document.querySelector('#acsdancer');
         acsdancer_button.addEventListener('click', acsdancer);
+
+        var preferences_button = document.querySelector('#preferences');
+        preferences_button.addEventListener('click', preferences);
 
         if(bkg && bkg.Controls.status()){
             stop_start_button.innerHTML = 'Stop';

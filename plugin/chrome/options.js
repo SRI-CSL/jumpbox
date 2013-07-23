@@ -1,6 +1,8 @@
 var Options;
 
 Options = {
+    
+    debug: false,
 
     options: { server_name: 'server_name', jumpbox_port: 'jumpbox_port' },
 
@@ -15,9 +17,11 @@ Options = {
             field = document.getElementById(option_id);
             if(field){
                 value = field.value;
-                console.log('option_id: ' + option_id);
-                console.log('value: ' + value);
-                console.log('typeof value: ' + typeof(value));
+                if(Options.debug){
+                    console.log('option_id: ' + option_id);
+                    console.log('value: ' + value);
+                    console.log('typeof value: ' + typeof(value));
+                }
                 localStorage[option_id] = value;
             } 
         }
