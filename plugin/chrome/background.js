@@ -24,7 +24,7 @@
  *  Gotcha #1:  We are forbidden to futz with either the Cookie or Set-Cookie headers
  *  of an XHR so we must use the chrome.cookies API to do this. This introduces 
  *  a new level on complexity (parsing the cookies); as well as possible race conditions
- *  if we ever did more than one XHR to the server at a time (since the browsers cookie
+ *  if we ever did more than one XHR to the server at a time (since the browser's cookie
  *  store is essentially an unprotected global variable).
  *
  *  Gotcha #2:  In POSTs but not GETs Chrome adds a header like:
