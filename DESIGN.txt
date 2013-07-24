@@ -1,4 +1,12 @@
-Authors: Ian Mason + Jeroen Massar
+= JumpBox Design =
+
+This document details the design of the Jumpbox which is a combination of a C-based daemon (djb)
+and a browser plugin.
+
+== Authors ==
+
+ Ian Mason	SRI International	 <ian.mason@sri.com>
+ Jeroen Massar 	Farsight Security, Inc.	 <massar@fsi.io>
 
 == Javascript details ==
 
@@ -20,7 +28,7 @@ As we listen on localhost we do not have to worry (too much) that other clients 
 
 djb accepts the request from StegoTorus and forwards this to plugins that requests next packets.
 
-=== Pull ===
+==== Proxy Pull ====
 
 For requesting a packet from djb we have a 'pull' request (GET http://localhost:6543/pull/). 
 
@@ -29,18 +37,18 @@ additional headers:
 
 * DJB-URI: <URI of the Stegotorus Request>
 * DJB-Method: <HTTP Method of Stegotorus Request>
-* DJB-Content-Type: <Content-Type of StegoTorus Request>
-* DJB-Cookie: <this should be *instead of* any cookie header in the Stegotorus Client request>
+* DJB-Content-Type: <Content-Type of StegoTorus Request> (opt)
+* DJB-Cookie: <this should be *instead of* any cookie header in the Stegotorus Client request> (opt)
 * DJB-SeqNo: Packet Sequence Number (assigned by djb)
 
 At this point the request is forwarded by the plugin, when it receives an answer it pushes the answer
 to djb using a 'push' request.
 
-=== Push ===
+==== Proxy Push ====
 
 The plugin can return data using a 'POST http://localhost:6543/push/' along with the following headers:
 
-* DJB-Set-Cookie: <Cookie for this request>
+* DJB-Set-Cookie: <Cookie for this request> (opt)
 * DJB-SeqNo: Packet Sequence Number (assigned by djb)
 
 The SeqNo is used to match this 'answer' up to the actual request, so that we can pass it to the right
@@ -48,12 +56,24 @@ StegoTorus client (there might be multiple).
 
 The DJB-Set-Cookie header is translated into a Set-Cookie to allow this header to be forwarded by the plugin.
 
-=== djb errors ===
+=== ACS ===
+
+ACS has two phases for the consideration of this document: initial + redirect.
+The third phase 'bridge' is performed by providing the NET details to StegoTorus and starting it.
+
+==== ACS Initial ====
+==== ACS Redirect ====
+
+=== djb HTTP Errors ===
 
 djb reports errors using standard HTTP errorcodes, As a reference, some are listed here:
 
 200 = All okay
 
+404 = Not Found, when something cannot be found (eg a push, but the corresponding pull cannot be found)
+
 408 = Request Timeout, typically for 'pull' when for a long time no request needed to be sent.
       The plugin can retry the request at a later point.
+
+504 = Parameter missing
 
