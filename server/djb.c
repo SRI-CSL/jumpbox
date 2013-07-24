@@ -1,6 +1,9 @@
 #include <libfutil/httpsrv.h>
 #include <libfutil/list.h>
 
+#include "rendezvous.h"
+#include "shared.h"
+
 #define DJB_WORKERS	8
 #define DJB_HOST	"localhost"
 #define DJB_PORT	6543
@@ -33,14 +36,6 @@ misc_map_t djb_headers[] = {
 	{ NULL,			0, 0		}
 };
 
-void
-djb_error(httpsrv_client_t *hcl, unsigned int errcode, const char *msg);
-void
-djb_error(httpsrv_client_t *hcl, unsigned int errcode, const char *msg) {
-	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s\r\n", errcode, msg);
-	conn_printf(&hcl->conn, "<h1>%s</h1>\n", msg);
-	httpsrv_done(hcl);
-}
 
 void
 djb_pull(httpsrv_client_t *hcl);
@@ -168,12 +163,12 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return;
 
 	} else if (strcasecmp(hcl->headers.uri, "/acs/") == 0) {
-		djb_error(hcl, 500, "Not implemented yet");
-		return;
+                djb_error(hcl, 500, "Not implemented yet");
+                return;
 
-	} else if (strcasecmp(hcl->headers.uri, "/rendezvous/") == 0) {
-		djb_error(hcl, 500, "Not implemented yet");
-		return;
+	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", strlen("/rendezvous/")) == 0) {
+                rendezvous(hcl);
+                return;
 	}
 
 	/* Not a valid API request */

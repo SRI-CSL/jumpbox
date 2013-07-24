@@ -204,6 +204,8 @@ RFC6234_OBJS	+=	$(OBJFUTIL)rfc6234/hmac.o	\
 BINS		+=	djb$(EXT)
 DJB_OBJS	+=					\
 			djb.o				\
+			rendezvous.o			\
+			shared.o			\
 			$(OBJFUTIL)httpsrv.o		\
 			$(OBJFUTIL)buf.o		\
 			$(OBJFUTIL)conn.o		\
