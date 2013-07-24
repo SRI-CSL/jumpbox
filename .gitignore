@@ -1,0 +1,9 @@
+# Temporary files
+server/*.o
+server/*.d
+server/*.lo
+server/*.la
+server/*.slo
+server/*.swp
+server/.libs
+
