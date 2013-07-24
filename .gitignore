@@ -6,4 +6,5 @@ server/*.la
 server/*.slo
 server/*.swp
 server/.libs
+server/djb
 
