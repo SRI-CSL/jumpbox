@@ -203,8 +203,8 @@ RFC6234_OBJS	+=	$(OBJFUTIL)rfc6234/hmac.o	\
 # DJB
 BINS		+=	djb$(EXT)
 DJB_OBJS	+=					\
-			$(OBJFUTIL)httpsrv.o		\
 			djb.o				\
+			$(OBJFUTIL)httpsrv.o		\
 			$(OBJFUTIL)buf.o		\
 			$(OBJFUTIL)conn.o		\
 			$(OBJFUTIL)list.o		\
