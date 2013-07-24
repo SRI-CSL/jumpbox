@@ -170,6 +170,10 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	} else if (strcasecmp(hcl->headers.uri, "/acs/") == 0) {
 		djb_error(hcl, 500, "Not implemented yet");
 		return;
+
+	} else if (strcasecmp(hcl->headers.uri, "/rendezvous/") == 0) {
+		djb_error(hcl, 500, "Not implemented yet");
+		return;
 	}
 
 	/* Not a valid API request */
@@ -306,12 +310,12 @@ djb_pass_pollers(void) {
 				httpsrv_methodname(pr->hcl->method));
 
 		if (strlen(pr->hcl->headers.content_type) > 0) {
-			conn_addheaderf(&ar->hcl->conn, "DJB-Content-Type: %s\r\n",
+			conn_addheaderf(&ar->hcl->conn, "Content-Type: %s\r\n",
 					pr->hcl->headers.content_type);
 		}
 
 		if (pr->hcl->headers.content_length > 0) {
-			conn_addheaderf(&ar->hcl->conn, "DJB-Content-Type: %" PRIu64 "\r\n",
+			conn_addheaderf(&ar->hcl->conn, "Content-Length: %" PRIu64 "\r\n",
 					pr->hcl->headers.content_length);
 		}
 
