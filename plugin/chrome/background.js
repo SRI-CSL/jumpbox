@@ -290,7 +290,7 @@ Headers = {
             header = details.responseHeaders[index];
 
             if (header.name === 'Set-Cookie') {
-                Debug.log('onHeadersReceived: ' + header.name + ': ' + header.value);
+                Debug.log('onHeadersReceived(' + details.tabId + '/' + details.type + '): ' + header.name + ': ' + header.value);
                 header.name = 'DJB-Set-Cookie';
                 break;
             }
