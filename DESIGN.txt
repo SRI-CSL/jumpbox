@@ -56,13 +56,43 @@ StegoTorus client (there might be multiple).
 
 The DJB-Set-Cookie header is translated into a Set-Cookie to allow this header to be forwarded by the plugin.
 
+=== Rendezvous ===
+
+/rendezvous/<apicalls>
+
+ == /reset/ ===
+
+==== /gen_request/ ===
+
+Generate request to send to mod_freedom server, returns an image
+
+remember password
+
+==== /image/ ====
+
+POST Image to JB
+
+Extract onion out of the image using password
+
+Returns a DJB-RendezvousImage: <url>
+
+==== /peel/ ====
+
+
+Final result: NET
+
 === ACS ===
 
 ACS has two phases for the consideration of this document: initial + redirect.
 The third phase 'bridge' is performed by providing the NET details to StegoTorus and starting it.
 
 ==== ACS Initial ====
+
+POST NET to /acs/initial/
+
 ==== ACS Redirect ====
+
+/acs/redirect/
 
 === djb HTTP Errors ===
 
