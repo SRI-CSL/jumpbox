@@ -87,7 +87,7 @@ JumpBox = {
 
     init : function () {
         var port = localStorage['jumpbox_port'];
-        if (!port) {
+        if (port) {
 		JumpBox.jb_port = port;
         }
 
@@ -253,14 +253,14 @@ Headers = {
             header = details.requestHeaders[index];
 
             /* Check if this goes to our proxy */
-            if (header.name === 'Host' && header.value == JumpBox.jb_host) {
+            if (header.name === 'Host' && header.value === JumpBox.jb_host) {
                 to_jumpbox = true;
                 break;
             }
 
             /* Strip origin headers including our extension URL */
             if (header.name === 'Origin') {
-		if (header.value == 'chrome-extension://' + JumpBox.jb_ext_id) {
+		if (header.value === 'chrome-extension://' + JumpBox.jb_ext_id) {
                     Debug.log('onBeforeSendHeaders: Removing ' + header.name + ': ' + header.value);
                     details.requestHeaders.splice(index, 1);
                 } else {
@@ -284,17 +284,21 @@ Headers = {
         return {requestHeaders: details.requestHeaders};
     },
     onHeadersReceived: function (details) {
-        var index, header = null;
+        var index, header = null, cookieval = null;
 
         for (index = 0; index < details.responseHeaders.length; index += 1) {
             header = details.responseHeaders[index];
 
             if (header.name === 'Set-Cookie') {
                 Debug.log('onHeadersReceived(' + details.tabId + '/' + details.type + '): ' + header.name + ': ' + header.value);
-                header.name = 'DJB-Set-Cookie';
+		cookieval = header.value;
                 break;
             }
         }
+
+	if (cookieval != null) {
+		/* addheader('DJB-Set-Cookie: ' + cookieval); XXX */
+	}
 
         return { responseHeaders: details.responseHeaders };
     }
