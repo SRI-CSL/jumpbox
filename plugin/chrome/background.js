@@ -254,6 +254,7 @@ Translator = {
 
 Headers = {
 
+    /* used to keep track of request/response events to/from the stegotorus server */
     stegotorusServerRequests: {},
 
     onBeforeSendHeaders: function (details) {
