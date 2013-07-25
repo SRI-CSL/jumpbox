@@ -261,7 +261,7 @@ Headers = {
 
         for (index = 0; index < details.requestHeaders.length; index += 1) {
             header = details.requestHeaders[index];
-            Debug.log('onBeforeSendHeaders: ' + header.name + ': ' + header.value);
+            //Debug.log('onBeforeSendHeaders: ' + header.name + ': ' + header.value);
             /* Check if this goes to our proxy */
             if (header.name === 'Host' && header.value === JumpBox.jb_host) {
                 to_jumpbox = true;
