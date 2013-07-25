@@ -80,22 +80,25 @@ JumpBox = {
     jb_port      : 6543,
     jb_pull_path : '/pull/',
     jb_push_path : '/push/',
+    // these are for testing with twisted (while djb spins)
+    //    jb_pull_path : '/stegotorus/pull',
+    //    jb_push_path : '/stegotorus/push',
     jb_host      : '',
     jb_pull_url  : '',
     jb_push_url  : '',
     jb_ext_id    : chrome.i18n.getMessage("@@extension_id"),
 
     init : function () {
-        var port = localStorage['jumpbox_port'];
+        var port = localStorage.jumpbox_port;
         if (port) {
-		JumpBox.jb_port = port;
+            JumpBox.jb_port = port;
         }
 
-	JumpBox.jb_host = JumpBox.jb_server + ':' + JumpBox.jb_port;
+        JumpBox.jb_host = JumpBox.jb_server + ':' + JumpBox.jb_port;
         JumpBox.jb_pull_url = JumpBox.jb_host + JumpBox.jb_pull_path;
         JumpBox.jb_push_url = JumpBox.jb_host + JumpBox.jb_push_path;
 
-	Debug.log('JumpBox::init pull: ' + JumpBox.jb_pull_url);
+        Debug.log('JumpBox::init pull: ' + JumpBox.jb_pull_url);
     }
 
 };
@@ -144,10 +147,10 @@ Circuitous = {
                 //not much to do here; just error checking I suppose
                 if (Controls.running) {
                     Circuitous.jb_pull();
-		}
+                }
             } else {
                 Debug.log('jb_push_response failed: ' + request.status);
-	    }
+            }
         }
     }
 
@@ -160,7 +163,7 @@ Translator = {
      * returns the content (i.e. the argument to send)  
      */
     jb_response2request : function (response, request) {
-        var djb_cookie, djb_uri, djb_method,  djb_contents, djb_content_type;
+        var djb_cookie, djb_uri, djb_method,  djb_seqno, djb_contents, djb_content_type;
 
         // the request should be an X according to the DJB-Method header
         // the request URI should be in the DJB-URI header, note that this means
@@ -187,6 +190,9 @@ Translator = {
         /* commence the preparation */
         request.open(djb_method, djb_uri);
 
+        /* indicate to the Headers handler that this is a stegotorus server request */
+        request.setRequestHeader('DJB-Server', true);
+
         /* make sure the cookie goes along for the ride */
         djb_cookie = response.getResponseHeader('DJB-Cookie');
 
@@ -203,7 +209,7 @@ Translator = {
             djb_contents = response.response;
         }
 
-	/* Keep the SeqNo */
+        /* Keep the SeqNo */
         request.djb_seqno = djb_seqno;
 
         return djb_contents;
@@ -216,24 +222,24 @@ Translator = {
     ss_response2request : function (response, request) {
         var djb_set_cookie, djb_content_type;
 
-	/*
+        /*
          * The response should be converted into a POST
          * no DJB headers will be in the response
-	 */
+         */
         request.open('POST', JumpBox.jb_push_url);
 
-	/* Pass on the SeqNo + HTTPCode (http status of the response) */
+        /* Pass on the SeqNo + HTTPCode (http status of the response) */
         request.setRequestHeader('DJB-SeqNo', response.djb_seqno);
         request.setRequestHeader('DJB-HTTPCode', response.status);
 
         /*
-	 * Though we do need to preserve/transfer some headers (Content-Type, Set-Cookie)
+         * Though we do need to preserve/transfer some headers (Content-Type, Set-Cookie)
          * make sure the cookie goes along for the ride
-	 */
+         */
         djb_set_cookie = response.getResponseHeader('DJB-Set-Cookie');
         if (typeof djb_set_cookie === 'string') {
             console.log('ss_push_response: djb_set_cookie = ' + djb_set_cookie);
-            request.setRequestHeader('Set-Cookie', djb_set_cookie);
+            request.setRequestHeader('DJB-Set-Cookie', djb_set_cookie);
         }
 
         djb_content_type = response.getResponseHeader('Content-Type');
@@ -247,29 +253,33 @@ Translator = {
 };
 
 Headers = {
+
+    stegotorusServerRequests: {},
+
     onBeforeSendHeaders: function (details) {
-        var index, to_jumpbox = false, header = null, djb_cookie_header = null;
+        var index, to_jumpbox = false, header = null, djb_cookie_header = null, requestId = details.requestId;
+
         for (index = 0; index < details.requestHeaders.length; index += 1) {
             header = details.requestHeaders[index];
-
+            Debug.log('onBeforeSendHeaders: ' + header.name + ': ' + header.value);
             /* Check if this goes to our proxy */
             if (header.name === 'Host' && header.value === JumpBox.jb_host) {
                 to_jumpbox = true;
-                break;
-            }
-
-            /* Strip origin headers including our extension URL */
-            if (header.name === 'Origin') {
-		if (header.value === 'chrome-extension://' + JumpBox.jb_ext_id) {
+            } else if (header.name === 'DJB-Server') {
+                /* this request is going over the wire to the Stegotorus server */
+                /* need to ditch the header; and remember the requestId */
+                Headers.stegotorusServerRequests[requestId] = true;
+                details.requestHeaders.splice(index, 1);
+            } else if (header.name === 'Origin') {
+                /* Strip origin headers including our extension URL */
+                if (header.value === 'chrome-extension://' + JumpBox.jb_ext_id) {
                     Debug.log('onBeforeSendHeaders: Removing ' + header.name + ': ' + header.value);
                     details.requestHeaders.splice(index, 1);
                 } else {
                     Debug.log('onBeforeSendHeaders: Origin kept: ' + header.name + ': ' + header.value);
-		}
-            }
-
-            /* Catch the cookie for replacement below */
-            if (header.name === 'DJB-Cookie') {
+                }
+            } else if (header.name === 'DJB-Cookie') {
+                /* Catch the cookie for replacement below */
                 djb_cookie_header = header;
             }
         }
@@ -283,22 +293,23 @@ Headers = {
 
         return {requestHeaders: details.requestHeaders};
     },
+
     onHeadersReceived: function (details) {
-        var index, header = null, cookieval = null;
+        var index, header = null, requestId = details.requestId;
 
-        for (index = 0; index < details.responseHeaders.length; index += 1) {
-            header = details.responseHeaders[index];
+        if (Headers.stegotorusServerRequests[requestId]) {
+            /* we are the reply from the stegotorus server */
+            delete Headers.stegotorusServerRequests[requestId];
 
-            if (header.name === 'Set-Cookie') {
-                Debug.log('onHeadersReceived(' + details.tabId + '/' + details.type + '): ' + header.name + ': ' + header.value);
-		cookieval = header.value;
-                break;
+            for (index = 0; index < details.responseHeaders.length; index += 1) {
+                header = details.responseHeaders[index];
+
+                if (header.name === 'Set-Cookie') {
+                    header.name = 'DJB-Set-Cookie';
+                    break;
+                }
             }
         }
-
-	if (cookieval != null) {
-		/* addheader('DJB-Set-Cookie: ' + cookieval); XXX */
-	}
 
         return { responseHeaders: details.responseHeaders };
     }

@@ -34,7 +34,7 @@ class JumpBox(Resource):
 root = JumpBox()
 factory = Site(root)
 
-reactor.listenTCP(8000, factory)
+reactor.listenTCP(6543, factory)
 reactor.run()
 
 
