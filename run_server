@@ -1,0 +1,14 @@
+#!/bin/bash
+
+export SAFDEF_LOG_LEVEL=debug;
+
+VALGRIND=$1
+
+SERVER="server/djb run"
+
+if [ -n "$VALGRIND" ]
+then
+valgrind --leak-check=yes  --dsymutil=yes --trace-children=yes ${SERVER}
+else
+${SERVER}
+fi
