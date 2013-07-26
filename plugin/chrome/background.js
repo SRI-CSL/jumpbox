@@ -266,6 +266,7 @@ Headers = {
             /* Check if this goes to our proxy */
             if (header.name === 'Host' && header.value === JumpBox.jb_host) {
                 to_jumpbox = true;
+                break;
             } else if (header.name === 'DJB-Server') {
                 /* this request is going over the wire to the Stegotorus server */
                 /* need to ditch the header; and remember the requestId */
