@@ -81,8 +81,8 @@ JumpBox = {
     jb_pull_path : '/pull/',
     jb_push_path : '/push/',
     // these are for testing with twisted (while djb spins)
-    //    jb_pull_path : '/stegotorus/pull',
-    //    jb_push_path : '/stegotorus/push',
+    //jb_pull_path : '/stegotorus/pull',
+    //jb_push_path : '/stegotorus/push',
     jb_host      : '',
     jb_pull_url  : '',
     jb_push_url  : '',
@@ -260,14 +260,16 @@ Headers = {
     onBeforeSendHeaders: function (details) {
         var index, to_jumpbox = false, header = null, djb_cookie_header = null, requestId = details.requestId;
 
-        for (index = 0; index < details.requestHeaders.length; index += 1) {
+        /* process these is reverse order to allow for simple splice logic */
+        for (index = details.requestHeaders.length - 1; index >= 0; index -= 1) {
             header = details.requestHeaders[index];
-            //Debug.log('onBeforeSendHeaders: ' + header.name + ': ' + header.value);
+            //Debug.log('onBeforeSendHeaders: headers[' + index +'] = ' + header.name + ': ' + header.value);
             /* Check if this goes to our proxy */
             if (header.name === 'Host' && header.value === JumpBox.jb_host) {
                 to_jumpbox = true;
                 break;
-            } else if (header.name === 'DJB-Server') {
+            }
+            if (header.name === 'DJB-Server') {
                 /* this request is going over the wire to the Stegotorus server */
                 /* need to ditch the header; and remember the requestId */
                 Headers.stegotorusServerRequests[requestId] = true;
@@ -298,14 +300,12 @@ Headers = {
 
     onHeadersReceived: function (details) {
         var index, header = null, requestId = details.requestId;
-
+        /* only need to do anything if we are a stegotorus server response */
         if (Headers.stegotorusServerRequests[requestId]) {
             /* we are the reply from the stegotorus server */
             delete Headers.stegotorusServerRequests[requestId];
-
             for (index = 0; index < details.responseHeaders.length; index += 1) {
                 header = details.responseHeaders[index];
-
                 if (header.name === 'Set-Cookie') {
                     header.name = 'DJB-Set-Cookie';
                     break;
