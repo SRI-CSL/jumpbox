@@ -85,6 +85,13 @@ OBJFUTIL:=$(LIBFUTIL)/src/
 
 CFLAGS	+= -I$(LIBFUTIL)/include/
 
+# Location of defiantclient 
+LIBDEFIANTCLIENT:=../../rendezvous/client/src
+CFLAGS	+= -I$(LIBDEFIANTCLIENT)/
+#jeroen might know a better way ...
+#either way this bombs
+#CFLAGS	+= -DCONN_SSL
+
 # Linux
 ifeq ($(OS_NAME),Linux)
 CFLAGS	+= -D_LINUX

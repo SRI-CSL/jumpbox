@@ -60,26 +60,43 @@ The DJB-Set-Cookie header is translated into a Set-Cookie to allow this header t
 
 /rendezvous/<apicalls>
 
- == /reset/ ===
+==== /reset/ ====
 
-==== /gen_request/ ===
+Resets all internal state to "zero"
 
-Generate request to send to mod_freedom server, returns an image
+==== /gen_request/ ====
 
-remember password
+This is a POST request, the contents of which is the name of the mod_freedom server.
+In response to this request djb will:
+
+   * Generate and *remember* a random password of length, DEFIANT_REQ_REP_PASSWORD_LENGTH, and
+   * Using the password and the server name generate the URL (using PBC) of a mod_freedom request.
+
+The response to this request will be the above constructed URL.
 
 ==== /image/ ====
 
-POST Image to JB
+POST the stegged onion image that mod_freedom served in response to the request generated 
+by the preceeding /gen_request/. The actual onion must be extracted onion out of the image using password
+generated and stored, again in the  preceeding /gen_request/.
 
-Extract onion out of the image using password
-
-Returns a DJB-RendezvousImage: <url>
+This onion is signed, and so this signature must be verified.  It returns json, which akin to a 
+/peel/  request contains the local URL of the image to served by mod_freedom, as well as
+the results of the verification process.
 
 ==== /peel/ ====
 
+These are POSTs of json that return json.
 
-Final result: NET
+The incoming json should include any necessary solution to puzzle.
+
+The outgoing json should include the current state, the type of the next layer
+if appropriate, and any additional info, for example the local url of a CAPTCHA
+or the progress if a POW search.
+
+Eventually the result of n *successful* /peel/ requests should return a net (part
+of the additional info).  This net is then submitted to the ACS dance described in
+more delatil below.
 
 === ACS ===
 

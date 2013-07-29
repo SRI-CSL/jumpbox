@@ -65,14 +65,14 @@ class Server(Resource):
    def render_GET(self, request):
       print 'GET: Server %s\n' % Stegotorus.cycle
       self.make_serverCookie(request);  
-      print pformat(list(request.requestHeaders.getAllRawHeaders()))
+      #print pformat(list(request.requestHeaders.getAllRawHeaders()))
       time.sleep(Stegotorus.delay)
       return "<html><body>GET: Server</body></html>"
     
    def render_POST(self, request):
       print 'POST: Server %s\n' % Stegotorus.cycle
       self.make_serverCookie(request);
-      print pformat(list(request.requestHeaders.getAllRawHeaders()))
+      #print pformat(list(request.requestHeaders.getAllRawHeaders()))
       time.sleep(Stegotorus.delay)
       return "<html><body>POST: Server </body></html>"
     
