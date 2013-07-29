@@ -1,45 +1,67 @@
 #include "rendezvous.h"
 #include "shared.h"
 
-#define DECLIENT
-
-#ifdef DECLIENT
 #include "defiantclient.h"
+#include "defiantbf.h"
+#include "defiant_params.h"
+#include "defiantrequest.h"
+#include "defianterrors.h"
+
 static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
-#endif
 
 
-// fake everything, till the real thing comes along (and POSTs have accessible data).
-// static char server[] = "vm06.csl.sri.com";
-// static char secret[] = "U4Sv7k2PY0Gq7TFi";
-static char freedom_request[] = "http://vm06.csl.sri.com/photos/26907150@N08/1457660969/lightbox?_utma=ACbLoAX643zHB8Bqb5MtfZWLUdfMZDUvH9hthuYoM96yRlIIBtPY1ns1kfEh72EFYUOr0sxHuBs2PiQ4WJf9RVNqCUaaDJabwIv8S5g8Ld1zNhoB4lc8QuqjqjVmk98P9qNJbOBpLQLHTU5Jo1f6koLiS1diUEEpTXRVsWzDKHsA&_utmz=Gu8jdzMURgtpNVnP6odSZVGKBEE=";
+static char* randomPath(void){
+  char *retval = (char *)calloc(1024, sizeof(char));
+  int r = rand();
+  //look like flickr for today:
+  snprintf(retval, 1024, "photos/26907150@N08/%d/lightbox", r);
+  return retval;
+}
 
 
 static void respond(httpsrv_client_t *hcl, unsigned int errcode, const char *api, const char *msg) {
-	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s\r\n", errcode, api);
-	conn_printf(&hcl->conn, "%s", msg);
-	httpsrv_done(hcl);
+  conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s\r\n", errcode, api);
+  conn_printf(&hcl->conn, "%s", msg);
+  httpsrv_done(hcl);
 }
 
 static void reset(httpsrv_client_t* hcl) {
-#ifdef DECLIENT
   memset(password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
-#endif
   respond(hcl, 200, "reset", "Reset OK");
 }
 
 static void gen_request(httpsrv_client_t* hcl) {
-  respond(hcl, 200, "gen_request", freedom_request);
+  /* fake it till we can get the POST data from hcl */
+  char server[] = "vm06.csl.sri.com";
+  int secure = 0;  // might be best if this comes from the plugin; hence this request might need json too.
+  char *path = NULL, *request = NULL;
+  bf_params_t *params =  NULL;
+  int defcode = bf_char64_to_params(defiant_params_P, defiant_params_Ppub, &params);
+  if(defcode == DEFIANT_OK){
+    randomPasswordEx(password, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1, 0);
+    path = randomPath();
+    if(secure){
+      defcode = generate_defiant_ssl_request_url(params, password, server, path, &request);
+    } else {
+      defcode = generate_defiant_request_url(params, password, server, path, &request);
+    }
+  }
+  if(defcode == DEFIANT_OK){
+    respond(hcl, 200, "gen_request", request);
+    logline(log_DEBUG_, "gen_request: password = %s\nrequest = %s", password, request);
+  } else {
+    djb_error(hcl, 500, defiant_strerror(defcode));
+  }
+  free(path);
+  free(request);
 }
 
 static void image(httpsrv_client_t*  hcl) {
   djb_error(hcl, 500, "Not implemented yet");
-
 }
 
 static void peel(httpsrv_client_t * hcl) {
   djb_error(hcl, 500, "Not implemented yet");
-
 }
 
 static void dance(httpsrv_client_t* hcl) {
@@ -81,3 +103,5 @@ void rendezvous(httpsrv_client_t *hcl) {
   }
 
 }
+
+

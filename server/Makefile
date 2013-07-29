@@ -85,12 +85,9 @@ OBJFUTIL:=$(LIBFUTIL)/src/
 
 CFLAGS	+= -I$(LIBFUTIL)/include/
 
-# Location of defiantclient 
-LIBDEFIANTCLIENT:=../../rendezvous/client/src
-CFLAGS	+= -I$(LIBDEFIANTCLIENT)/
-#jeroen might know a better way ...
-#either way this bombs
-#CFLAGS	+= -DCONN_SSL
+#RENDEZVOUS: Location of defiantclient 
+LIBDEFIANTCLIENT:=../../rendezvous/client/src/
+CFLAGS	+= -I$(LIBDEFIANTCLIENT)
 
 # Linux
 ifeq ($(OS_NAME),Linux)
@@ -178,21 +175,27 @@ $(error Unknown number of bits: $(OS_BITS))
 endif
 endif
 
+
+
 # Force architecture for gcc on OS X Snow Leopard 
 ifeq ($(OS_NAME)-$(CC_TYPE),Darwin-gcc)
-ifeq ($(OS_BITS),32)
-CFLAGS+=-arch i386
-LDFLAGS+=-arch i386
-else
+#RENDEZVOUS: ian has to comment this out to compile on his laptop:
+#ifeq ($(OS_BITS),32)
+#CFLAGS+=-arch i386
+#LDFLAGS+=-arch i386
+#else
 CFLAGS+=-arch x86_64
 LDFLAGS+=-arch x86_64
-endif
+#endif
 endif
 
 BUILD_GIT:=$(shell git log --pretty=format:'%H' -n 1)
 CFLAGS += -DPROJECT_VERSION=$(PROJECT_VERSION)
 CFLAGS += -DPROJECT_BUILDTIME=$(PROJECT_BUILDTIME)
 CFLAGS += -DPROJECT_GIT=$(BUILD_GIT)
+
+#RENDEZVOUS: ian added this. might not be the best place for it though
+LDFLAGS+= -lcrypto -lpbc -lgmp  -lcurl
 
 # Prettifiers
 LINK	= @echo "* Linking $@"; $(CC) $(CFLAGS) $(LDFLAGS)
@@ -213,6 +216,12 @@ DJB_OBJS	+=					\
 			djb.o				\
 			rendezvous.o			\
 			shared.o			\
+			$(LIBDEFIANTCLIENT)defiantclient.o    \
+			$(LIBDEFIANTCLIENT)defiantbf.o        \
+			$(LIBDEFIANTCLIENT)crc.o              \
+			$(LIBDEFIANTCLIENT)utils.o            \
+			$(LIBDEFIANTCLIENT)defianterrors.o    \
+			$(LIBDEFIANTCLIENT)defiantrequest.o   \
 			$(OBJFUTIL)httpsrv.o		\
 			$(OBJFUTIL)buf.o		\
 			$(OBJFUTIL)conn.o		\
@@ -270,6 +279,7 @@ tags: $(SRCS)
 
 djb$(EXT): $(DEPS) $(DJB_OBJS)
 	$(LINK) -o $@ $(DJB_OBJS) $(DJB_LDLIBS) $(LDLIBS)
+
 
 %.o: %.c $(DEPS)
 	@echo "* Compiling $@";
