@@ -66,27 +66,29 @@ Rendezvous = {
     
     send_url: function(){  
         var address = document.querySelector('#mod_freedom_uri').value;
+        var ssl = document.querySelector('#ssl').checked;
         if(!address){
             Rendezvous.set_status('please enter a mod_freedom server address.'); 
         } else {
             //ask the jumpbox to construct our secret and mod_freedom request
-            Rendezvous.gen_request(address); 
+            Rendezvous.gen_request(address, ssl); 
         }
     },
-
+    
     set_status: function(msg){
         if(msg){
             document.querySelector('#status').innerHTML = 'Status: ' + msg;
         }
     },
-
-    gen_request: function(address) {
+    
+    gen_request: function(address, ssl) {
         var gen_request = new XMLHttpRequest();
         gen_request.onreadystatechange = function () { Rendezvous.handle_gen_response(gen_request); };
         gen_request.open('POST', Rendezvous.gen_request_url);
         //the webRequest API should ignore
         gen_request.setRequestHeader('DJB_REQUEST', 'true');
-        gen_request.send(address);
+        gen_request.setRequestHeader("Content-Type", "application/json"); 
+        gen_request.send(JSON.stringify({server:address, secure:ssl}));
     },
     
     handle_gen_response: function(request){

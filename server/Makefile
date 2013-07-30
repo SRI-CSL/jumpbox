@@ -195,7 +195,8 @@ CFLAGS += -DPROJECT_BUILDTIME=$(PROJECT_BUILDTIME)
 CFLAGS += -DPROJECT_GIT=$(BUILD_GIT)
 
 #RENDEZVOUS: ian added this. might not be the best place for it though
-LDFLAGS+= -lcrypto -lpbc -lgmp  -lcurl
+LDFLAGS+= -lcrypto -lpbc -lgmp  -lcurl -ljansson
+
 
 # Prettifiers
 LINK	= @echo "* Linking $@"; $(CC) $(CFLAGS) $(LDFLAGS)

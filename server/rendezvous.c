@@ -7,6 +7,9 @@
 #include "defiantrequest.h"
 #include "defianterrors.h"
 
+#include <jansson.h>
+
+
 static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
 
 
@@ -30,10 +33,7 @@ static void reset(httpsrv_client_t* hcl) {
   respond(hcl, 200, "reset", "Reset OK");
 }
 
-static void gen_request(httpsrv_client_t* hcl) {
-  /* fake it till we can get the POST data from hcl */
-  char server[] = "vm06.csl.sri.com";
-  int secure = 0;  // might be best if this comes from the plugin; hence this request might need json too.
+static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
   char *path = NULL, *request = NULL;
   bf_params_t *params =  NULL;
   int defcode = bf_char64_to_params(defiant_params_P, defiant_params_Ppub, &params);
@@ -52,8 +52,33 @@ static void gen_request(httpsrv_client_t* hcl) {
   } else {
     djb_error(hcl, 500, defiant_strerror(defcode));
   }
+  bf_free_params(params);
   free(path);
   free(request);
+}
+
+static void gen_request(httpsrv_client_t* hcl) {
+  /* fake it till we can get the POST data from hcl */
+  char text[] = "{ \"server\": \"vm06.csl.sri.com\", \"secure\": false }";
+  json_error_t error;
+  json_t *root = json_loads(text, 0, &error);
+  char* server = NULL;
+  int secure = 0;  
+  if(root != NULL && json_is_object(root)){
+    json_t *server_val, *secure_val;
+    secure_val = json_object_get(root, "secure");
+    if(secure_val != NULL && json_is_true(secure_val)){ secure = 1; }
+    server_val = json_object_get(root, "server");
+    if(json_is_string(server_val)){
+      server = (char *)json_string_value(server_val);
+    }
+  }
+  if(server != NULL){
+      gen_request_aux(hcl, server, secure);
+  } else {
+    djb_error(hcl, 500, "POST data conundrum");
+  }
+  json_decref(root);
 }
 
 static void image(httpsrv_client_t*  hcl) {
