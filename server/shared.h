@@ -1,6 +1,9 @@
 #ifndef SHARED_H
 #define SHARED_H 1
 
+// Workaround DEPRECATED_IN_MAC_OS_X_VERSION_10_7_AND_LATER
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 #include <libfutil/httpsrv.h>
 
 void

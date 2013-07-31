@@ -48,6 +48,8 @@ to djb using a 'push' request.
 
 The plugin can return data using a 'POST http://localhost:6543/push/' along with the following headers:
 
+* DJB-HTTPCode: <errorcode>
+* DJB-HTTPmsg: /* XXX Check if we can get this from Chrome's response.status or so? */
 * DJB-Set-Cookie: <Cookie for this request> (opt)
 * DJB-SeqNo: Packet Sequence Number (assigned by djb)
 

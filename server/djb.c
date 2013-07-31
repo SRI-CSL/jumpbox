@@ -9,8 +9,8 @@
 #define DJB_PORT	6543
 
 typedef struct {
-	hnode_t			node;
-	httpsrv_client_t	*hcl;
+	hnode_t			node;		/* List node */
+	httpsrv_client_t	*hcl;		/* Client for this request */
 } djb_req_t;
 
 /* New, unforwarded queries (awaiting 'pull') */
@@ -26,16 +26,19 @@ hlist_t lst_proxy_body;
 hlist_t lst_api_pull;
 
 typedef struct {
+	char	httpcode[128];
 	char	seqno[32];
+	char	setcookie[1024];
 } djb_headers_t;
 
 #define DJBH(h) offsetof(djb_headers_t, h), sizeof (((djb_headers_t *)NULL)->h)
 
 misc_map_t djb_headers[] = {
+	{ "DJB-HTTPCode",	DJBH(httpcode)	},
 	{ "DJB-SeqNo",		DJBH(seqno)	},
+	{ "DJB-Set-Cookie",	DJBH(setcookie)	},
 	{ NULL,			0, 0		}
 };
-
 
 void
 djb_pull(httpsrv_client_t *hcl);
@@ -65,52 +68,141 @@ djb_pull(httpsrv_client_t *hcl){
 	logline(log_DEBUG_, "Request added to api_pull");
 }
 
-/* Pull request, look up the SeqNo and handle it */
-void
-djb_push(httpsrv_client_t *hcl, djb_headers_t *dh);
-void
-djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
-	djb_req_t	*r, *rn, *rp = NULL;
-	uint64_t	id, reqid;
-
-	/* Convert the Request-ID */
-	if (sscanf(dh->seqno, "%09" PRIx64 "%09" PRIx64, &id, &reqid) != 2) {
-		djb_error(hcl, 504, "Missing or malformed SeqNo");
-		return;
-	}
+djb_req_t *
+djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid);
+djb_req_t *
+djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid) {
+	djb_req_t	*r, *rn, *pr = NULL;
 
 	/* Find this Request-ID in our outstanding proxy requests */
-	list_lock(&lst_proxy_out);
-	list_for(&lst_proxy_out, r, rn, djb_req_t *) {
+	list_lock(lst);
+	list_for(lst, r, rn, djb_req_t *) {
 		if (r->hcl->id != id ||
 		    r->hcl->reqid != reqid) {
 			continue;
 		}
 
 		/* Gotcha */
-		rp = r;
-		list_remove(&lst_proxy_out, &rp->node);
+		pr = r;
+
+		/* Remove it from this list */
+		list_remove(lst, &pr->node);
 		break;
 	}
-	list_unlock(&lst_proxy_out);
+	list_unlock(lst);
 
-	if (!rp) {
+	return (pr);
+}
+
+/* Pull request, look up the SeqNo and handle it */
+void
+djb_push(httpsrv_client_t *hcl, djb_headers_t *dh);
+void
+djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
+	djb_req_t	*pr;
+	uint64_t	id, reqid;
+
+	/* We require a DJB-HTTPCode */
+	if (strlen(dh->httpcode) == 0) {
+		djb_error(hcl, 504, "Missing DJB-HTTPCode");
+		return;
+	}
+
+	/* Convert the Request-ID */
+	if (sscanf(dh->seqno, "%09" PRIx64 "%09" PRIx64, &id, &reqid) != 2) {
+		djb_error(hcl, 504, "Missing or malformed DJB-SeqNo");
+		return;
+	}
+
+	/* Find the request */
+	pr = djb_find_req(&lst_proxy_out, id, reqid);
+
+	if (!pr) {
 		djb_error(hcl, 404, "No such request outstanding");
 		return;
 	}
 
-	/* We got the request, get the body and forward it */
+	/* Resume reading/writing from the sockets */
+	httpsrv_speak(pr->hcl);
 
-	/* Resume reading from the sockets */
-	httpsrv_speak(r->hcl);
+	/* We got an answer, send back what we have already */
+	conn_addheaderf(&pr->hcl->conn, "HTTP/1.1 %s OK\r\n", dh->httpcode);
 
-	/* Put this on the proxy_out list now it is being handled */
-	list_addtail_l(&lst_proxy_body, &r->node);
+	/* We need to translate the cookie header back */
+	if (strlen(dh->setcookie) > 0) {
+		conn_addheaderf(&pr->hcl->conn, "Set-Cookie: %s\r\n",
+				dh->setcookie);
+	}
 
-	/* HTTP okay */
-	conn_addheaderf(&r->hcl->conn, "HTTP/1.1 200 OK\r\n");
+	/* Add all the headers we received */
+	conn_addheader(&pr->hcl->conn, buf_buffer(&hcl->the_headers));
 
-	/* XXX: Copy the headers + body over */
+	if (hcl->headers.content_length == 0) {
+		/* This request is done (after flushing) */
+		httpsrv_done(pr->hcl);
+
+		/* Release it */
+		free(pr);
+		return;
+	}
+
+	/* Still need to forward some data */
+
+	/*
+	 * Put this on the proxy_body list
+	 * As we turned speaking on, this will cause
+	 * the rest of the connection to be read
+	 * and thus the body to be copied over
+	 */
+	list_addtail_l(&lst_proxy_body, &pr->node);
+
+	/* Make it forward the body from hcl to pr */
+	hcl->bodyfwd = pr->hcl;
+	hcl->bodyfwdlen = hcl->headers.content_length;
+
+	/* httpsrv does not need to forward this anymore */
+	hcl->headers.content_length = 0;
+	/* XXX: abstract the above few lines */
+
+	/* The Content-Length header is already included in all the headers */
+	conn_add_contentlen(&pr->hcl->conn, false);
+
+	logline(log_DEBUG_,
+		"Forwarding body from %" PRIu64 " to %" PRIu64,
+		pr->hcl->id, hcl->id);
+}
+
+void
+djb_bodyfwddone(httpsrv_client_t *hcl, void *user);
+void
+djb_bodyfwddone(httpsrv_client_t *hcl, void *user) {
+	djb_headers_t	*dh = (djb_headers_t *)user;
+	uint64_t	id, reqid;
+	djb_req_t	*pr;
+
+	/* Convert the Request-ID */
+	if (sscanf(dh->seqno, "%09" PRIx64 "%09" PRIx64, &id, &reqid) != 2) {
+		djb_error(hcl, 504, "Missing or malformed DJB-SeqNo");
+		return;
+	}
+
+	/* Find the request */
+	pr = djb_find_req(&lst_proxy_body, id, reqid);
+
+	if (!pr) {
+		/* Cannot happen in theory */
+		logline(log_ERR_, "Could not find %" PRIu64 ":%" PRIu64,
+			id, reqid);
+		assert(false);
+		return;
+	}
+
+	logline(log_DEBUG_,
+		"Done forwarding body from %" PRIu64 " to %" PRIu64,
+		pr->hcl->id, hcl->id);
+
+	/* Send a content-length again if there is one */
+	conn_add_contentlen(&pr->hcl->conn, true);
 }
 
 void
@@ -256,6 +348,8 @@ djb_pass_pollers(void) {
 	logline(log_DEBUG_, "...");
 
 	while (thread_keep_running()) {
+		logline(log_DEBUG_, "waiting for proxy request");
+
 		/* Get a new proxy request */
 		thread_setstate(thread_state_io_next);
 		pr = (djb_req_t *)list_getnext(&lst_proxy_new);
@@ -352,7 +446,13 @@ djb_run(void) {
 
 	while (true) {
 		/* Initialize a HTTP Server */
-		if (!httpsrv_init(hs, NULL, djb_accept, djb_header, djb_handle, djb_done, djb_close)) {
+		if (!httpsrv_init(hs, NULL,
+				  djb_accept,
+				  djb_header,
+				  djb_handle,
+				  djb_bodyfwddone,
+				  djb_done,
+				  djb_close)) {
 			logline(log_CRIT_, "Could not initialize HTTP server");
 			ret = -1;
 			break;
