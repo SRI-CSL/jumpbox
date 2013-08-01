@@ -85,7 +85,7 @@ OBJFUTIL:=$(LIBFUTIL)/src/
 
 CFLAGS	+= -I$(LIBFUTIL)/include/
 
-#RENDEZVOUS: Location of defiantclient 
+# Rendezvous: Location of defiantclient 
 LIBDEFIANTCLIENT:=../../rendezvous/client/src/
 CFLAGS	+= -I$(LIBDEFIANTCLIENT)
 
@@ -213,26 +213,25 @@ RFC6234_OBJS	+=	$(OBJFUTIL)rfc6234/hmac.o	\
 
 # DJB
 BINS		+=	djb$(EXT)
-DJB_OBJS	+=					\
-			djb.o				\
-			rendezvous.o			\
-			shared.o			\
-			$(LIBDEFIANTCLIENT)defiantclient.o    \
-			$(LIBDEFIANTCLIENT)defiantbf.o        \
-			$(LIBDEFIANTCLIENT)crc.o              \
-			$(LIBDEFIANTCLIENT)utils.o            \
-			$(LIBDEFIANTCLIENT)defianterrors.o    \
-			$(LIBDEFIANTCLIENT)defiantrequest.o   \
-			$(OBJFUTIL)httpsrv.o		\
-			$(OBJFUTIL)buf.o		\
-			$(OBJFUTIL)conn.o		\
-			$(OBJFUTIL)list.o		\
-			$(OBJFUTIL)misc.o		\
-			$(OBJFUTIL)rwl.o		\
+DJB_OBJS	+=	djb.o					\
+			rendezvous.o				\
+			shared.o				\
+			$(LIBDEFIANTCLIENT)defiantclient.o	\
+			$(LIBDEFIANTCLIENT)defiantbf.o		\
+			$(LIBDEFIANTCLIENT)crc.o		\
+			$(LIBDEFIANTCLIENT)utils.o		\
+			$(LIBDEFIANTCLIENT)defianterrors.o	\
+			$(LIBDEFIANTCLIENT)defiantrequest.o	\
+			$(OBJFUTIL)httpsrv.o			\
+			$(OBJFUTIL)buf.o			\
+			$(OBJFUTIL)conn.o			\
+			$(OBJFUTIL)list.o			\
+			$(OBJFUTIL)misc.o			\
+			$(OBJFUTIL)rwl.o			\
 			$(OBJFUTIL)thread.o
 
 # All the objects in this project nicely in alpha order
-OBJS	:= $(shell echo $(DJB_OBJS) | sed 's/ /\n/g' | sort | uniq | tr '\n' ' ')
+OBJS	:= $(shell echo $(DJB_OBJS) | tr ' ' '\n' | sort | uniq | tr '\n' ' ')
 
 export CFLAGS
 export LDFLAGS
