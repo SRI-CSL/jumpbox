@@ -7,10 +7,14 @@
 #include "defiantrequest.h"
 #include "defianterrors.h"
 
+#include "onion.h"
+
 #include <jansson.h>
 
 
 static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
+
+static onion_t onion = NULL;
 
 
 static char* randomPath(void){
@@ -30,6 +34,10 @@ static void respond(httpsrv_client_t *hcl, unsigned int errcode, const char *api
 
 static void reset(httpsrv_client_t* hcl) {
   memset(password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
+  if(onion != NULL){
+    free(onion);
+    onion = NULL;
+  }
   respond(hcl, 200, "reset", "Reset OK");
 }
 
@@ -77,6 +85,9 @@ static void gen_request(httpsrv_client_t* hcl) {
       gen_request_aux(hcl, server, secure);
   } else {
     djb_error(hcl, 500, "POST data conundrum");
+    if(root == NULL){
+      logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s\n", text, error.line, error.text);
+    }
   }
   json_decref(root);
 }
@@ -99,7 +110,9 @@ static void dance(httpsrv_client_t* hcl) {
 void rendezvous(httpsrv_client_t *hcl) {
   size_t prefix = strlen("/rendezvous/");
   char* query = &(hcl->headers.uri[prefix]);
-
+  
+  logline(log_DEBUG_, "rendezvous: query = %s", query);
+  
   if (strcasecmp(query, "reset") == 0) {
 
     reset(hcl);

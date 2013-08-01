@@ -25,19 +25,65 @@
       </div>
       <div id="onion_image_div"></div>
       <div id="onion_peeling_controls"></div>
-      <div id="onion_captcha_div"></div>
 
-      <div id="grab_bag" style="display: none;">
+      <!-- grab_bag: hidden source of DOM subtrees  STUFF BELOW IS NOT VISIBLE UNTIL MOVED UP ^ -->
+
+      <div id="grab_bag" style="display: none;"> 
+
         <img id="onion_image" alt="" src="" />
-        <img id="onion_captcha" alt="" src="" />
-        <div id="onion_captcha_div"><img id="onion_captcha" alt="" src="" /></div>
-        <table id="peeler">
-          <tr><td><label id="peeling_intructions">Peeling Instructions:</label></td></tr>
+        
+        <table id="captcha_peeler">
+          <tr><td><label id="captcha_peeling_intructions">Peeling Instructions:</label></td></tr>
+          <tr><td><div id="onion_captcha_div"></div></td></tr>
           <tr>
-            <td><input type="text" size="50" name="captcha_text" id="captcha_text"></td><td><button id="peeler_button" type="button">OK</button></td>
+            <td><input type="text" size="50" name="captcha_text" id="captcha_text"></td><td><button id="captcha_peeler_button" type="button">OK</button></td>
           </tr>
         </table> 
-      </div>
+
+        <table id="signed_peeler">
+          <tr><td><label id="signed_peeling_intructions">Your onion is signed, press OK to verify the signature.</label></td></tr>
+         <tr>
+            <td><button id="signed_peeler_button" type="button">OK</button></td>
+          </tr>
+        </table> 
+ 
+        <table id="base_peeler">
+          <tr><td><label id="base_peeling_intructions">Your NET (network entry ticket) is shown below. Press OK to commence the ACS dance!</label></td></tr>
+          <tr>
+            <td><div id="net_textarea_div"></div></td>
+          </tr>
+          <tr>
+            <td><button id="signed_peeler_button" type="button">OK</button></td>
+          </tr>
+        </table> 
+        
+        <textarea id="net_textarea" rows="8" cols="50">
+          {
+          "initial": "149.20.75.141",
+          "redirect": "149.20.75.75",
+          "wait": 4,
+          "window": 8,
+          "passphrase": "d4e2bbeefd15e7dc5a6c8874"
+          }
+        </textarea> 
+
+        <table id="pow_peeler">
+          <tr><td><label id="pow_peeling_intructions">Your onion is signed, press OK to verify the signature.</label></td></tr>
+          <tr>
+            <td>
+              <div id="pow_container" style="width:100%; height:50px; border:1px solid black;">
+                <div id="pow_progress-bar" style="width:50%; background-image:url(red.png); height:50px;"> </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><div id="pow_peeler_button_div"><button id="pow_peeler_button" type="button">OK</button></div></td>
+          </tr>
+        </table> 
+ 
+        
+
+      </div> <!-- grab_bag -->
   </body>
 
 </html>
