@@ -17,26 +17,25 @@
  *  Ideas on this Jeroen?
  */
 
-var Rendezvous;
+var Rendezvous, UI;
 
 
 Rendezvous = {
-    
-    /* the state of the game  */
-    state_type: { NATAL : 0, URI: 1, FORWARDING : 2, IMAGE : 3, PEELING : 4, FINISHED : 5, ERROR : 6 },
 
     /* needs to be kept in agreement with the enum of the same name in onion.h */
     onion_type:  { BASE : 0, POW : 1, CAPTCHA : 2, SIGNED : 3, COLLECTION : 4 },
 
     state: false,
 
-    onion: false,
-    
+    onion: -1,
+
     reset_url: 'http://127.0.0.1:8000/rendezvous/reset',
 
     gen_request_url: 'http://127.0.0.1:8000/rendezvous/gen_request',
 
     image_url: 'http://127.0.0.1:8000/rendezvous/image',
+
+    peel_url: 'http://127.0.0.1:8000/rendezvous/peel',
 
     init: function () {
         var server, port;
@@ -49,17 +48,19 @@ Rendezvous = {
             Rendezvous.reset_url = 'http://127.0.0.1:' + port + '/rendezvous/reset';
             Rendezvous.gen_request_url = 'http://127.0.0.1:' + port + '/rendezvous/gen_request';
             Rendezvous.image_url = 'http://127.0.0.1:' + port + '/rendezvous/image';
+            Rendezvous.peel_url = 'http://127.0.0.1:' + port + '/rendezvous/peel';
         }
         document.querySelector('#mod_freedom').addEventListener('click', Rendezvous.send_url);
         Rendezvous.reset();
+        UI.init();
     },
 
     reset:  function () {
         var reset_request = new XMLHttpRequest();
         reset_request.onreadystatechange = function () { Rendezvous.reset_response(reset_request); };
         reset_request.open('GET', Rendezvous.reset_url);
-        //the webRequest API should ignore
-        reset_request.setRequestHeader('DJB_REQUEST', 'true');
+        ////the webRequest API should ignore
+        //reset_request.setRequestHeader('DJB_REQUEST', 'true');
         reset_request.send(null);
     },
 
@@ -67,11 +68,9 @@ Rendezvous = {
         if (request.readyState === 4) {
             if (request.status === 200) {
                 Rendezvous.set_status('Enter the name of a mod_freedom server and press <em>Go!</em>');
-                Rendezvous.state = Rendezvous.state_type.NATAL
             } else {
                 //not sure why this would happen unless the jumpbox crashed
                 Rendezvous.set_status('Rendezvous.reset **NOT** OK');
-                Rendezvous.state = Rendezvous.state_type.ERROR;
             }
         }
     },
@@ -98,8 +97,8 @@ Rendezvous = {
         var gen_request = new XMLHttpRequest();
         gen_request.onreadystatechange = function () { Rendezvous.handle_gen_response(gen_request); };
         gen_request.open('POST', Rendezvous.gen_request_url);
-        //the webRequest API should ignore
-        gen_request.setRequestHeader('DJB_REQUEST', 'true');
+        ////the webRequest API should ignore
+        //gen_request.setRequestHeader('DJB_REQUEST', 'true');
         gen_request.setRequestHeader("Content-Type", "application/json");
         gen_request.send(JSON.stringify({server: address, secure: ssl}));
     },
@@ -109,10 +108,8 @@ Rendezvous = {
             if (request.status === 200) {
                 Rendezvous.set_status('Rendezvous.gen_response OK');
                 Rendezvous.handle_response(request.response);
-                Rendezvous.state = Rendezvous.state_type.URI;
             } else {
                 Rendezvous.set_status('Rendezvous.gen_response **NOT** OK');
-                Rendezvous.state = Rendezvous.state_type.ERROR;
             }
         }
 
@@ -132,14 +129,12 @@ Rendezvous = {
             if (request.status === 200) {
                 Rendezvous.set_status('Freedom response OK: ' + request.getResponseHeader('Content-Type'));
                 Rendezvous.forward_image(request);
-                Rendezvous.state = Rendezvous.state_type.FORWARDING;
             } else {
                 Rendezvous.set_status('Freedom response  **NOT** OK');
-                Rendezvous.state = Rendezvous.state_type.ERROR;
-           }
+            }
         }
     },
-
+    
     forward_image: function (response) {
         var image_post = new XMLHttpRequest();
         image_post.onreadystatechange = function () { Rendezvous.image_post_response(image_post); };
@@ -154,18 +149,58 @@ Rendezvous = {
             if (request.status === 200) {
                 Rendezvous.set_status('This image contains your stegged onion!');
                 robj = JSON.parse(request.responseText);
-                if (robj && robj.image) {
-                    Rendezvous.prepare_for_peeling(robj.image);
-                    Rendezvous.state = Rendezvous.state_type.IMAGE;
+                if (typeof robj === 'object') {
+                    UI.prepare_for_peeling(robj);
                 } else {
                     Rendezvous.set_status('Image post response failed to parse as JSON');
-                    Rendezvous.state = Rendezvous.state_type.ERROR;
                }
             } else {
                 Rendezvous.set_status('Image post **NOT** OK');
-                Rendezvous.state = Rendezvous.state_type.ERROR;
             }
         }
+    },
+
+    peel: function (details) {
+        var peel_request = new XMLHttpRequest();
+        peel_request.onreadystatechange = function () { Rendezvous.handle_peel_response(peel_request); };
+        peel_request.open('POST', Rendezvous.peel_url);
+        ////the webRequest API should ignore
+        //peel_request.setRequestHeader('DJB_REQUEST', 'true');
+        peel_request.setRequestHeader("Content-Type", "application/json");
+        peel_request.send(JSON.stringify(details));
+    },
+
+    handle_peel_response: function (request) {
+        var peel_response;
+        if (request.readyState === 4) {
+            if (request.status === 200) {
+                peel_response = JSON.parse(request.responseText);
+                if (typeof peel_response === 'object') {
+                    Rendezvous.set_status('Rendezvous.peel OK: ' + request.responseText);
+                    UI.update_display(peel_response.type, peel_response);
+                } else {
+                    Rendezvous.set_status('Peel response failed to parse as JSON');
+                }
+            } else {
+                Rendezvous.set_status('Rendezvous.peel **NOT** OK');
+            }
+        }
+    }
+};
+
+UI = {
+
+    /* maps onion state to ui state  */
+    uiMap:  ['#base_peeler', '#pow_peeler', '#captcha_peeler', '#signed_peeler'],
+
+    init: function () {
+        document.querySelector('#signed_peeler_button').addEventListener('click', UI.peel_away);
+        document.querySelector('#pow_peeler_button').addEventListener('click', UI.peel_away);
+    },
+
+    peel_away: function () {
+        /* not much work needed here */
+        Rendezvous.peel({});
     },
 
     display_image: function (image_url) {
@@ -175,64 +210,89 @@ Rendezvous = {
         image_div = document.querySelector('#onion_image_div');
         image_div.appendChild(image);
     },
+    
 
-
-    prepare_for_peeling: function (image_url) {
+    prepare_for_peeling: function (robj) {
         var child, onion_fetching_controls, grab_bag;
-        /* display the stegged onion */
-        Rendezvous.display_image(image_url);
+        if (typeof robj.image === 'string') {
+            /* display the stegged onion */
+            UI.display_image(robj.image);
+        }
+        if (typeof robj.onion_type === 'number') {
+            console.log("ONION_TYPE: " + robj.onion_type);
+            UI.update_display(robj.onion_type, robj);
+        } else {
+            console.log("UNKNOWN ONION_TYPE: " + robj.onion_type);
+        }
 
+        
         /* move the url fetching controls over to the grab_bag */
         onion_fetching_controls = document.querySelector('#onion_fetching_controls');
         grab_bag = document.querySelector('#grab_bag');
 
+        /* could do this better; akin to the way we do the peeler uis */
         while (onion_fetching_controls.hasChildNodes()) {
             child = onion_fetching_controls.lastChild;
             onion_fetching_controls.removeChild(child);
             grab_bag.appendChild(child);
         }
 
-        /* adding the peeler controls */
-        document.querySelector('#onion_peeling_controls').appendChild(document.querySelector('#captcha_peeler'));
-        
-        /* currently for testing  */
-        document.querySelector('#captcha_peeler_button').addEventListener('click', Rendezvous.next_layer);
 
     },
+    
 
-    /* currently for testing  */
-    next_layer: function () {
-        var old_child, new_child, net_textarea, net_textarea_div;
-        old_child = document.querySelector('#captcha_peeler');
+    update_display: function (new_state, robj) {
+        var old_state, fresh, old_ui, new_ui, grab_bag, controls;
+        console.log("update_display: " + new_state + " robj: " + robj);
+        old_state = Rendezvous.onion;
+        fresh = (new_state !== old_state);
+        if (fresh) {
+            /* move the current to the grab bag and instantiate the new */
+            controls =  document.querySelector('#onion_peeling_controls');
+            grab_bag = document.querySelector('#grab_bag');
+            if (old_state !== -1) {
+                old_ui = document.querySelector(UI.uiMap[old_state]);
+                controls.removeChild(old_ui);
+                grab_bag.appendChild(old_ui);
+            }
+            new_ui = document.querySelector(UI.uiMap[new_state]);
+            controls.appendChild(new_ui);
+        }
+        /* now update the current state */
+        if (new_state === Rendezvous.onion_type.BASE) {
+            UI.update_BASE_display(robj);
+        } else if (new_state === Rendezvous.onion_type.POW) {
+            UI.update_POW_display(robj);
+        } else if (new_state === Rendezvous.onion_type.CAPTCHA) {
 
+        } else if (new_state === Rendezvous.onion_type.SIGNED) {
 
-        //new_child = document.querySelector('#signed_peeler');
-        
-        //new_child = document.querySelector('#base_peeler');
-        //net_textarea = document.querySelector('#net_textarea');
-        //net_textarea_div = document.querySelector('#net_textarea_div');
-        //net_textarea_div.appendChild(net_textarea);
-        
+        } else {
 
-        new_child = document.querySelector('#pow_peeler');
-        document.querySelector('#pow_peeler_button').addEventListener('click', Rendezvous.pow_progress_update);
-
-        document.querySelector('#onion_peeling_controls').removeChild(old_child);
-        /* note that if we want to reuse these we should put them back in the grab bag. */
-
-        document.querySelector('#onion_peeling_controls').appendChild(new_child);
-
-
-
+        }
+        /* finally record our new state */
+        Rendezvous.onion = new_state;
     },
 
-    pow_progress_update: function () {
-        document.querySelector('#pow_progress-bar').setAttribute('style', "width:70%; background-image:url(red.png); height:50px;");
-        console.log("pow_progress_update");
+    update_BASE_display: function (robj) {
+        var net_textarea = document.querySelector('#net_textarea');
+        console.log("info: " + robj.info);
+        net_textarea.value =  robj.info;
+    },
+    
+    update_POW_display: function (robj) {
+        if (typeof robj.info === 'number') {
+            document.querySelector('#pow_progress-bar').setAttribute('style', "width:" + robj.info + "%; background-image:url(red.png); height:50px;");
+            if (robj.info < 100) {
+
+            } else {
+
+            }
+        } 
     }
-
-
 };
+
+
 
 document.addEventListener('DOMContentLoaded', function () { Rendezvous.init();  });
 
@@ -248,18 +308,6 @@ document.addEventListener('DOMContentLoaded', function () { Rendezvous.init();  
  *         CAPTCHA be the file:// of the image
  *
  * json from plugin to jumbox:  { action: "either the answer or a query" }
- *
- *
- *
- *
- *  Rendezvous.update(peelReply)
- * 
- *  Rendezvous.updateDisplay(fromState, toState)
- *
- *  Rendezvous.sendRequest(peelRequest)
- *
- *
- *
  *
  *
  *
