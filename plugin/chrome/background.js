@@ -80,9 +80,6 @@ JumpBox = {
     jb_port      : 6543,
     jb_pull_path : '/pull/',
     jb_push_path : '/push/',
-    // these are for testing with twisted (while djb spins)
-    //jb_pull_path : '/stegotorus/pull',
-    //jb_push_path : '/stegotorus/push',
     jb_host      : '',
     jb_pull_url  : '',
     jb_push_url  : '',
@@ -105,6 +102,7 @@ JumpBox = {
 
 Circuitous = {
     jb_pull : function () {
+        Debug.log('jb_pull()');
         var jb_pull_request = new XMLHttpRequest();
         JumpBox.init();
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request); };
@@ -113,11 +111,12 @@ Circuitous = {
     },
 
     handle_jb_pull_response : function (request) {
+        Debug.log('jb_pull_response(state = ' + request.readyState + ')');
         if (request.readyState === 4) {
             if (request.status === 200) {
                 var ss_push_contents = null, ss_push_request = new XMLHttpRequest();
 
-                console.log('handle_jb_pull_response: ' + request.status);
+                Debug.log('handle_jb_pull_response: ' + request.status + ', sending ss_request');
 
                 //use the jb's response to build the server_push_request
                 ss_push_request.onreadystatechange = function () { Circuitous.handle_ss_push_response(ss_push_request); };
@@ -130,6 +129,7 @@ Circuitous = {
     },
 
     handle_ss_push_response : function (request) {
+        Debug.log('ss_push_response: state = ' + request.readyState);
         if (request.readyState === 4) {
             var jb_push_contents = null, jb_push_request = new XMLHttpRequest();
 
@@ -142,18 +142,21 @@ Circuitous = {
     },
 
     handle_jb_push_response : function (request) {
+        Debug.log('jb_push_response: state = ' + request.readyState);
         if (request.readyState === 4) {
+            Debug.log('jb_push_response: status = ' + request.status);
             if (request.status === 200) {
                 //not much to do here; just error checking I suppose
-                if (Controls.running) {
-                    Circuitous.jb_pull();
-                }
             } else {
                 Debug.log('jb_push_response failed: ' + request.status);
             }
+
+	    /* Continue running? */
+            if (Controls.running) {
+                Circuitous.jb_pull();
+            }
         }
     }
-
 };
 
 
@@ -197,7 +200,7 @@ Translator = {
         djb_cookie = response.getResponseHeader('DJB-Cookie');
 
         if (typeof djb_cookie === 'string') {
-            console.log('jb_pull_response: djb_cookie = ' + djb_cookie);
+            Debug.log('jb_pull_response: djb_cookie = ' + djb_cookie);
             request.setRequestHeader('DJB-Cookie', djb_cookie);
         }
 
@@ -238,7 +241,7 @@ Translator = {
          */
         djb_set_cookie = response.getResponseHeader('DJB-Set-Cookie');
         if (typeof djb_set_cookie === 'string') {
-            console.log('ss_push_response: djb_set_cookie = ' + djb_set_cookie);
+            Debug.log('ss_push_response: djb_set_cookie = ' + djb_set_cookie);
             request.setRequestHeader('DJB-Set-Cookie', djb_set_cookie);
         }
 
