@@ -66,12 +66,41 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
 }
 
 static void gen_request(httpsrv_client_t* hcl) {
+#if 0
   /* fake it till we can get the POST data from hcl */
   char text[] = "{ \"server\": \"vm06.csl.sri.com\", \"secure\": false }";
+#endif
+
   json_error_t error;
-  json_t *root = json_loads(text, 0, &error);
+  json_t *root;
   char* server = NULL;
-  int secure = 0;  
+  int secure = 0;
+
+  /* No body yet? Then allocate some memory to get it */
+  if (hcl->readbody == NULL) {
+      if (hcl->headers.content_length < 10) {
+          djb_error(hcl, 500, "POST body too puny");
+      }
+
+      if (hcl->headers.content_length >= (5*1024*1024)) {
+          djb_error(hcl, 500, "POST body too big");
+      }
+
+      logline(log_DEBUG_, "gen_request: asking for the body\n");
+
+      /* Let the HTTP engine read the body in here */
+      hcl->readbody = mcalloc(hcl->headers.content_length, "HTTPBODY");
+      hcl->readbodylen = hcl->headers.content_length;
+      hcl->readbodyoff = 0;
+      return;
+  }
+
+  logline(log_DEBUG_, "gen_request: >>>>\n");
+  logline(log_DEBUG_, "%s", hcl->readbody);
+  logline(log_DEBUG_, "gen_request: <<<<\n");
+
+  root = json_loads(hcl->readbody, 0, &error);
+
   if(root != NULL && json_is_object(root)){
     json_t *server_val, *secure_val;
     secure_val = json_object_get(root, "secure");
@@ -86,7 +115,7 @@ static void gen_request(httpsrv_client_t* hcl) {
   } else {
     djb_error(hcl, 500, "POST data conundrum");
     if(root == NULL){
-      logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s\n", text, error.line, error.text);
+      logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s\n", hcl->readbody, error.line, error.text);
     }
   }
   json_decref(root);

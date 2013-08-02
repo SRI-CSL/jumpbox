@@ -348,6 +348,13 @@ djb_done(httpsrv_client_t *hcl, void *user) {
 
 	logline(log_DEBUG_, "%p", (void *)hcl);
 
+	if (hcl->readbody) {
+		mfree(hcl->readbody, hcl->readbodylen + hcl->readbodyoff, "HTTPBODY");
+		hcl->readbody = NULL;
+		hcl->readbodylen = 0;
+		hcl->readbodyoff = 0;
+	}
+
 	memzero(dh, sizeof *dh);
 }
 
