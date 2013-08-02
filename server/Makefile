@@ -220,6 +220,8 @@ DJB_OBJS	+=	djb.o					\
 			$(LIBDEFIANTCLIENT)defiantbf.o		\
 			$(LIBDEFIANTCLIENT)crc.o		\
 			$(LIBDEFIANTCLIENT)utils.o		\
+			$(LIBDEFIANTCLIENT)onion.o		\
+			$(LIBDEFIANTCLIENT)outguess.o		\
 			$(LIBDEFIANTCLIENT)defianterrors.o	\
 			$(LIBDEFIANTCLIENT)defiantrequest.o	\
 			$(OBJFUTIL)httpsrv.o			\

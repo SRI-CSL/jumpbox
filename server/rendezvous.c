@@ -8,14 +8,18 @@
 #include "defianterrors.h"
 
 #include "onion.h"
+#include "outguess.h"
 
 #include <jansson.h>
 
 
 static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
 
-static onion_t onion = NULL;
+static onion_t current_onion = NULL;
+static size_t current_onion_size = 0;
 
+/* put this next to djb_freereadbody when the dust settles */
+static int djb_allocreadbody(httpsrv_client_t *hcl);
 
 static char* randomPath(void){
   char *retval = (char *)calloc(1024, sizeof(char));
@@ -36,9 +40,10 @@ static void respond(httpsrv_client_t *hcl, unsigned int errcode, const char *api
 
 static void reset(httpsrv_client_t* hcl) {
   memset(password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
-  if(onion != NULL){
-    free(onion);
-    onion = NULL;
+  if(current_onion != NULL){
+    free_onion(current_onion);
+    current_onion = NULL;
+    current_onion_size = 0;
   }
   respond(hcl, 200, "reset", "Reset OK");
 }
@@ -67,65 +72,85 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
   free(request);
 }
 
+
+int djb_allocreadbody(httpsrv_client_t *hcl){
+  if (hcl->headers.content_length < 10) {
+    djb_error(hcl, 500, "POST body too puny");
+    return 1;
+  }
+  
+  if (hcl->headers.content_length >= (5*1024*1024)) {
+    djb_error(hcl, 500, "POST body too big");
+    return 2;
+  }
+  logline(log_DEBUG_, "djb_allocreadbody: asking for the body\n");
+  /* Let the HTTP engine read the body in here */
+  hcl->readbody = mcalloc(hcl->headers.content_length, "HTTPBODY");
+  hcl->readbodylen = hcl->headers.content_length;
+  hcl->readbodyoff = 0;
+  return 0;
+}
+
 static void gen_request(httpsrv_client_t* hcl) {
-#if 0
-  /* fake it till we can get the POST data from hcl */
-  char text[] = "{ \"server\": \"vm06.csl.sri.com\", \"secure\": false }";
-#endif
-
-  json_error_t error;
-  json_t *root;
-  char* server = NULL;
-  int secure = 0;
-
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
-      if (hcl->headers.content_length < 10) {
-          djb_error(hcl, 500, "POST body too puny");
-      }
-
-      if (hcl->headers.content_length >= (5*1024*1024)) {
-          djb_error(hcl, 500, "POST body too big");
-      }
-
-      logline(log_DEBUG_, "gen_request: asking for the body\n");
-
-      /* Let the HTTP engine read the body in here */
-      hcl->readbody = mcalloc(hcl->headers.content_length, "HTTPBODY");
-      hcl->readbodylen = hcl->headers.content_length;
-      hcl->readbodyoff = 0;
-      return;
-  }
-
-  logline(log_DEBUG_, "gen_request: >>>>\n");
-  logline(log_DEBUG_, "%s", hcl->readbody);
-  logline(log_DEBUG_, "gen_request: <<<<\n");
-
-  root = json_loads(hcl->readbody, 0, &error);
-  djb_freereadbody(hcl);
-
-  if(root != NULL && json_is_object(root)){
-    json_t *server_val, *secure_val;
-    secure_val = json_object_get(root, "secure");
-    if(secure_val != NULL && json_is_true(secure_val)){ secure = 1; }
-    server_val = json_object_get(root, "server");
-    if(json_is_string(server_val)){
-      server = (char *)json_string_value(server_val);
+    if(djb_allocreadbody(hcl)){
+      logline(log_DEBUG_, "gen_request: djb_allocreadbody crapped out\n");
     }
-  }
-  if(server != NULL){
-      gen_request_aux(hcl, server, secure);
+    return;
   } else {
-    djb_error(hcl, 500, "POST data conundrum");
-    if(root == NULL){
-      logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s\n", hcl->readbody, error.line, error.text);
+    json_error_t error;
+    json_t *root;
+    char* server = NULL;
+    int secure = 0;
+    logline(log_DEBUG_, "gen_request: %s", hcl->readbody);
+    root = json_loads(hcl->readbody, 0, &error);
+    djb_freereadbody(hcl);
+    if(root != NULL && json_is_object(root)){
+      json_t *server_val, *secure_val;
+      secure_val = json_object_get(root, "secure");
+      if(secure_val != NULL && json_is_true(secure_val)){ secure = 1; }
+      server_val = json_object_get(root, "server");
+      if(json_is_string(server_val)){
+        server = (char *)json_string_value(server_val);
+      }
     }
+    if(server != NULL){
+      gen_request_aux(hcl, server, secure);
+    } else {
+      djb_error(hcl, 500, "POST data conundrum");
+      if(root == NULL){
+        logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s\n", hcl->readbody, error.line, error.text);
+      }
+    }
+    json_decref(root);
   }
-  json_decref(root);
 }
 
 static void image(httpsrv_client_t*  hcl) {
-  djb_error(hcl, 500, "Not implemented yet");
+  logline(log_DEBUG_, "image %d\n", hcl->readbody == NULL);
+  /* No body yet? Then allocate some memory to get it */
+  if (hcl->readbody == NULL) {
+    if(djb_allocreadbody(hcl)){
+      logline(log_DEBUG_, "image: djb_allocreadbody crapped out\n");
+    }
+    return;
+  } else {
+    char* image_path = NULL, *image_dir = NULL, *onion = NULL;
+    size_t onion_sz = 0;
+    int retcode = DEFIANT_OK;
+    logline(log_DEBUG_, "image: >>>>extract_n_save\n");
+    retcode = extract_n_save(password, hcl->readbody, hcl->readbodylen,  &onion, &onion_sz, &image_path, &image_dir);
+    logline(log_DEBUG_, "image: <<<<extract_n_save\n");
+    djb_freereadbody(hcl);
+    if(retcode != DEFIANT_OK){
+      logline(log_DEBUG_, "image: extract_n_save with password %s returned %d -- %s\n", password, retcode, defiant_strerror(retcode));
+      djb_error(hcl, 500, "Not implemented yet");
+    } else {
+      //'{ "image": "file://' + path + '", "onion_type": 3}'
+      djb_error(hcl, 500, image_path);
+    }
+  }
 }
 
 static void peel(httpsrv_client_t * hcl) {
@@ -135,8 +160,6 @@ static void peel(httpsrv_client_t * hcl) {
 static void dance(httpsrv_client_t* hcl) {
   djb_error(hcl, 500, "Not implemented yet");
 }
-
-
 
 
 void rendezvous(httpsrv_client_t *hcl) {
