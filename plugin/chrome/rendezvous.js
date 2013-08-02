@@ -82,6 +82,8 @@ Rendezvous = {
         if (!address) {
             Rendezvous.set_status('please enter a mod_freedom server address.');
         } else {
+            //disable the button to enforce good behaviour
+            document.querySelector('#mod_freedom').disabled = true;
             //ask the jumpbox to construct our secret and mod_freedom request
             Rendezvous.gen_request(address, ssl);
         }
@@ -212,8 +214,17 @@ UI = {
     },
     
 
+    remove_mod_freedom_controls: function () {
+        var onion_fetching_controls, grab_bag, visible_region;
+        /* move the url fetching controls over to the grab_bag */
+        onion_fetching_controls = document.querySelector('#onion_fetching_controls');
+        grab_bag = document.querySelector('#grab_bag');
+        visible_region = document.querySelector('#visible_region');
+        visible_region.removeChild(onion_fetching_controls);
+        grab_bag.appendChild(onion_fetching_controls);
+    },
+
     prepare_for_peeling: function (robj) {
-        var child, onion_fetching_controls, grab_bag;
         if (typeof robj.image === 'string') {
             /* display the stegged onion */
             UI.display_image(robj.image);
@@ -224,20 +235,7 @@ UI = {
         } else {
             console.log("UNKNOWN ONION_TYPE: " + robj.onion_type);
         }
-
-        
-        /* move the url fetching controls over to the grab_bag */
-        onion_fetching_controls = document.querySelector('#onion_fetching_controls');
-        grab_bag = document.querySelector('#grab_bag');
-
-        /* could do this better; akin to the way we do the peeler uis */
-        while (onion_fetching_controls.hasChildNodes()) {
-            child = onion_fetching_controls.lastChild;
-            onion_fetching_controls.removeChild(child);
-            grab_bag.appendChild(child);
-        }
-
-
+        UI.remove_mod_freedom_controls();
     },
     
 
@@ -282,11 +280,12 @@ UI = {
     
     update_POW_display: function (robj) {
         if (typeof robj.info === 'number') {
-            document.querySelector('#pow_progress-bar').setAttribute('style', "width:" + robj.info + "%; background-image:url(red.png); height:50px;");
+            document.querySelector('#pow_progress-bar').setAttribute('style', "background-image:url(red.png); height:50px; width:" + robj.info + "%; ");
             if (robj.info < 100) {
-
+                document.querySelector('#pow_peeler_button').disabled = true;
+                setTimeout(UI.peel_away, 500);
             } else {
-
+                document.querySelector('#pow_peeler_button').disabled = false;
             }
         } 
     }
@@ -301,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function () { Rendezvous.init();  
 /*
  * PEELING process:
  *
- * json from jumbox to plugin:   { type: "type of onion", info: "onion information",  additional: "error message" }
+ * json from jumbox to plugin:   { type: "type of onion", info: "onion information",  additional: "error message", status: "previous outcomes for displaying"  }
  *
  * info can in the case of a 
  *         POW be a number (percent of search completed)
