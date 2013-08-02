@@ -1,0 +1,14 @@
+= Jumpbox =
+
+Welcome to Jumpbox
+
+== Installation Notes ==
+
+=== Mac OSX ===
+
+For Rendezvous one needs the "pbc" library from Stanford's Crypto department:
+ http://crypto.stanford.edu/pbc/
+
+Fortunately, this is available in Homebrew:
+ brew install pbc
+
