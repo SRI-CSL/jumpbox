@@ -162,13 +162,13 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* httpsrv does not need to forward this anymore */
 	hcl->headers.content_length = 0;
-	/* XXX: abstract the above few lines */
+	/* XXX: abstract the above few lines into a httpsrv_forward(hcl, hcl) */
 
 	/* The Content-Length header is already included in all the headers */
 	conn_add_contentlen(&pr->hcl->conn, false);
 
 	logline(log_DEBUG_,
-		"Forwarding body from %" PRIu64 " to %" PRIu64,
+		"Forwarding body from hcl%" PRIu64 " to hcl%" PRIu64,
 		pr->hcl->id, hcl->id);
 }
 
@@ -238,7 +238,7 @@ void
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* A DJB API request */
-	logline(log_DEBUG_, "DJB API request");
+	logline(log_DEBUG_, "DJB API request: %s", hcl->headers.uri);
 
 	/* Our API URIs */
 	if (strcasecmp(hcl->headers.uri, "/pull/") == 0) {
@@ -398,27 +398,13 @@ djb_pass_pollers(void) {
 		conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s\r\n",
 				httpsrv_methodname(pr->hcl->method));
 
-		if (strlen(pr->hcl->headers.content_type) > 0) {
-			conn_addheaderf(&ar->hcl->conn, "Content-Type: %s\r\n",
-					pr->hcl->headers.content_type);
-		}
-
-		if (pr->hcl->headers.content_length > 0) {
-			conn_addheaderf(&ar->hcl->conn, "Content-Length: %" PRIu64 "\r\n",
-					pr->hcl->headers.content_length);
-		}
-
-		if (strlen(pr->hcl->headers.cookie) > 0) {
-			conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s\r\n",
-					pr->hcl->headers.cookie);
-		}
-
 		conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64 "\r\n",
 				pr->hcl->id, pr->hcl->reqid);
 
-		if (pr->hcl->method == HTTP_M_POST) {
-			/* conn_printf(&ar->hcl->conn, pr->hcl->body); */
-		}
+		conn_addheaderf(&ar->hcl->conn, "Content-Type: text/html\r\n");
+
+		/* Body is just JumpBox (Content-Length is arranged by conn) */
+		conn_printf(&ar->hcl->conn, "JumpBox\r\n");
 
 		/* This request is done */
 		httpsrv_done(ar->hcl);
