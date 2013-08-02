@@ -28,7 +28,7 @@ static char* randomPath(void){
 
 static void respond(httpsrv_client_t *hcl, unsigned int errcode, const char *api, const char *msg) {
   conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s\r\n", errcode, api);
-  conn_printf(&hcl->conn, "%s", msg);
+  conn_addheaderf(&hcl->conn, "Content-Type: application/json\r\n");
   httpsrv_done(hcl);
 }
 
@@ -100,6 +100,7 @@ static void gen_request(httpsrv_client_t* hcl) {
   logline(log_DEBUG_, "gen_request: <<<<\n");
 
   root = json_loads(hcl->readbody, 0, &error);
+  djb_freereadbody(hcl);
 
   if(root != NULL && json_is_object(root)){
     json_t *server_val, *secure_val;

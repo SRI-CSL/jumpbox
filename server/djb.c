@@ -341,6 +341,16 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 }
 
 void
+djb_freereadbody(httpsrv_client_t *hcl) {
+	if (hcl->readbody) {
+		mfree(hcl->readbody, hcl->readbodylen + hcl->readbodyoff, "HTTPBODY");
+		hcl->readbody = NULL;
+		hcl->readbodylen = 0;
+		hcl->readbodyoff = 0;
+	}
+}
+
+void
 djb_done(httpsrv_client_t *hcl, void *user);
 void
 djb_done(httpsrv_client_t *hcl, void *user) {
@@ -348,12 +358,7 @@ djb_done(httpsrv_client_t *hcl, void *user) {
 
 	logline(log_DEBUG_, "%p", (void *)hcl);
 
-	if (hcl->readbody) {
-		mfree(hcl->readbody, hcl->readbodylen + hcl->readbodyoff, "HTTPBODY");
-		hcl->readbody = NULL;
-		hcl->readbodylen = 0;
-		hcl->readbodyoff = 0;
-	}
+	djb_freereadbody(hcl);
 
 	memzero(dh, sizeof *dh);
 }
@@ -419,6 +424,7 @@ djb_pass_pollers(void) {
 
 		/* DJB headers */
 		conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s\r\n",
+				/* "127.0.0.1:8000", */
 				pr->hcl->headers.hostname,
 				pr->hcl->headers.uri);
 

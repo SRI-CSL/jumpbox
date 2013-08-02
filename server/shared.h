@@ -9,4 +9,6 @@
 void
 djb_error(httpsrv_client_t *hcl, unsigned int errcode, const char *msg);
 
+void djb_freereadbody(httpsrv_client_t *hcl);
+
 #endif /* SHARED_H */
