@@ -199,10 +199,26 @@ djb_bodyfwddone(httpsrv_client_t *hcl, void *user) {
 
 	logline(log_DEBUG_,
 		"Done forwarding body from %" PRIu64 " to %" PRIu64,
-		pr->hcl->id, hcl->id);
+		hcl->id, pr->hcl->id);
 
 	/* Send a content-length again if there is one */
 	conn_add_contentlen(&pr->hcl->conn, true);
+
+	/* The forwarded request has finished */
+	httpsrv_done(pr->hcl);
+
+	/* Send back a 200 OK as we forwarded it */
+
+	/* HTTP okay */
+	conn_addheaderf(&hcl->conn, "HTTP/1.1 200 OK\r\n");
+
+	conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
+
+	/* Body is just JumpBox (Content-Length is arranged by conn) */
+	conn_printf(&hcl->conn, "JumpBox\r\n");
+
+	/* This request is done */
+	httpsrv_done(hcl);
 }
 
 void
@@ -325,10 +341,14 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 }
 
 void
-djb_done(httpsrv_client_t *hcl, void UNUSED *user);
+djb_done(httpsrv_client_t *hcl, void *user);
 void
-djb_done(httpsrv_client_t *hcl, void UNUSED *user) {
+djb_done(httpsrv_client_t *hcl, void *user) {
+	djb_headers_t  *dh = (djb_headers_t *)user;
+
 	logline(log_DEBUG_, "%p", (void *)hcl);
+
+	memzero(dh, sizeof *dh);
 }
 
 void
