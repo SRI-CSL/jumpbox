@@ -63,7 +63,9 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
   }
   if(defcode == DEFIANT_OK){
     respond(hcl, 200, "gen_request", request);
-    logline(log_DEBUG_, "gen_request: password = %s, request = %s", password, request);
+    logline(log_DEBUG_, "gen_request: secure=%s, password = %s, request = %s",
+	    secure ? "yes" : "no",
+	    password, request);
   } else {
     djb_error(hcl, 500, defiant_strerror(defcode));
   }
