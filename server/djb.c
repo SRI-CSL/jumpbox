@@ -28,7 +28,8 @@ hlist_t lst_api_pull;
 typedef struct {
 	char	httpcode[128];
 	char	seqno[32];
-	char	setcookie[1024];
+	char	setcookie[8192];
+	char	cookie[8192];
 } djb_headers_t;
 
 #define DJBH(h) offsetof(djb_headers_t, h), sizeof (((djb_headers_t *)NULL)->h)
@@ -37,6 +38,7 @@ misc_map_t djb_headers[] = {
 	{ "DJB-HTTPCode",	DJBH(httpcode)	},
 	{ "DJB-SeqNo",		DJBH(seqno)	},
 	{ "DJB-Set-Cookie",	DJBH(setcookie)	},
+	{ "Cookie",		DJBH(cookie)	},
 	{ NULL,			0, 0		}
 };
 
@@ -129,9 +131,9 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	conn_addheaderf(&pr->hcl->conn, "HTTP/1.1 %s OK\r\n", dh->httpcode);
 
 	/* We need to translate the cookie header back */
-	if (strlen(dh->setcookie) > 0) {
-		conn_addheaderf(&pr->hcl->conn, "Set-Cookie: %s\r\n",
-				dh->setcookie);
+	if (strlen(dh->cookie) > 0) {
+		conn_addheaderf(&pr->hcl->conn, "DJB-Cookie: %s\r\n",
+				dh->cookie);
 	}
 
 	/* Add all the headers we received */
@@ -377,8 +379,9 @@ static void
 djb_pass_pollers(void);
 static void
 djb_pass_pollers(void) {
-	const char *e = NULL;
-	djb_req_t *pr, *ar;
+	const char	*e = NULL;
+	djb_req_t	*pr, *ar;
+	djb_headers_t	*dh;
 
 	logline(log_DEBUG_, "...");
 
@@ -422,6 +425,9 @@ djb_pass_pollers(void) {
 		httpsrv_speak(pr->hcl);
 		httpsrv_speak(ar->hcl);
 
+		/* pr's headers */
+		dh = (djb_headers_t *)pr->hcl->user;
+
 		/* Put this on the proxy_out list now it is being handled */
 		list_addtail_l(&lst_proxy_out, &pr->node);
 
@@ -429,15 +435,28 @@ djb_pass_pollers(void) {
 		conn_addheaderf(&ar->hcl->conn, "HTTP/1.1 200 OK\r\n");
 
 		/* DJB headers */
-		conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s\r\n",
+		conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s\r\n",
 				e ? e : pr->hcl->headers.hostname,
-				pr->hcl->headers.uri);
+				pr->hcl->headers.uri,
+				(strlen(pr->hcl->headers.args) > 0) ? "?" : "",
+				pr->hcl->headers.args);
 
 		conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s\r\n",
 				httpsrv_methodname(pr->hcl->method));
 
 		conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64 "\r\n",
 				pr->hcl->id, pr->hcl->reqid);
+
+		/* We need to translate the cookie header back */
+		if (strlen(dh->setcookie) > 0) {
+			conn_addheaderf(&ar->hcl->conn, "DJB-Set-Cookie: %s\r\n",
+					dh->setcookie);
+		}
+
+		if (strlen(dh->cookie) > 0) {
+			conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s\r\n",
+					dh->cookie);
+		}
 
 		conn_addheaderf(&ar->hcl->conn, "Content-Type: text/html\r\n");
 
