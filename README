@@ -12,3 +12,63 @@ For Rendezvous one needs the "pbc" library from Stanford's Crypto department:
 Fortunately, this is available in Homebrew:
  brew install pbc
 
+
+== Environment Variables ==
+
+DJB_FORCED_HOSTNAME defines the hostname that we force connections to (DJB-URI)
+
+SAFDEF_LOG_LEVEL defines the logging level (debug is very verbose).
+
+== Running with StegoTorus ==
+
+Testing Jumpbox with StegoTorus can be achieved by the following steps.
+
+First you need to 'unpack and load' the Jukebox plugin by opening
+ chrome://extensions
+
+Start DJB:
+{{{
+export DJB_FORCED_HOSTNAME=127.0.0.1:8080
+export SAFDEF_LOG_LEVEL=debug
+server/djb run
+}}}
+
+That in combination with a Stegotorus client:
+{{{
+./stegotorus --log-min-severity=debug chop socks 127.0.0.1:1080 127.0.0.1:6543 http
+}}}
+
+That lets ST be a SOCKS server on 127.0.0.1:1080.
+
+Then start the Stegotorus server:
+{{{
+./stegotorus --log-min-severity=debug chop server 149.20.52.51:5251 127.0.0.1:8080 http
+}}}
+
+That lets ST accept HTP at 127.0.0.1:8080 (matching DJB_FORCED_HOSTNAME above) and makes
+it use 149.20.52.51:5251 as a Tor Bridge
+
+Configure the Tor client with:
+{{{
+SocksPort 9060 # local client applications (SOCKS port for WebBrowsers etc)
+SocksListenAddress 127.0.0.1 # accept connections only from localhost
+
+SafeLogging 0
+Log info file ./info.log
+Log debug file ./debug.log
+
+# Where the SOCKS proxy is (StegoTorus client)
+Socks4Proxy 127.0.0.1:1080
+
+# A fake Bridge line, gets overruled by StegoTorus)
+Bridge 127.0.0.1:9060
+UseBridges 1
+}}}
+
+and start a Tor client:
+{{{
+bin/tor -f etc/tor/torrc
+}}}
+
+That should make things move.
+
