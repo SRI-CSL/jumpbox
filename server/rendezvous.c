@@ -63,7 +63,7 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
   }
   if(defcode == DEFIANT_OK){
     respond(hcl, 200, "gen_request", request);
-    logline(log_DEBUG_, "gen_request: password = %s\nrequest = %s", password, request);
+    logline(log_DEBUG_, "gen_request: password = %s, request = %s", password, request);
   } else {
     djb_error(hcl, 500, defiant_strerror(defcode));
   }
@@ -83,7 +83,7 @@ int djb_allocreadbody(httpsrv_client_t *hcl){
     djb_error(hcl, 500, "POST body too big");
     return 2;
   }
-  logline(log_DEBUG_, "djb_allocreadbody: asking for the body\n");
+  logline(log_DEBUG_, "djb_allocreadbody: asking for the body");
   /* Let the HTTP engine read the body in here */
   hcl->readbody = mcalloc(hcl->headers.content_length, "HTTPBODY");
   hcl->readbodylen = hcl->headers.content_length;
@@ -95,7 +95,7 @@ static void gen_request(httpsrv_client_t* hcl) {
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
     if(djb_allocreadbody(hcl)){
-      logline(log_DEBUG_, "gen_request: djb_allocreadbody crapped out\n");
+      logline(log_DEBUG_, "gen_request: djb_allocreadbody crapped out");
     }
     return;
   } else {
@@ -120,7 +120,7 @@ static void gen_request(httpsrv_client_t* hcl) {
     } else {
       djb_error(hcl, 500, "POST data conundrum");
       if(root == NULL){
-        logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s\n", hcl->readbody, error.line, error.text);
+        logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s", hcl->readbody, error.line, error.text);
       }
     }
     json_decref(root);
@@ -128,23 +128,23 @@ static void gen_request(httpsrv_client_t* hcl) {
 }
 
 static void image(httpsrv_client_t*  hcl) {
-  logline(log_DEBUG_, "image %d\n", hcl->readbody == NULL);
+  logline(log_DEBUG_, "image %d", hcl->readbody == NULL);
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
     if(djb_allocreadbody(hcl)){
-      logline(log_DEBUG_, "image: djb_allocreadbody crapped out\n");
+      logline(log_DEBUG_, "image: djb_allocreadbody crapped out");
     }
     return;
   } else {
     char* image_path = NULL, *image_dir = NULL, *onion = NULL;
     size_t onion_sz = 0;
     int retcode = DEFIANT_OK;
-    logline(log_DEBUG_, "image: >>>>extract_n_save\n");
+    logline(log_DEBUG_, "image: >>>>extract_n_save");
     retcode = extract_n_save(password, hcl->readbody, hcl->readbodylen,  &onion, &onion_sz, &image_path, &image_dir);
-    logline(log_DEBUG_, "image: <<<<extract_n_save\n");
+    logline(log_DEBUG_, "image: <<<<extract_n_save");
     djb_freereadbody(hcl);
     if(retcode != DEFIANT_OK){
-      logline(log_DEBUG_, "image: extract_n_save with password %s returned %d -- %s\n", password, retcode, defiant_strerror(retcode));
+      logline(log_DEBUG_, "image: extract_n_save with password %s returned %d -- %s", password, retcode, defiant_strerror(retcode));
       djb_error(hcl, 500, "Not implemented yet");
     } else {
       //'{ "image": "file://' + path + '", "onion_type": 3}'
