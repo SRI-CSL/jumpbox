@@ -342,6 +342,8 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 
 void
 djb_freereadbody(httpsrv_client_t *hcl) {
+	logline(log_DEBUG_, "hcl = %p, readbody = %p", (void *)hcl, (void *)hcl->readbody);
+
 	if (hcl->readbody) {
 		mfree(hcl->readbody, hcl->readbodylen + hcl->readbodyoff, "HTTPBODY");
 		hcl->readbody = NULL;
