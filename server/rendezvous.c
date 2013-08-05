@@ -17,6 +17,9 @@ static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
 
 static onion_t current_onion = NULL;
 static size_t current_onion_size = 0;
+//reset will unlink these 
+static char* current_image_path = NULL;
+static char* current_image_dir = NULL;
 
 /* put this next to djb_freereadbody when the dust settles */
 static int djb_allocreadbody(httpsrv_client_t *hcl);
@@ -44,7 +47,16 @@ static void reset(httpsrv_client_t* hcl) {
     free_onion(current_onion);
     current_onion = NULL;
     current_onion_size = 0;
+  } 
+  if(current_image_path != NULL){
+    unlink(current_image_path);
+    unlink(current_image_dir);
+    free(current_image_path);
+    free(current_image_dir);
+    current_image_path = NULL;
+    current_image_dir = NULL;
   }
+
   respond(hcl, 200, "reset", "Reset OK");
 }
 
@@ -130,7 +142,30 @@ static void gen_request(httpsrv_client_t* hcl) {
   }
 }
 
+static char *make_image_reponse(char *path, int onion_type){
+  char* retval = NULL;
+  char* response = NULL;
+  int chars = 0, response_size = 0;
+  while (1) {
+    chars = snprintf(response, response_size,
+                     "{ \"image\": \"file://%s\", \"onion_type\": %d}",
+                     path, onion_type);
+    if (response_size != 0 && chars > response_size) {
+      break;
+    } else if (response_size >= chars) {
+      retval = response;
+      break;
+    } else if (response_size < chars) {
+      response_size = chars + 1;
+      response = (char *)calloc(response_size, sizeof(char));
+    }
+  }
+  return retval;
+}
+
+
 static void image(httpsrv_client_t*  hcl) {
+  char *response = NULL, *image_path = NULL, *image_dir = NULL, *encrypted_onion = NULL,  *onion = NULL;
   logline(log_DEBUG_, "image %d", hcl->readbody == NULL);
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
@@ -139,26 +174,151 @@ static void image(httpsrv_client_t*  hcl) {
     }
     return;
   } else {
-    char* image_path = NULL, *image_dir = NULL, *onion = NULL;
-    size_t onion_sz = 0;
+    size_t encrypted_onion_sz = 0;
     int retcode = DEFIANT_OK;
-    logline(log_DEBUG_, "image: >>>>extract_n_save");
-    retcode = extract_n_save(password, hcl->readbody, hcl->readbodylen,  &onion, &onion_sz, &image_path, &image_dir);
-    logline(log_DEBUG_, "image: <<<<extract_n_save");
+    retcode = extract_n_save(password, hcl->readbody, hcl->readbodyoff,  &encrypted_onion, &encrypted_onion_sz, &image_path, &image_dir);
     djb_freereadbody(hcl);
     if(retcode != DEFIANT_OK){
       logline(log_DEBUG_, "image: extract_n_save with password %s returned %d -- %s", password, retcode, defiant_strerror(retcode));
       djb_error(hcl, 500, "Not implemented yet");
     } else {
-      //'{ "image": "file://' + path + '", "onion_type": 3}'
-      djb_error(hcl, 500, image_path);
+      int onion_sz = 0;
+      onion = (onion_t)defiant_pwd_decrypt(password, (const uchar*)encrypted_onion, (int)encrypted_onion_sz, &onion_sz); 
+      if(onion == NULL){
+        logline(log_DEBUG_, "image: Decrypting onion failed: No onion");
+      } else if (onion_sz < (int)sizeof(onion_header_t)) {
+        logline(log_DEBUG_, "image: Decrypting onion failed: onion_sz less than onion header");
+      } else if (!ONION_IS_ONION(onion)) {
+        logline(log_DEBUG_, "image: Decrypting onion failed: Onion Magic Incorrect");
+      } else if (onion_sz != (int)ONION_SIZE(onion)) {
+        logline(log_DEBUG_, "image: Decrypting onion failed: onion_sz (%d) does nat match real onion size (%d)", onion_sz, (int)ONION_SIZE(onion));
+      } else {
+        response = make_image_reponse(image_path, ONION_TYPE(onion)); 
+        if(response != NULL){
+          logline(log_DEBUG_, "image: reponse %s", response);
+          current_onion = (onion_t)onion;
+          current_onion_size = onion_sz;
+          current_image_path = image_path;
+          current_image_dir = image_dir;
+          logline(log_DEBUG_, "image: onion_sz %d -- onion_type: %d", (int)current_onion_size, ONION_TYPE(current_onion));
+          respond(hcl, 200, "image", response);
+        }
+      }
     }
+  }
+  if(response == NULL){
+    //these need to be reclaimed when things go wrong
+    if(image_path != NULL){
+      unlink(image_path);
+      unlink(image_dir);
+      free(image_path);
+      free(image_dir);
+    }
+    free(onion);
+    djb_error(hcl, 500, "server error");
+  } 
+
+  //rain or shine these can get tossed
+  free(response);
+  free(encrypted_onion);
+  
+}
+
+static char *make_peel_reponse(const char* info, const char* additional, const char* status){
+  int onion_type = ONION_TYPE(current_onion);
+  char* retval = NULL;
+  char* response = NULL;
+  int chars = 0, response_size = 0;
+  while (1) {
+    chars = snprintf(response, response_size,
+                     "{ \"info\": \"%s\",  \"additional\": \"%s\", \"status\": \"%s\", \"onion_type\": %d}",
+                     info, additional, status, onion_type);
+    if (response_size != 0 && chars > response_size) {
+      break;
+    } else if (response_size >= chars) {
+      retval = response;
+      break;
+    } else if (response_size < chars) {
+      response_size = chars + 1;
+      response = (char *)calloc(response_size, sizeof(char));
+    }
+  }
+  return retval;
+}
+
+static char *peel_base(void) {
+  char *response = NULL;
+  response = make_peel_reponse("ok", "ok", "ok");
+  return response;
+}
+
+static char *peel_pow(void) {
+  char *response = NULL;
+  response = make_peel_reponse("ok", "ok", "ok");
+  return response;
+}
+
+static char *peel_captcha(void) {
+  char *response = NULL;
+  response = make_peel_reponse("ok", "ok", "ok");
+  return response;
+}
+
+static char *peel_signed(void) {
+  int  errcode = verify_onion(current_onion);
+  if(errcode == DEFIANT_OK){
+    onion_t inner_onion = NULL;
+    errcode = peel_signed_onion(current_onion, &inner_onion);
+    if(errcode == DEFIANT_OK){
+      free_onion(current_onion);
+      current_onion = inner_onion;
+      current_onion_size = ONION_SIZE(inner_onion);
+      return make_peel_reponse("", "", "The server returned an onion whose signature we VERIFIED!");
+    } else {
+      return make_peel_reponse("", "Peeling it went wrong, very odd.", "");
+    }
+  } else {
+    return make_peel_reponse("", "The server returned an onion whose signature we COULD NOT verify -- try again?", "");
   }
 }
 
+
 static void peel(httpsrv_client_t * hcl) {
-  djb_error(hcl, 500, "Not implemented yet");
+  char *response = NULL;
+  if((current_onion == NULL) || !ONION_IS_ONION(current_onion)) {
+    djb_error(hcl, 500, "Bad onion");
+  } else {
+    int otype = ONION_TYPE(current_onion);
+    switch(otype){
+    case BASE: { 
+      response =  peel_base();
+      break;
+    }
+    case POW: {
+      response =  peel_pow();
+      break;
+    }
+    case CAPTCHA: {
+      response = peel_captcha();
+      break;
+    }
+    case SIGNED: {
+      response = peel_signed();
+      break;
+    }
+    case COLLECTION:
+    default:
+      djb_error(hcl, 500, "Onion method not implemented yet");
+    }
+    if(response != NULL){
+      respond(hcl, 200, "peel", response);
+    } else {
+      djb_error(hcl, 500, "make_peel_reponse failed");
+    }
+  }
 }
+   
+
 
 static void dance(httpsrv_client_t* hcl) {
   djb_error(hcl, 500, "Not implemented yet");

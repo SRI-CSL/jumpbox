@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export DJB_FORCED_HOSTNAME=127.0.0.1:8080
 export SAFDEF_LOG_LEVEL=debug;
 
 VALGRIND=$1
