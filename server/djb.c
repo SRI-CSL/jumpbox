@@ -377,9 +377,13 @@ static void
 djb_pass_pollers(void);
 static void
 djb_pass_pollers(void) {
+	const char *e = NULL;
 	djb_req_t *pr, *ar;
 
 	logline(log_DEBUG_, "...");
+
+	/* Forcing the hostname to something else than the requestor wants? */
+	e = getenv("DJB_FORCED_HOSTNAME");
 
 	while (thread_keep_running()) {
 		logline(log_DEBUG_, "waiting for proxy request");
@@ -426,8 +430,7 @@ djb_pass_pollers(void) {
 
 		/* DJB headers */
 		conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s\r\n",
-				/* "127.0.0.1:8000", */
-				pr->hcl->headers.hostname,
+				e ? e : pr->hcl->headers.hostname,
 				pr->hcl->headers.uri);
 
 		conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s\r\n",
