@@ -8,8 +8,7 @@
         margin: 5px;
         border: 2px solid black;
         vertical-align: middle;
-        width: 300px;
-        height: 300px;
+        width: 600px;
       }
     </style>
   </head>
@@ -33,12 +32,16 @@
     <div id="grab_bag" style="display: none;"> 
 
       <img id="onion_image" alt="" src="" />
-      
+
+      <img id="captcha_image" alt="" src="" />
+
+      <input type="text" size="50" name="captcha_answer" id="captcha_answer">
+
       <table id="captcha_peeler">
-        <tr><td><label id="captcha_peeling_intructions">Peeling Instructions:</label></td></tr>
-        <tr><td><div id="onion_captcha_div"></div></td></tr>
+        <tr><td><label id="captcha_peeling_intructions"><b>Peeling Instructions:</b> Press OK to get your captcha puzzle</label></td></tr>
+        <tr><td><div id="captcha_image_div"></div></td></tr>
         <tr>
-          <td><input type="text" size="50" name="captcha_text" id="captcha_text"></td><td><button id="captcha_peeler_button" type="button">OK</button></td>
+          <td><div id="captcha_answer_div"></div></td><td><button id="captcha_peeler_button" type="button">OK</button></td>
         </tr>
       </table> 
       

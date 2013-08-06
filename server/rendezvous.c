@@ -12,6 +12,9 @@
 
 #include <jansson.h>
 
+#include <openssl/sha.h>
+
+#define KBYTE 1024
 
 static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
 
@@ -20,6 +23,17 @@ static size_t current_onion_size = 0;
 //reset will unlink these 
 static char* current_image_path = NULL;
 static char* current_image_dir = NULL;
+//captcha goes in the same directory
+static char* captcha_image_path = NULL;
+
+//pow thread
+static int pow_thread_started = 0;
+static int pow_thread_quit = 0;
+static pthread_t pow_thread;
+static onion_t pow_inner_onion = NULL;
+static long pow_thread_progress = 0;
+
+
 
 /* put this next to djb_freereadbody when the dust settles */
 static int djb_allocreadbody(httpsrv_client_t *hcl);
@@ -48,13 +62,35 @@ static void reset(httpsrv_client_t* hcl) {
     current_onion = NULL;
     current_onion_size = 0;
   } 
+  if(captcha_image_path != NULL){
+    if(unlink(captcha_image_path) == -1){
+      logline(log_DEBUG_, "unlink(%s) failed: %s", captcha_image_path, strerror(errno));
+    };
+    free(captcha_image_path);
+    captcha_image_path = NULL;
+  }
   if(current_image_path != NULL){
-    unlink(current_image_path);
-    unlink(current_image_dir);
+    if(unlink(current_image_path) == -1){
+      logline(log_DEBUG_, "unlink(%s) failed: %s", current_image_path, strerror(errno));
+    };
+    if(rmdir(current_image_dir) == -1){
+      logline(log_DEBUG_, "rmdir(%s) failed: %s", current_image_dir, strerror(errno));
+    };
     free(current_image_path);
     free(current_image_dir);
     current_image_path = NULL;
     current_image_dir = NULL;
+  }
+  
+  if(pow_thread_started){
+    onion_t inner = pow_inner_onion;
+    if(inner != NULL){
+      pow_inner_onion = NULL;
+      free_onion(inner);
+    }
+    pow_thread_started = 0;
+    pow_thread_quit = 1;
+    pow_thread_progress = 0;
   }
 
   respond(hcl, 200, "reset", "Reset OK");
@@ -88,7 +124,8 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
 
 
 int djb_allocreadbody(httpsrv_client_t *hcl){
-  if (hcl->headers.content_length < 10) {
+  /* Ian says:  {} is fine as a body for me. */
+  if (hcl->headers.content_length < 2) {
     djb_error(hcl, 500, "POST body too puny");
     return 1;
   }
@@ -217,7 +254,6 @@ static void image(httpsrv_client_t*  hcl) {
     free(onion);
     djb_error(hcl, 500, "server error");
   } 
-
   //rain or shine these can get tossed
   free(response);
   free(encrypted_onion);
@@ -252,15 +288,89 @@ static char *peel_base(void) {
   return response;
 }
 
+void *pow_worker(void *arg);
+void *pow_worker(void *arg){
+  size_t puzzle_size = ONION_PUZZLE_SIZE(current_onion);
+  char* hash = ONION_PUZZLE(current_onion);
+  int hash_len = SHA_DIGEST_LENGTH;
+  char* secret = hash + SHA_DIGEST_LENGTH;
+  int secret_len = puzzle_size - SHA_DIGEST_LENGTH;
+  char* data = ONION_DATA(current_onion);
+  size_t data_len = ONION_DATA_SIZE(current_onion);
+  pow_inner_onion = defiant_pow_aux((uchar*)hash, hash_len, (uchar*)secret, secret_len, (uchar*)data, data_len, &pow_thread_progress);
+  return arg;
+}
+
+long maxAttempts = 26 * 26 * 26 * 26 * 26 * 26;
+
+int attempts2percent(void);
+int attempts2percent(void){
+    long current = pow_thread_progress;
+    return ((current * 100)/maxAttempts);
+}
+
+
 static char *peel_pow(void) {
   char *response = NULL;
-  response = make_peel_reponse("ok", "ok", "ok");
+  if(pow_thread_started == 0){
+    /* need to start the pow thread */
+    int errcode = pthread_create(&pow_thread, NULL, pow_worker, NULL);
+    if(errcode != 0){
+      response = make_peel_reponse("", "", "Creating the Proof-Of-Work failed :-(");
+    } else {
+      pow_thread_started = 1;
+      response = make_peel_reponse("", "", "OK the Proof-Of-Work has commenced");
+    }
+  } else {
+    /* monitor the progress of the thread; or do the current <--> inner switch */
+    char buffer[32];
+    int pc = attempts2percent();
+    snprintf(buffer, sizeof buffer, "%d", pc);
+    response = make_peel_reponse(buffer, "ok", "ok");
+  }
   return response;
 }
 
-static char *peel_captcha(void) {
+static char *peel_captcha(json_t *root) {
   char *response = NULL;
-  response = make_peel_reponse("ok", "ok", "ok");
+  if(captcha_image_path == NULL){
+    if(current_image_dir == NULL){
+      /* shouldn't get here */
+      
+    } else {
+      /* need to make it */
+      int retcode = DEFIANT_DATA;
+      char path[KBYTE];
+      snprintf(path, sizeof path, "%s" PATH_SEPARATOR "captcha.png", current_image_dir);
+      retcode = bytes2file(path, ONION_PUZZLE_SIZE(current_onion), ONION_PUZZLE(current_onion)); 
+      if(retcode != DEFIANT_OK){ 
+        logline(log_DEBUG_, "image: captcha writing failed %s", defiant_strerror(retcode));
+      } else {
+        captcha_image_path = strdup(path);
+        logline(log_DEBUG_, "image: captcha image = %s", captcha_image_path);
+        snprintf(path, sizeof path, "file://%s", captcha_image_path);
+        response = make_peel_reponse(path, "ok", "Here is your captcha image!");
+      }
+    }
+  } else {
+    /* do they have an answer? */
+    json_t *answer_val = json_object_get(root, "action");
+    if(json_is_string(answer_val)){
+      char *answer = (char *)json_string_value(answer_val);
+      onion_t inner_onion = NULL;
+      int defcode = peel_captcha_onion(answer, current_onion, &inner_onion);
+      if(defcode == DEFIANT_OK){
+        free(current_onion);
+        current_onion = inner_onion;
+        response = make_peel_reponse("", "ok", "Excellent, you solved the captcha");
+      } else {
+        response = make_peel_reponse("", "ok", "Nope, try again?");
+      }
+    } else {
+      response = make_peel_reponse("", "ok", "Answer wasn't of the right type");
+    }
+  }
+
   return response;
 }
 
@@ -285,36 +395,52 @@ static char *peel_signed(void) {
 
 static void peel(httpsrv_client_t * hcl) {
   char *response = NULL;
-  if((current_onion == NULL) || !ONION_IS_ONION(current_onion)) {
-    djb_error(hcl, 500, "Bad onion");
+  /* No body yet? Then allocate some memory to get it */
+  if (hcl->readbody == NULL) {
+    if(djb_allocreadbody(hcl)){
+      logline(log_DEBUG_, "peel: djb_allocreadbody crapped out");
+    }
+    return;
   } else {
-    int otype = ONION_TYPE(current_onion);
-    switch(otype){
-    case BASE: { 
-      response =  peel_base();
-      break;
-    }
-    case POW: {
-      response =  peel_pow();
-      break;
-    }
-    case CAPTCHA: {
-      response = peel_captcha();
-      break;
-    }
-    case SIGNED: {
-      response = peel_signed();
-      break;
-    }
-    case COLLECTION:
-    default:
-      djb_error(hcl, 500, "Onion method not implemented yet");
-    }
-    if(response != NULL){
-      respond(hcl, 200, "peel", response);
+    json_error_t error;
+    json_t *root;
+    logline(log_DEBUG_, "peel: %s", hcl->readbody);
+    root = json_loads(hcl->readbody, 0, &error);
+    djb_freereadbody(hcl);
+    if(root == NULL){
+      logline(log_DEBUG_, "peel: libjansson error: line: %d msg: %s", error.line, error.text);
+    } else if((current_onion == NULL) || !ONION_IS_ONION(current_onion)) {
+      djb_error(hcl, 500, "Bad onion");
     } else {
-      djb_error(hcl, 500, "make_peel_reponse failed");
+      int otype = ONION_TYPE(current_onion);
+      switch(otype){
+      case BASE: { 
+        response =  peel_base();
+        break;
+      }
+      case POW: {
+        response =  peel_pow();
+        break;
+      }
+      case CAPTCHA: {
+        response = peel_captcha(root);
+        break;
+      }
+      case SIGNED: {
+        response = peel_signed();
+        break;
+      }
+      case COLLECTION:
+      default:
+      djb_error(hcl, 500, "Onion method not implemented yet");
+      }
+      if(response != NULL){
+        respond(hcl, 200, "peel", response);
+      } else {
+        djb_error(hcl, 500, "make_peel_reponse failed");
+      }
     }
+    json_decref(root);
   }
 }
    

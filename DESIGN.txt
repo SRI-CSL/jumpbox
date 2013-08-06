@@ -94,11 +94,26 @@ The incoming json should include any necessary solution to puzzle.
 
 The outgoing json should include the current state, the type of the next layer
 if appropriate, and any additional info, for example the local url of a CAPTCHA
-or the progress if a POW search.
+or the progress if a POW search. More specifically:
+
+ 
+json from jumbox to plugin:   
+
+ { onion_type: "type of onion",  
+   info: "onion information",  
+   additional: "error message", 
+   status: "previous outcomes for displaying"  }
+ 
+info can in the case of a 
+    POW be a number (percent of search completed)
+    CAPTCHA be the file:// of the image
+ 
+json from plugin to jumbox:  {} or { action: "either the answer or a query" }
+
 
 Eventually the result of n *successful* /peel/ requests should return a net (part
 of the additional info).  This net is then submitted to the ACS dance described in
-more delatil below.
+more detail below.
 
 === ACS ===
 

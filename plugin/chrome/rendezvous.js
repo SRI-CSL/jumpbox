@@ -178,8 +178,8 @@ Rendezvous = {
             if (request.status === 200) {
                 peel_response = JSON.parse(request.responseText);
                 if (typeof peel_response === 'object') {
-                    Rendezvous.set_status('Rendezvous.peel OK: ' + request.responseText);
-                    UI.update_display(peel_response.type, peel_response);
+                    Rendezvous.set_status(peel_response.status);
+                    UI.update_display(peel_response.onion_type, peel_response);
                 } else {
                     Rendezvous.set_status('Peel response failed to parse as JSON');
                 }
@@ -191,7 +191,9 @@ Rendezvous = {
 };
 
 UI = {
-
+    
+    robj: {},
+    
     /* maps onion state to ui state  */
     uiMap:  ['#base_peeler', '#pow_peeler', '#captcha_peeler', '#signed_peeler'],
 
@@ -241,6 +243,7 @@ UI = {
 
     update_display: function (new_state, robj) {
         var old_state, fresh, old_ui, new_ui, grab_bag, controls;
+        UI.robj = robj;
         console.log("update_display: " + new_state + " robj: " + robj);
         old_state = Rendezvous.onion;
         fresh = (new_state !== old_state);
@@ -262,7 +265,7 @@ UI = {
         } else if (new_state === Rendezvous.onion_type.POW) {
             UI.update_POW_display(robj);
         } else if (new_state === Rendezvous.onion_type.CAPTCHA) {
-
+            UI.update_CAPTCHA_display(robj);
         } else if (new_state === Rendezvous.onion_type.SIGNED) {
 
         } else {
@@ -288,7 +291,45 @@ UI = {
                 document.querySelector('#pow_peeler_button').disabled = false;
             }
         } 
-    }
+    },
+    
+    update_CAPTCHA_display: function(robj){
+        /* better handle incorrect answers too */
+        if ((typeof robj.info === 'string') && (robj.info !== "")){
+            /* display the image and prompt for an answer */
+            UI.display_captcha(robj.info);
+
+        } else {
+            /* just get ready to ask for it */
+            document.querySelector('#captcha_peeler_button').addEventListener('click', UI.peel_away);
+        }
+    },
+
+    display_captcha: function (captcha_url) {
+        var image, image_div, input, input_div;
+        image = document.querySelector('#captcha_image');
+        image.src = captcha_url;
+        image_div = document.querySelector('#captcha_image_div');
+        image_div.appendChild(image);
+        input_div = document.querySelector('#captcha_answer_div');
+        input = document.querySelector('#captcha_answer');
+        input_div.appendChild(input);
+        document.querySelector('#captcha_peeler_button').removeEventListener('click', UI.peel_away);
+        document.querySelector('#captcha_peeler_button').addEventListener('click', UI.peel_captcha);
+    },
+
+    peel_captcha: function () {
+        var input, answer;
+        input = document.querySelector('#captcha_answer');
+        answer = input.value;
+        if ((typeof answer === 'string') && (answer !== "")) {
+            Rendezvous.peel({ action: answer });
+        } else {
+            Rendezvous.set_status('You need to solve the captcha');
+        }
+    },
+
+    
 };
 
 
