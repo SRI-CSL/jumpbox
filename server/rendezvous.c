@@ -102,7 +102,7 @@ int djb_allocreadbody(httpsrv_client_t *hcl){
   hcl->readbody = mcalloc(hcl->headers.content_length, "HTTPBODY");
   hcl->readbodylen = hcl->headers.content_length;
   hcl->readbodyoff = 0;
-  logline(log_DEBUG_, "djb_allocreadbody: alloced %d bytes\n", (int)hcl->headers.content_length);
+  logline(log_DEBUG_, "djb_allocreadbody: alloced %" PRIu64 " bytes\n", hcl->headers.content_length);
   return 0;
 }
 
