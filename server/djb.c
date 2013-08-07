@@ -43,6 +43,101 @@ misc_map_t djb_headers[] = {
 };
 
 void
+djb_html_top(httpsrv_client_t *hcl);
+void
+djb_html_top(httpsrv_client_t *hcl) {
+
+	/* HTML header */
+	conn_put(&hcl->conn,
+		"<!doctype html>\n"
+		"<html lang=\"en\">\n"
+		"<head>\n"
+		"<title>JumpBox</title>\n"
+		"<link rel=\"icon\" type=\"image/png\" "
+		"href=\"http://www.farsightsecurity.com/favicon.ico\">\n"
+		"<style type=\"text/css\">\n"
+		"label\n"
+		"{\n"
+		"	float		: left;\n"
+		"	width		: 120px;\n"
+		"	font-weight	: bold;\n"
+		"}\n"
+		"\n"
+		"input, textarea\n"
+		"{\n"
+		"	margin-bottom	: 5px;\n"
+		"}\n"
+		"\n"
+		"textarea\n"
+		"{\n"
+		"	width		: 250px;\n"
+		"	height		: 150px;\n"
+		"}\n"
+		"\n"
+		"form input[type=submit]\n"
+		"{\n"
+		"	margin-left	: 120px;\n"
+		"	margin-top	: 5px;\n"
+		"	width		: 90px;\n"
+		"}\n"
+		"form br\n"
+		"{\n"
+		"	clear		: left;\n"
+		"}\n"
+		"\n"
+		"th\n"
+		"{\n"
+		"	background-color: #eeeeee;\n"
+		"}\n"
+		"\n"
+		".header, .footer\n"
+		"{\n"
+		"	background-color: #eeeeee;\n"
+		"	width		: 100%;\n"
+		"}\n"
+		"\n"
+		".footer\n"
+		"{\n"
+		"	margin-top	: 5em;\n"
+		"}\n"
+		"\n"
+		"a\n"
+		"{\n"
+		"	background-color: transparent;\n"
+		"	text-decoration	: none;\n"
+		"	border-bottom	: 1px solid #bbbbbb;\n"
+		"	color		: black;\n"
+		"}\n"
+		"\n"
+		"a:hover\n"
+		"{\n"
+		"	color		: #000000;\n"
+		"	text-decoration	: none;\n"
+		"	background-color: #d1dfd5;\n"
+		"	border-bottom	: 1px solid #a8bdae;\n"
+		"}\n"
+		"\n"
+		".right\n"
+		"{\n"
+		"	text-align	: right\n"
+		"}\n"
+		"</style>\n"
+		"</head>\n"
+		"<body>");
+}
+
+void
+djb_html_tail(httpsrv_client_t *hcl);
+void
+djb_html_tail(httpsrv_client_t *hcl) {
+
+	/* HTML header */
+	conn_put(&hcl->conn,
+		"</body>"
+		"</html>");
+}
+
+void
 djb_pull(httpsrv_client_t *hcl);
 void
 djb_pull(httpsrv_client_t *hcl){
@@ -250,6 +345,185 @@ djb_header(httpsrv_client_t UNUSED *hcl, void *user, char *line) {
 	misc_map(line, djb_headers, (char *)dh);
 }
 
+static void
+djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
+		const char *title, const char *desc);
+static void
+djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
+		const char *title, const char *desc) {
+	djb_req_t	*r, *rn;
+	unsigned int	cnt = 0;
+
+	conn_printf(&hcl->conn,
+		"<h1>List: %s</h1>\n"
+		"<p>\n"
+		"%s\n"
+		"</p>\n",
+		title,
+		desc);
+
+	list_lock(lst);
+	list_for(lst, r, rn, djb_req_t *) {
+
+		if (cnt == 0) {
+			conn_put(&hcl->conn,
+				"<table>\n"
+				"<tr>\n"
+				"<th>ID</th>\n"
+				"<th>Host</th>\n"
+				"<th>Request</th>\n"
+				"</tr>\n");
+		}
+
+		conn_printf(&hcl->conn,
+			"<tr>"
+			"<td>%" PRIu64 "</td>"
+			"<td>%s</td>"
+			"<td>%s</td>"
+			"</tr>\n",
+			r->hcl->id,
+			r->hcl->headers.hostname,
+			r->hcl->the_request);
+		cnt++;
+	}
+	list_unlock(lst);
+
+	if (cnt == 0) {
+		conn_put(&hcl->conn,
+			"No outstanding request");
+	} else {
+		conn_put(&hcl->conn,
+			"</table>\n");
+	}
+}
+
+static void
+djb_status_threads_cb(	void		*cbdata,
+			uint64_t	tid,
+			const char	*starttime,
+			uint64_t	runningsecs,
+			const char	*description,
+			bool		thisthread,
+			const char	*state,
+			uint64_t	served);
+static void
+djb_status_threads_cb(  void		*cbdata,
+			uint64_t	tid,
+			const char	*starttime,
+			uint64_t	runningsecs,
+			const char	*description,
+			bool		thisthread,
+			const char	*state,
+			uint64_t	served)
+{
+	httpsrv_client_t *hcl = (httpsrv_client_t *)cbdata;
+
+	conn_printf(&hcl->conn,
+		"<tr>"
+		"<td>tr%" PRIu64 "</td>"
+		"<td>%s</td>"
+		"<td>%" PRIu64 "</td>"
+		"<td>%s</td>"
+		"<td>%s</td>"
+		"<td>%s</td>"
+		"<td>%" PRIu64 "</td>"
+		"</tr>\n",
+		tid,
+		starttime,
+		runningsecs,
+		description,
+		yesno(thisthread),
+		state,
+		served);
+}
+
+static void
+djb_status_threads(httpsrv_client_t *hcl);
+static void
+djb_status_threads(httpsrv_client_t *hcl) {
+	unsigned int cnt;
+
+	conn_put(&hcl->conn,
+		"<h1>Threads</h1>\n"
+		"<p>\n"
+		"Threads running inside Jumpbox.\n"
+		"</p>\n"
+		"<table>\n"
+		"<tr>\n"
+		"<th>TID</th>\n"
+		"<th>Start Time</th>\n"
+		"<th>Running seconds</th>\n"
+		"<th>Description</th>\n"
+		"<th>This Thread</th>\n"
+		"<th>State</th>\n"
+		"<th>Served</th>\n"
+		"</tr>\n");
+
+	cnt = thread_list(djb_status_threads_cb, hcl);
+
+	conn_put(&hcl->conn,
+			"</table>\n");
+
+	if (cnt == 0) {
+		conn_put(&hcl->conn,
+				"Odd, no threads where found running!?");
+	}
+}
+
+static void
+djb_status_version(httpsrv_client_t *hcl);
+static void
+djb_status_version(httpsrv_client_t *hcl) {
+	conn_put(&hcl->conn,
+		"<h2>Jumpbox Information</h2>\n"
+		"<p>\n"
+		"Following details are available about this Jumpbox (djb).\n"
+		"</p>\n"
+		"\n"
+		"<table>\n"
+		"<tr><th>Version:</th><td>" STR(PROJECT_VERSION) "</td></tr>"
+		"<tr><th>Buildtime:</th><td>" STR(PROJECT_BUILDTIME) "</td></tr>"
+		"<tr><th>GIT hash:</th><td>" STR(PROJECT_GIT) "</td></tr>"
+		"</table>\n");
+}
+
+void
+djb_status(httpsrv_client_t *hcl);
+void
+djb_status(httpsrv_client_t *hcl) {
+	conn_addheaderf(&hcl->conn, "HTTP/1.1 200 OK\r\n");
+	conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
+
+	/* Body is just JumpBox (Content-Length is arranged by conn) */
+	djb_html_top(hcl);
+
+	djb_status_version(hcl);
+	djb_status_threads(hcl);
+
+	djb_status_list(hcl, &lst_proxy_new,
+			"Proxy New",
+			"New unforwarded requests");
+
+	djb_status_list(hcl, &lst_proxy_out,
+			"Proxy Out",
+			"Outstanding queries "
+			"(answer to pull, waiting for a push)");
+
+	djb_status_list(hcl, &lst_proxy_body,
+			"Proxy Body",
+			"Requiring transfering of body (push)");
+
+	djb_status_list(hcl, &lst_api_pull,
+			"API Pull",
+			"Requests that want a pull, "
+			"waiting for proxy_new entry");
+
+	djb_html_tail(hcl);
+
+	/* This request is done */
+	httpsrv_done(hcl);
+}
+
 void
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh);
 void
@@ -278,6 +552,10 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", strlen("/rendezvous/")) == 0) {
                 rendezvous(hcl);
+                return;
+
+	} else if (strcasecmp(hcl->headers.uri, "/") == 0) {
+		djb_status(hcl);
                 return;
 	}
 
@@ -428,9 +706,6 @@ djb_pass_pollers(void) {
 		/* pr's headers */
 		dh = (djb_headers_t *)pr->hcl->user;
 
-		/* Put this on the proxy_out list now it is being handled */
-		list_addtail_l(&lst_proxy_out, &pr->node);
-
 		/* HTTP okay */
 		conn_addheaderf(&ar->hcl->conn, "HTTP/1.1 200 OK\r\n");
 
@@ -468,6 +743,12 @@ djb_pass_pollers(void) {
 
 		/* Release it */
 		free(ar);
+
+		/* Put this on the proxy_out list now it is being handled */
+		list_addtail_l(&lst_proxy_out, &pr->node);
+
+		/* Served another one */
+		thread_serve();
 	}
 
 	logline(log_DEBUG_, "exit");
@@ -584,4 +865,3 @@ main(int argc, const char *argv[]) {
 	/* All okay */
 	return (ret);
 }
-
