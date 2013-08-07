@@ -23,7 +23,7 @@ SAFDEF_LOG_LEVEL defines the logging level (debug is very verbose).
 
 Testing Jumpbox with StegoTorus can be achieved by the following steps.
 
-First you need to 'unpack and load' the Jukebox plugin by opening
+First you need to 'unpack and load' the Jumpbox plugin by opening
  chrome://extensions
 
 Start DJB:
@@ -35,14 +35,14 @@ server/djb run
 
 That in combination with a Stegotorus client:
 {{{
-./stegotorus --log-min-severity=debug chop socks 127.0.0.1:1080 127.0.0.1:6543 http
+./stegotorus --log-min-severity=debug chop socks --trace-packets 127.0.0.1:1080 127.0.0.1:6543 http
 }}}
 
 That lets ST be a SOCKS server on 127.0.0.1:1080.
 
 Then start the Stegotorus server:
 {{{
-./stegotorus --log-min-severity=debug chop server 149.20.52.51:5251 127.0.0.1:8080 http
+./stegotorus --log-min-severity=debug chop server --trace-packets 149.20.52.51:5251 127.0.0.1:8080 http
 }}}
 
 That lets ST accept HTP at 127.0.0.1:8080 (matching DJB_FORCED_HOSTNAME above) and makes
@@ -71,4 +71,11 @@ bin/tor -f etc/tor/torrc
 }}}
 
 That should make things move.
+
+== Running with StegoTorus (debug) ==
+
+Connections will get lost and lldb does not like those SIGPIPEs, to make it continue use:
+{{{
+process handle SIGUSR2 -n true -p true -s false
+}}}
 
