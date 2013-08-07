@@ -215,6 +215,9 @@ Translator = {
         /* Keep the SeqNo */
         request.djb_seqno = djb_seqno;
 
+        /* Ian added this, it does fix pdf bloat, but maybe should be more discerning */
+        request.responseType = 'blob';
+
         return djb_contents;
     },
 
