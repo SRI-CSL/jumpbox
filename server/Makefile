@@ -85,9 +85,10 @@ OBJFUTIL:=$(LIBFUTIL)/src/
 
 CFLAGS	+= -I$(LIBFUTIL)/include/
 
-# Rendezvous: Location of defiantclient 
+# Rendezvous: Location of defiantclient + dependencies
 LIBDEFIANTCLIENT:=../../rendezvous/client/src/
 CFLAGS	+= -I$(LIBDEFIANTCLIENT)
+LDFLAGS += -lcrypto -lpbc -lgmp  -lcurl -ljansson
 
 # Linux
 ifeq ($(OS_NAME),Linux)
@@ -193,10 +194,6 @@ BUILD_GIT:=$(shell git log --pretty=format:'%H' -n 1)
 CFLAGS += -DPROJECT_VERSION=$(PROJECT_VERSION)
 CFLAGS += -DPROJECT_BUILDTIME=$(PROJECT_BUILDTIME)
 CFLAGS += -DPROJECT_GIT=$(BUILD_GIT)
-
-#RENDEZVOUS: ian added this. might not be the best place for it though
-LDFLAGS+= -lcrypto -lpbc -lgmp  -lcurl -ljansson
-
 
 # Prettifiers
 LINK	= @echo "* Linking $@"; $(CC) $(CFLAGS) $(LDFLAGS)
