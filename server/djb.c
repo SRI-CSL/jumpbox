@@ -143,6 +143,8 @@ void
 djb_pull(httpsrv_client_t *hcl){
 	djb_req_t *ar;
 
+	logline(log_DEBUG_, HCL_ID, hcl->id);
+
 	/* Proxy request - add it to the requester list */
 	ar = mcalloc(sizeof *ar, "djb_req_t *");
 	if (!ar) {
@@ -162,7 +164,45 @@ djb_pull(httpsrv_client_t *hcl){
 	 */
 	list_addtail_l(&lst_api_pull, &ar->node);
 
-	logline(log_DEBUG_, "Request added to api_pull");
+	logline(log_DEBUG_,
+		HCL_ID " Request added to api_pull",
+		hcl->id);
+}
+
+djb_req_t *
+djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl);
+djb_req_t *
+djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl) {
+	djb_req_t	*r, *rn, *pr = NULL;
+
+	assert(lst != NULL);
+	assert(hcl != NULL);
+
+	/* Find this HCL in our outstanding proxy requests */
+	list_lock(lst);
+	list_for(lst, r, rn, djb_req_t *) {
+		if (r->hcl != hcl) {
+			continue;
+		}
+
+		/* Gotcha */
+		pr = r;
+
+		/* Remove it from this list */
+		list_remove(lst, &pr->node);
+		break;
+	}
+	list_unlock(lst);
+
+	if (pr != NULL) {
+		logline(log_DEBUG_, HCL_ID, pr->hcl->id);
+	} else {
+		logline(log_WARNING_,
+			"No such HCL (" HCL_ID ") found!?",
+			hcl->id);
+	}
+
+	return (pr);
 }
 
 djb_req_t *
@@ -188,6 +228,41 @@ djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid) {
 	}
 	list_unlock(lst);
 
+	if (pr != NULL) {
+		logline(log_DEBUG_, HCL_ID, pr->hcl->id);
+	} else {
+		logline(log_WARNING_,
+			"No such HCL (%" PRIu64 ":%" PRIu64 " found!?",
+			id, reqid);
+	}
+
+	return (pr);
+}
+
+djb_req_t *
+djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh);
+djb_req_t *
+djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh) {
+	djb_req_t	*pr;
+	uint64_t	id, reqid;
+
+	/* We require a DJB-HTTPCode */
+	if (strlen(dh->httpcode) == 0) {
+		djb_error(hcl, 504, "Missing DJB-HTTPCode");
+		return NULL;
+	}
+
+	/* Convert the Request-ID */
+	if (sscanf(dh->seqno, "%09" PRIx64 "%09" PRIx64, &id, &reqid) != 2) {
+		djb_error(hcl, 504, "Missing or malformed DJB-SeqNo");
+		return NULL;
+	}
+
+	pr = djb_find_req(lst, id, reqid);
+	if (!pr) {
+		djb_error(hcl, 404, "No such request outstanding");
+	}
+
 	return (pr);
 }
 
@@ -196,28 +271,16 @@ void
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh);
 void
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
-	djb_req_t	*pr;
-	uint64_t	id, reqid;
+	djb_req_t *pr;
 
-	/* We require a DJB-HTTPCode */
-	if (strlen(dh->httpcode) == 0) {
-		djb_error(hcl, 504, "Missing DJB-HTTPCode");
-		return;
-	}
-
-	/* Convert the Request-ID */
-	if (sscanf(dh->seqno, "%09" PRIx64 "%09" PRIx64, &id, &reqid) != 2) {
-		djb_error(hcl, 504, "Missing or malformed DJB-SeqNo");
-		return;
-	}
+	logline(log_DEBUG_, HCL_ID, hcl->id);
 
 	/* Find the request */
-	pr = djb_find_req(&lst_proxy_out, id, reqid);
-
-	if (!pr) {
-		djb_error(hcl, 404, "No such request outstanding");
+	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
+	if (pr == NULL)
 		return;
-	}
+
+	/* XXX: check if pr->hcl is still valid */
 
 	/* Resume reading/writing from the sockets */
 	httpsrv_speak(pr->hcl);
@@ -243,7 +306,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return;
 	}
 
-	/* Still need to forward some data */
+	/* Still need to forward the body as there is length */
 
 	/*
 	 * Put this on the proxy_body list
@@ -253,13 +316,8 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	 */
 	list_addtail_l(&lst_proxy_body, &pr->node);
 
-	/* Make it forward the body from hcl to pr */
-	hcl->bodyfwd = pr->hcl;
-	hcl->bodyfwdlen = hcl->headers.content_length;
-
-	/* httpsrv does not need to forward this anymore */
-	hcl->headers.content_length = 0;
-	/* XXX: abstract the above few lines into a httpsrv_forward(hcl, hcl) */
+	/* Forward the body from hcl to pr */
+	httpsrv_forward(hcl, pr->hcl);
 
 	/* The Content-Length header is already included in all the headers */
 	conn_add_contentlen(&pr->hcl->conn, false);
@@ -269,30 +327,18 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		pr->hcl->id, hcl->id);
 }
 
+/* hcl == the client proxy request, pr->hcl = pull API request */
 void
-djb_bodyfwddone(httpsrv_client_t *hcl, void *user);
+djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user);
 void
-djb_bodyfwddone(httpsrv_client_t *hcl, void *user) {
-	djb_headers_t	*dh = (djb_headers_t *)user;
-	uint64_t	id, reqid;
-	djb_req_t	*pr;
-
-	/* Convert the Request-ID */
-	if (sscanf(dh->seqno, "%09" PRIx64 "%09" PRIx64, &id, &reqid) != 2) {
-		djb_error(hcl, 504, "Missing or malformed DJB-SeqNo");
-		return;
-	}
+djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
+	djb_req_t *pr;
 
 	/* Find the request */
-	pr = djb_find_req(&lst_proxy_body, id, reqid);
+	pr = djb_find_hcl(&lst_proxy_body, hcl->bodyfwd);
 
-	if (!pr) {
-		/* Cannot happen in theory */
-		logline(log_ERR_, "Could not find %" PRIu64 ":%" PRIu64,
-			id, reqid);
-		assert(false);
-		return;
-	}
+	/* Should always be there */
+	assert(pr);
 
 	logline(log_DEBUG_,
 		"Done forwarding body from " HCL_ID " to " HCL_ID,
@@ -301,21 +347,20 @@ djb_bodyfwddone(httpsrv_client_t *hcl, void *user) {
 	/* Send a content-length again if there is one */
 	conn_add_contentlen(&pr->hcl->conn, true);
 
-	/* The forwarded request has finished */
+	/* The forwarded request is done */
 	httpsrv_done(pr->hcl);
 
 	/* Send back a 200 OK as we forwarded it */
 
 	/* HTTP okay */
 	conn_addheaderf(&hcl->conn, "HTTP/1.1 200 OK\r\n");
-
 	conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
 
 	/* Body is just JumpBox (Content-Length is arranged by conn) */
-	conn_printf(&hcl->conn, "JumpBox\r\n");
+	conn_printf(&hcl->conn, "Body Forward successful\r\n");
 
-	/* This request is done */
-	httpsrv_done(hcl);
+	/* Done for this request is handled by caller: httpsrv_handle_http() */
+	logline(log_DEBUG_, "end");
 }
 
 void
@@ -325,7 +370,7 @@ djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
 
 	djb_headers_t *dh;
 
-	logline(log_DEBUG_, "%p", (void *)hcl);
+	logline(log_DEBUG_, HCL_ID, hcl->id);
 
 	dh = mcalloc(sizeof *dh, "djb_headers_t *");
 	if (!dh) {
@@ -530,7 +575,9 @@ void
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* A DJB API request */
-	logline(log_DEBUG_, "DJB API request: %s", hcl->headers.uri);
+	logline(log_DEBUG_,
+		HCL_ID " DJB API request: %s",
+		hcl->id, hcl->headers.uri);
 
 	/* Our API URIs */
 	if (strcasecmp(hcl->headers.uri, "/pull/") == 0) {
@@ -589,7 +636,9 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 	 */
 	list_addtail_l(&lst_proxy_new, &pr->node);
 
-	logline(log_DEBUG_, "Request added to proxy_new");
+	logline(log_DEBUG_,
+		HCL_ID " Request added to proxy_new",
+		hcl->id);
 }
 
 void
@@ -598,7 +647,9 @@ void
 djb_handle(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t	*dh = (djb_headers_t *)user;
 
-	logline(log_DEBUG_, "hostname: %s uri: %s", hcl->headers.hostname, hcl->headers.uri);
+	logline(log_DEBUG_,
+		HCL_ID " hostname: %s uri: %s",
+		hcl->id, hcl->headers.hostname, hcl->headers.uri);
 
 	/* Parse the request */
 	if (!httpsrv_parse_request(hcl)) {
@@ -613,16 +664,17 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 
 		/* API request */
 		djb_handle_api(hcl, dh);
-		return;
+	} else {
+		/* Proxied request */
+		djb_handle_proxy(hcl);
 	}
-
-	/* Proxied request */
-	djb_handle_proxy(hcl);
 }
 
 void
 djb_freereadbody(httpsrv_client_t *hcl) {
-	logline(log_DEBUG_, "hcl = %p, readbody = %p", (void *)hcl, (void *)hcl->readbody);
+	logline(log_DEBUG_,
+		HCL_ID " readbody = %p",
+		hcl->id, (void *)hcl->readbody);
 
 	if (hcl->readbody) {
 		mfree(hcl->readbody, hcl->readbodylen + hcl->readbodyoff, "HTTPBODY");
@@ -638,7 +690,7 @@ void
 djb_done(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t  *dh = (djb_headers_t *)user;
 
-	logline(log_DEBUG_, "%p", (void *)hcl);
+	logline(log_DEBUG_, HCL_ID, hcl->id);
 
 	djb_freereadbody(hcl);
 
@@ -650,21 +702,138 @@ djb_close(httpsrv_client_t *hcl, void UNUSED *user);
 void
 djb_close(httpsrv_client_t *hcl, void UNUSED *user) {
 
-	logline(log_DEBUG_, "%p", (void *)hcl);
+	logline(log_DEBUG_, HCL_ID, hcl->id);
 }
 
+/*
+ * pr = client request
+ * ar = /pull/ API request
+ */
 static void
-djb_pass_pollers(void);
+djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname);
 static void
-djb_pass_pollers(void) {
-	const char	*e = NULL;
-	djb_req_t	*pr, *ar;
+djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 	djb_headers_t	*dh;
+
+	assert(pr->hcl);
+	assert(ar->hcl);
+
+	logline(log_DEBUG_,
+		"got request " HCL_ID ", got puller " HCL_ID,
+		pr->hcl->id, ar->hcl->id);
+
+	assert(conn_is_valid(&pr->hcl->conn));
+	assert(conn_is_valid(&ar->hcl->conn));
+
+	/* Resume reading from the sockets */
+	httpsrv_speak(pr->hcl);
+	httpsrv_speak(ar->hcl);
+
+	/* pr's headers */
+	dh = (djb_headers_t *)pr->hcl->user;
+
+	/* HTTP okay */
+	conn_addheaderf(&ar->hcl->conn, "HTTP/1.1 200 OK\r\n");
+
+	/* DJB headers */
+	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s\r\n",
+			hostname ? hostname : pr->hcl->headers.hostname,
+			pr->hcl->headers.uri,
+			(strlen(pr->hcl->headers.args) > 0) ? "?" : "",
+			pr->hcl->headers.args);
+
+	conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s\r\n",
+			httpsrv_methodname(pr->hcl->method));
+
+	conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64 "\r\n",
+			pr->hcl->id, pr->hcl->reqid);
+
+	/* We need to translate the cookie header back */
+	if (strlen(dh->setcookie) > 0) {
+		conn_addheaderf(&ar->hcl->conn, "DJB-Set-Cookie: %s\r\n",
+				dh->setcookie);
+	}
+
+	if (strlen(dh->cookie) > 0) {
+		conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s\r\n",
+				dh->cookie);
+	}
+
+	if (pr->hcl->method != HTTP_M_POST) {
+		logline(log_DEBUG_,
+			"req " HCL_ID " with puller " HCL_ID " is non-POST",
+			pr->hcl->id, ar->hcl->id);
+
+		/* XHR requires a return, thus just give it a blank body */
+		conn_addheaderf(&ar->hcl->conn, "Content-Type: text/html\r\n");
+
+		/* Empty-ish body (Content-Length is arranged by conn) */
+		conn_printf(&ar->hcl->conn, "Non-POST JumpBox response\r\n");
+
+		/* This request is done */
+		httpsrv_done(ar->hcl);
+
+		/* Release it */
+		free(ar);
+
+		/* Put this on the proxy_out list now it is being handled */
+		list_addtail_l(&lst_proxy_out, &pr->node);
+
+		/* Served another one */
+		thread_serve();
+	} else {
+		/* POST request */
+		logline(log_DEBUG_,
+			"req " HCL_ID " with puller " HCL_ID " is POST",
+			pr->hcl->id, ar->hcl->id);
+
+		conn_addheaderf(&ar->hcl->conn, "Content-Type: %s\r\n",
+				strlen(pr->hcl->headers.content_type) > 0 ?
+					pr->hcl->headers.content_type :
+					"text/html");
+
+		/* Is there no body, then nothing further to do */
+		if (pr->hcl->headers.content_length == 0) {
+			/* This request is done (after flushing) */
+			httpsrv_done(ar->hcl);
+
+			/* Release it */
+			free(ar);
+
+			/* Served another one */
+			thread_serve();
+		} else {
+			/* Resume reading/writing from the sockets */
+			httpsrv_speak(pr->hcl);
+
+			/* Put this on the proxy_body list */
+			list_addtail_l(&lst_proxy_body, &ar->node);
+
+			/* Put this on the proxy_out list */
+			list_addtail_l(&lst_proxy_out, &pr->node);
+
+			/* Forward the body from pr->hcl to ar->hcl */
+			httpsrv_forward(pr->hcl, ar->hcl);
+
+			logline(log_DEBUG_,
+				"Forwarding POST body from "
+				HCL_ID " to " HCL_ID,
+				pr->hcl->id, ar->hcl->id);
+		}
+	}
+}
+
+static void *
+djb_worker_thread(void UNUSED *arg);
+static void *
+djb_worker_thread(void UNUSED *arg) {
+	const char	*hostname = NULL;
+	djb_req_t	*pr, *ar;
 
 	logline(log_DEBUG_, "...");
 
-	/* Forcing the hostname to something else than the requestor wants? */
-	e = getenv("DJB_FORCED_HOSTNAME");
+	/* Forcing the hostname to something else than what the requestor wants? */
+	hostname = getenv("DJB_FORCED_HOSTNAME");
 
 	while (thread_keep_running()) {
 		logline(log_DEBUG_, "waiting for proxy request");
@@ -687,7 +856,7 @@ djb_pass_pollers(void) {
 		logline(log_DEBUG_, "got request " HCL_ID ", getting poller",
 			pr->hcl->id);
 
-		/* We got a request, pass it to a puller */
+		/* We got a request, get a puller for it */
 		thread_setstate(thread_state_io_next);
 		ar = (djb_req_t *)list_getnext(&lst_api_pull);
 		thread_setstate(thread_state_running);
@@ -700,69 +869,12 @@ djb_pass_pollers(void) {
 			break;
 		}
 
-		assert(pr->hcl);
-		assert(ar->hcl);
-
-		logline(log_DEBUG_,
-			"got request " HCL_ID ", got puller " HCL_ID,
-			pr->hcl->id, ar->hcl->id);
-
-		assert(conn_is_valid(&pr->hcl->conn));
-		assert(conn_is_valid(&ar->hcl->conn));
-
-		/* Resume reading from the sockets */
-		httpsrv_speak(pr->hcl);
-		httpsrv_speak(ar->hcl);
-
-		/* pr's headers */
-		dh = (djb_headers_t *)pr->hcl->user;
-
-		/* HTTP okay */
-		conn_addheaderf(&ar->hcl->conn, "HTTP/1.1 200 OK\r\n");
-
-		/* DJB headers */
-		conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s\r\n",
-				e ? e : pr->hcl->headers.hostname,
-				pr->hcl->headers.uri,
-				(strlen(pr->hcl->headers.args) > 0) ? "?" : "",
-				pr->hcl->headers.args);
-
-		conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s\r\n",
-				httpsrv_methodname(pr->hcl->method));
-
-		conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64 "\r\n",
-				pr->hcl->id, pr->hcl->reqid);
-
-		/* We need to translate the cookie header back */
-		if (strlen(dh->setcookie) > 0) {
-			conn_addheaderf(&ar->hcl->conn, "DJB-Set-Cookie: %s\r\n",
-					dh->setcookie);
-		}
-
-		if (strlen(dh->cookie) > 0) {
-			conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s\r\n",
-					dh->cookie);
-		}
-
-		conn_addheaderf(&ar->hcl->conn, "Content-Type: text/html\r\n");
-
-		/* Body is just JumpBox (Content-Length is arranged by conn) */
-		conn_printf(&ar->hcl->conn, "JumpBox\r\n");
-
-		/* This request is done */
-		httpsrv_done(ar->hcl);
-
-		/* Release it */
-		free(ar);
-
-		/* Put this on the proxy_out list now it is being handled */
-		list_addtail_l(&lst_proxy_out, &pr->node);
-
-		/* Served another one */
-		thread_serve();
+		djb_handle_forward(pr, ar, hostname);
 	}
 
 	logline(log_DEBUG_, "exit");
+
+	return (NULL);
 }
 
 static int
@@ -771,6 +883,7 @@ static int
 djb_run(void) {
 	httpsrv_t	*hs = NULL;
 	int		ret = 0;
+	unsigned int	i;
 
 	/* Create out DGW structure */
 	hs = (httpsrv_t *)mcalloc(sizeof *hs, "httpsrv_t");
@@ -780,12 +893,21 @@ djb_run(void) {
 	}
 
 	while (true) {
+		/* Launch a few worker threads */
+		for (i = 0; i < DJB_WORKERS; i++) {
+			if (!thread_add("DJBWorker", &djb_worker_thread, NULL)) {
+				logline(log_CRIT_, "could not create thread");
+				ret = -1;
+				break;
+			}
+		}
+
 		/* Initialize a HTTP Server */
 		if (!httpsrv_init(hs, NULL,
 				  djb_accept,
 				  djb_header,
 				  djb_handle,
-				  djb_bodyfwddone,
+				  djb_bodyfwd_done,
 				  djb_done,
 				  djb_close)) {
 			logline(log_CRIT_, "Could not initialize HTTP server");
@@ -804,8 +926,10 @@ djb_run(void) {
 		break;
 	}
 
-	/* Handle pollers in the main thread */
-	djb_pass_pollers();
+	/* Just sleep over here */
+	while (thread_keep_running()) {
+		thread_sleep(5000);
+	}
 
 	/* Cleanup time as the mainloop ended */
 	logline(log_DEBUG_, "Cleanup Time...(main ret = %d)", ret);
