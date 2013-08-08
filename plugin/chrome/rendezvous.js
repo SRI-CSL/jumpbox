@@ -21,6 +21,8 @@ var Rendezvous, UI;
 
 
 Rendezvous = {
+    /* the wholey grey L */
+    net: false,
 
     /* needs to be kept in agreement with the enum of the same name in onion.h */
     onion_type:  { BASE : 0, POW : 1, CAPTCHA : 2, SIGNED : 3, COLLECTION : 4 },
@@ -54,6 +56,13 @@ Rendezvous = {
         Rendezvous.reset();
         UI.init();
     },
+
+    dance: function () {
+        if (typeof Rendezvous.net === 'string'){
+            console.log("Here is your net: " + Rendezvous.net)
+        }
+    },
+
 
     reset:  function () {
         var reset_request = new XMLHttpRequest();
@@ -276,17 +285,26 @@ UI = {
     },
 
     update_BASE_display: function (robj) {
-        var net_textarea = document.querySelector('#net_textarea');
-        console.log("info: " + robj.info);
-        net_textarea.value =  robj.info;
+        if(typeof robj.info == 'object'){
+            var net_textarea = document.querySelector('#net_textarea');
+            Rendezvous.net = JSON.stringify(robj.info);
+            net_textarea.value =  Rendezvous.net;
+            document.querySelector('#base_peeler_button').removeEventListener('click', UI.peel_away);
+            document.querySelector('#base_peeler_button').addEventListener('click', Rendezvous.dance);
+        } else {
+
+            document.querySelector('#base_peeler_button').addEventListener('click', UI.peel_away);            
+
+        }
     },
     
     update_POW_display: function (robj) {
+        console.log('update_POW_display: ' + robj.info);
         if (typeof robj.info === 'number') {
             document.querySelector('#pow_progress-bar').setAttribute('style', "background-image:url(red.png); height:50px; width:" + robj.info + "%; ");
             if (robj.info < 100) {
                 document.querySelector('#pow_peeler_button').disabled = true;
-                setTimeout(UI.peel_away, 500);
+                setTimeout(UI.peel_away, 50);
             } else {
                 document.querySelector('#pow_peeler_button').disabled = false;
             }
@@ -341,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function () { Rendezvous.init();  
 /*
  * PEELING process:
  *
- * json from jumbox to plugin:   { type: "type of onion", info: "onion information",  additional: "error message", status: "previous outcomes for displaying"  }
+ * json from jumbox to plugin:   { type: "type of onion", info: "onion information",  status: "previous outcomes for displaying"  }
  *
  * info can in the case of a 
  *         POW be a number (percent of search completed)

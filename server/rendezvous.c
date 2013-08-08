@@ -28,10 +28,11 @@ static char* captcha_image_path = NULL;
 
 //pow thread
 static int pow_thread_started = 0;
+static int pow_thread_finished = 0;
 static int pow_thread_quit = 0;
 static pthread_t pow_thread;
 static onion_t pow_inner_onion = NULL;
-static long pow_thread_progress = 0;
+static volatile long pow_thread_progress = 0;
 
 
 
@@ -55,13 +56,36 @@ static void respond(httpsrv_client_t *hcl, unsigned int errcode, const char *api
   httpsrv_done(hcl);
 }
 
-static void reset(httpsrv_client_t* hcl) {
+static void onion_reset(void);
+void onion_reset(void){
+  logline(log_DEBUG_, "onion_reset");
   memset(password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
   if(current_onion != NULL){
     free_onion(current_onion);
     current_onion = NULL;
     current_onion_size = 0;
   } 
+}
+
+static void pow_reset(void);
+void pow_reset(void){
+  logline(log_DEBUG_, "pow_reset");
+  if(pow_thread_started){ 
+    pow_thread_quit = 1;
+    onion_t inner = pow_inner_onion;
+    if(inner != NULL){
+      pow_inner_onion = NULL;
+      free_onion(inner);
+    }
+    pow_thread_started = 0;
+    pow_thread_finished = 0;
+    pow_thread_progress = 0;
+  }
+}
+
+static void captcha_reset(void);
+void captcha_reset(void){
+  logline(log_DEBUG_, "captcha_reset");
   if(captcha_image_path != NULL){
     if(unlink(captcha_image_path) == -1){
       logline(log_DEBUG_, "unlink(%s) failed: %s", captcha_image_path, strerror(errno));
@@ -69,6 +93,12 @@ static void reset(httpsrv_client_t* hcl) {
     free(captcha_image_path);
     captcha_image_path = NULL;
   }
+}
+
+static void image_reset(void);
+void image_reset(void){
+  logline(log_DEBUG_, "image_reset");
+  
   if(current_image_path != NULL){
     if(unlink(current_image_path) == -1){
       logline(log_DEBUG_, "unlink(%s) failed: %s", current_image_path, strerror(errno));
@@ -81,18 +111,13 @@ static void reset(httpsrv_client_t* hcl) {
     current_image_path = NULL;
     current_image_dir = NULL;
   }
-  
-  if(pow_thread_started){
-    onion_t inner = pow_inner_onion;
-    if(inner != NULL){
-      pow_inner_onion = NULL;
-      free_onion(inner);
-    }
-    pow_thread_started = 0;
-    pow_thread_quit = 1;
-    pow_thread_progress = 0;
-  }
+}
 
+static void reset(httpsrv_client_t* hcl) {
+  onion_reset();
+  captcha_reset();
+  image_reset();
+  pow_reset(); 
   respond(hcl, 200, "reset", "Reset OK");
 }
 
@@ -136,10 +161,11 @@ int djb_allocreadbody(httpsrv_client_t *hcl){
   }
   logline(log_DEBUG_, "djb_allocreadbody: asking for the body");
   /* Let the HTTP engine read the body in here */
-  hcl->readbody = mcalloc(hcl->headers.content_length, "HTTPBODY");
+  hcl->readbody = mcalloc(hcl->headers.content_length + 1, "HTTPBODY");  //keep some room for the NULL (keep VALGRIND happy)
   hcl->readbodylen = hcl->headers.content_length;
   hcl->readbodyoff = 0;
-  logline(log_DEBUG_, "djb_allocreadbody: alloced %" PRIu64 " bytes\n", hcl->headers.content_length);
+  hcl->readbody[hcl->headers.content_length] = '\0';
+  logline(log_DEBUG_, "djb_allocreadbody: alloced %" PRIu64 " bytes\n", hcl->headers.content_length + 1);
   return 0;
 }
 
@@ -179,7 +205,7 @@ static void gen_request(httpsrv_client_t* hcl) {
   }
 }
 
-static char *make_image_reponse(char *path, int onion_type){
+static char *make_image_response(char *path, int onion_type){
   char* retval = NULL;
   char* response = NULL;
   int chars = 0, response_size = 0;
@@ -230,9 +256,9 @@ static void image(httpsrv_client_t*  hcl) {
       } else if (onion_sz != (int)ONION_SIZE(onion)) {
         logline(log_DEBUG_, "image: Decrypting onion failed: onion_sz (%d) does nat match real onion size (%d)", onion_sz, (int)ONION_SIZE(onion));
       } else {
-        response = make_image_reponse(image_path, ONION_TYPE(onion)); 
+        response = make_image_response(image_path, ONION_TYPE(onion)); 
         if(response != NULL){
-          logline(log_DEBUG_, "image: reponse %s", response);
+          logline(log_DEBUG_, "image: response %s", response);
           current_onion = (onion_t)onion;
           current_onion_size = onion_sz;
           current_image_path = image_path;
@@ -260,15 +286,37 @@ static void image(httpsrv_client_t*  hcl) {
   
 }
 
-static char *make_peel_reponse(const char* info, const char* additional, const char* status){
+static char *make_peel_response(const char* info, const char* status){
   int onion_type = ONION_TYPE(current_onion);
   char* retval = NULL;
   char* response = NULL;
   int chars = 0, response_size = 0;
   while (1) {
     chars = snprintf(response, response_size,
-                     "{ \"info\": \"%s\",  \"additional\": \"%s\", \"status\": \"%s\", \"onion_type\": %d}",
-                     info, additional, status, onion_type);
+                     "{ \"info\": \"%s\",  \"status\": \"%s\", \"onion_type\": %d}",
+                     info, status, onion_type);
+    if (response_size != 0 && chars > response_size) {
+      break;
+    } else if (response_size >= chars) {
+      retval = response;
+      break;
+    } else if (response_size < chars) {
+      response_size = chars + 1;
+      response = (char *)calloc(response_size, sizeof(char));
+    }
+  }
+  return retval;
+}
+
+static char *make_pow_response(int percent, const char* status){
+  int onion_type = ONION_TYPE(current_onion);
+  char* retval = NULL;
+  char* response = NULL;
+  int chars = 0, response_size = 0;
+  while (1) {
+    chars = snprintf(response, response_size,
+                     "{ \"info\": %d,  \"status\": \"%s\", \"onion_type\": %d}",
+                     percent, status, onion_type);
     if (response_size != 0 && chars > response_size) {
       break;
     } else if (response_size >= chars) {
@@ -284,9 +332,24 @@ static char *make_peel_reponse(const char* info, const char* additional, const c
 
 static char *peel_base(void) {
   char *response = NULL;
-  response = make_peel_reponse("ok", "ok", "ok");
+  char *nep = (char*)ONION_DATA(current_onion);
+  json_error_t error;
+  json_t *root;
+  logline(log_DEBUG_, "peel_base: %s", nep);
+  root = json_loads(nep, 0, &error);
+  if(root != NULL){
+    json_t *resp = json_pack("{s:i, s:s, s:o}", "onion_type", ONION_TYPE(current_onion), "status", "Here is your NET!", "info", root);
+    response = json_dumps(resp, 0);
+  } else {
+    logline(log_DEBUG_, "peel_base: data = %s error: line: %d msg: %s", nep, error.line, error.text);
+    response = make_peel_response("Sorry your nep did not parse as JSON", "");
+  }
   return response;
 }
+
+int drivel = 0;
+/* we are currently forcing passwords to start with "aaa" */
+long maxAttempts = 1 * 1 * 1 * 26 * 26 * 26 * 26 * 26;
 
 void *pow_worker(void *arg);
 void *pow_worker(void *arg){
@@ -298,35 +361,53 @@ void *pow_worker(void *arg){
   char* data = ONION_DATA(current_onion);
   size_t data_len = ONION_DATA_SIZE(current_onion);
   pow_inner_onion = defiant_pow_aux((uchar*)hash, hash_len, (uchar*)secret, secret_len, (uchar*)data, data_len, &pow_thread_progress);
+  logline(log_DEBUG_, "pow_inner_onion = %p : %s %s", pow_inner_onion, (char *)pow_inner_onion, (char *)ONION_DATA(pow_inner_onion));
+  pow_thread_progress = maxAttempts;
+  pow_thread_finished = 1;
   return arg;
 }
 
-long maxAttempts = 26 * 26 * 26 * 26 * 26 * 26;
 
 int attempts2percent(void);
 int attempts2percent(void){
-    long current = pow_thread_progress;
-    return ((current * 100)/maxAttempts);
+  int retval = 0;
+  long current = pow_thread_progress;
+  retval = ((current * 100)/maxAttempts);
+  if(drivel){
+    fprintf(stderr, "%ld %d%c\n", current, retval, '%');
+  }
+  return retval;
 }
 
 
 static char *peel_pow(void) {
   char *response = NULL;
+  int pc = attempts2percent();
   if(pow_thread_started == 0){
     /* need to start the pow thread */
     int errcode = pthread_create(&pow_thread, NULL, pow_worker, NULL);
     if(errcode != 0){
-      response = make_peel_reponse("", "", "Creating the Proof-Of-Work failed :-(");
+      response = make_peel_response("", "Creating the Proof-Of-Work failed :-(");
     } else {
       pow_thread_started = 1;
-      response = make_peel_reponse("", "", "OK the Proof-Of-Work has commenced");
+      response = make_pow_response(pc, "OK the Proof-Of-Work has commenced");
     }
   } else {
     /* monitor the progress of the thread; or do the current <--> inner switch */
-    char buffer[32];
-    int pc = attempts2percent();
-    snprintf(buffer, sizeof buffer, "%d", pc);
-    response = make_peel_reponse(buffer, "ok", "ok");
+    if(pow_thread_finished == 0){
+      response = make_pow_response(pc, "Working away...");
+    } else {
+      if(pow_inner_onion == NULL){
+        response = make_peel_response("", "Proof of work FAILED?!?");
+      } else {
+        onion_t old_onion = current_onion;
+        current_onion = pow_inner_onion;
+        free_onion(old_onion);
+        response = make_pow_response(100, "Your Proof-Of-Work has finished successfully!");
+        pow_inner_onion = NULL;
+        pow_reset();
+      }
+    }
   }
   return response;
 }
@@ -349,7 +430,7 @@ static char *peel_captcha(json_t *root) {
         captcha_image_path = strdup(path);
         logline(log_DEBUG_, "image: captcha image = %s", captcha_image_path);
         snprintf(path, sizeof path, "file://%s", captcha_image_path);
-        response = make_peel_reponse(path, "ok", "Here is your captcha image!");
+        response = make_peel_response(path, "Here is your captcha image!");
       }
     }
   } else {
@@ -362,12 +443,12 @@ static char *peel_captcha(json_t *root) {
       if(defcode == DEFIANT_OK){
         free(current_onion);
         current_onion = inner_onion;
-        response = make_peel_reponse("", "ok", "Excellent, you solved the captcha");
+        response = make_peel_response("", "Excellent, you solved the captcha");
       } else {
-        response = make_peel_reponse("", "ok", "Nope, try again?");
+        response = make_peel_response("", "Nope, try again?");
       }
     } else {
-      response = make_peel_reponse("", "ok", "Answer wasn't of the right type");
+      response = make_peel_response("", "Answer wasn't of the right type");
     }
   }
 
@@ -383,18 +464,17 @@ static char *peel_signed(void) {
       free_onion(current_onion);
       current_onion = inner_onion;
       current_onion_size = ONION_SIZE(inner_onion);
-      return make_peel_reponse("", "", "The server returned an onion whose signature we VERIFIED!");
+      return make_peel_response("", "The server returned an onion whose signature we VERIFIED!");
     } else {
-      return make_peel_reponse("", "Peeling it went wrong, very odd.", "");
+      return make_peel_response("", "Peeling it went wrong, very odd.");
     }
   } else {
-    return make_peel_reponse("", "The server returned an onion whose signature we COULD NOT verify -- try again?", "");
+    return make_peel_response("", "The server returned an onion whose signature we COULD NOT verify -- try again?");
   }
 }
 
 
 static void peel(httpsrv_client_t * hcl) {
-  char *response = NULL;
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
     if(djb_allocreadbody(hcl)){
@@ -402,6 +482,7 @@ static void peel(httpsrv_client_t * hcl) {
     }
     return;
   } else {
+    char *response = NULL;
     json_error_t error;
     json_t *root;
     logline(log_DEBUG_, "peel: %s", hcl->readbody);
@@ -437,9 +518,10 @@ static void peel(httpsrv_client_t * hcl) {
       if(response != NULL){
         respond(hcl, 200, "peel", response);
       } else {
-        djb_error(hcl, 500, "make_peel_reponse failed");
+        djb_error(hcl, 500, "make_peel_response failed");
       }
     }
+    if(response != NULL){ free(response); }
     json_decref(root);
   }
 }
