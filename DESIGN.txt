@@ -1,6 +1,6 @@
 = JumpBox Design =
 
-This document details the design of the Jumpbox which is a combination of a C-based daemon (djb)
+This document details the design of the JumpBox which is a combination of a C-based daemon (djb)
 and a browser plugin.
 
 == Authors ==
@@ -16,7 +16,7 @@ which contains an introduction on how these requests work
 
 == Jump Box API ==
 
-djb (Jumpbox server) provides a webinterface at http://localhost:6543.
+djb (JumpBox server) provides a webinterface at http://localhost:6543.
 
 === Proxy requests ===
 

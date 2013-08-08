@@ -1,6 +1,6 @@
-= Jumpbox =
+= JumpBox =
 
-Welcome to Jumpbox
+Welcome to JumpBox
 
 == Installation Notes ==
 
@@ -21,9 +21,9 @@ SAFDEF_LOG_LEVEL defines the logging level (debug is very verbose).
 
 == Running with StegoTorus ==
 
-Testing Jumpbox with StegoTorus can be achieved by the following steps.
+Testing JumpBox with StegoTorus can be achieved by the following steps.
 
-First you need to 'unpack and load' the Jumpbox plugin by opening
+First you need to 'unpack and load' the JumpBox plugin by opening
  chrome://extensions
 
 Start DJB:

@@ -22,7 +22,7 @@ class JumpBox(Resource):
            return NoResource()
 
    def render_GET(self, request):
-       return "<html><body>I'm the Jumpbox/Stegotorus standin, till the real thing comes along</body></html>"
+       return "<html><body>I'm the JumpBox/Stegotorus standin, till the real thing comes along</body></html>"
 
 
 

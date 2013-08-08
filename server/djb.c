@@ -446,7 +446,7 @@ djb_status_threads(httpsrv_client_t *hcl) {
 	conn_put(&hcl->conn,
 		"<h1>Threads</h1>\n"
 		"<p>\n"
-		"Threads running inside Jumpbox.\n"
+		"Threads running inside JumpBox.\n"
 		"</p>\n"
 		"<table>\n"
 		"<tr>\n"
@@ -475,9 +475,9 @@ djb_status_version(httpsrv_client_t *hcl);
 static void
 djb_status_version(httpsrv_client_t *hcl) {
 	conn_put(&hcl->conn,
-		"<h2>Jumpbox Information</h2>\n"
+		"<h2>JumpBox Information</h2>\n"
 		"<p>\n"
-		"Following details are available about this Jumpbox (djb).\n"
+		"Following details are available about this JumpBox (djb).\n"
 		"</p>\n"
 		"\n"
 		"<table>\n"
