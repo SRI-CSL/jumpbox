@@ -265,7 +265,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	conn_add_contentlen(&pr->hcl->conn, false);
 
 	logline(log_DEBUG_,
-		"Forwarding body from hcl%" PRIu64 " to hcl%" PRIu64,
+		"Forwarding body from " HCL_ID " to " HCL_ID,
 		pr->hcl->id, hcl->id);
 }
 
@@ -295,7 +295,7 @@ djb_bodyfwddone(httpsrv_client_t *hcl, void *user) {
 	}
 
 	logline(log_DEBUG_,
-		"Done forwarding body from %" PRIu64 " to %" PRIu64,
+		"Done forwarding body from " HCL_ID " to " HCL_ID,
 		hcl->id, pr->hcl->id);
 
 	/* Send a content-length again if there is one */
@@ -377,7 +377,7 @@ djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
 
 		conn_printf(&hcl->conn,
 			"<tr>"
-			"<td>%" PRIu64 "</td>"
+			"<td>" HCL_IDn "</td>"
 			"<td>%s</td>"
 			"<td>%s</td>"
 			"</tr>\n",
@@ -682,7 +682,10 @@ djb_pass_pollers(void) {
 			break;
 		}
 
-		logline(log_DEBUG_, "got request, getting poller");
+		assert(pr->hcl);
+
+		logline(log_DEBUG_, "got request " HCL_ID ", getting poller",
+			pr->hcl->id);
 
 		/* We got a request, pass it to a puller */
 		thread_setstate(thread_state_io_next);
@@ -697,7 +700,15 @@ djb_pass_pollers(void) {
 			break;
 		}
 
-		logline(log_DEBUG_, "got request, got puller");
+		assert(pr->hcl);
+		assert(ar->hcl);
+
+		logline(log_DEBUG_,
+			"got request " HCL_ID ", got puller " HCL_ID,
+			pr->hcl->id, ar->hcl->id);
+
+		assert(conn_is_valid(&pr->hcl->conn));
+		assert(conn_is_valid(&ar->hcl->conn));
 
 		/* Resume reading from the sockets */
 		httpsrv_speak(pr->hcl);
