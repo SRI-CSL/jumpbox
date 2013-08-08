@@ -475,7 +475,6 @@ static char *peel_signed(void) {
 
 
 static void peel(httpsrv_client_t * hcl) {
-  char *response = NULL;
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
     if(djb_allocreadbody(hcl)){
@@ -483,6 +482,7 @@ static void peel(httpsrv_client_t * hcl) {
     }
     return;
   } else {
+    char *response = NULL;
     json_error_t error;
     json_t *root;
     logline(log_DEBUG_, "peel: %s", hcl->readbody);
@@ -521,6 +521,7 @@ static void peel(httpsrv_client_t * hcl) {
         djb_error(hcl, 500, "make_peel_response failed");
       }
     }
+    if(response != NULL){ free(response); }
     json_decref(root);
   }
 }
