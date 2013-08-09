@@ -153,8 +153,8 @@ djb_req_t *
 djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl) {
 	djb_req_t	*r, *rn, *pr = NULL;
 
-	assert(lst != NULL);
-	assert(hcl != NULL);
+	fassert(lst != NULL);
+	fassert(hcl != NULL);
 
 	/* Find this HCL in our outstanding proxy requests */
 	list_lock(lst);
@@ -304,7 +304,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/* Find the request */
 	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
 	if (pr == NULL) {
-		assert(false);
+		fassert(false);
 		return (true);
 	}
 
@@ -369,7 +369,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 	pr = djb_find_hcl(&lst_proxy_body, hcl->bodyfwd);
 
 	/* Should always be there */
-	assert(pr);
+	fassert(pr);
 
 	logline(log_DEBUG_,
 		"Done forwarding body from " HCL_ID " to " HCL_ID,
@@ -777,15 +777,15 @@ static void
 djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 	djb_headers_t	*dh;
 
-	assert(pr->hcl);
-	assert(ar->hcl);
+	fassert(pr->hcl);
+	fassert(ar->hcl);
 
 	logline(log_DEBUG_,
 		"got request " HCL_ID ", got puller " HCL_ID,
 		pr->hcl->id, ar->hcl->id);
 
-	assert(conn_is_valid(&pr->hcl->conn));
-	assert(conn_is_valid(&ar->hcl->conn));
+	fassert(conn_is_valid(&pr->hcl->conn));
+	fassert(conn_is_valid(&ar->hcl->conn));
 
 	/* Resume reading from the sockets */
 	httpsrv_speak(pr->hcl);
@@ -916,7 +916,7 @@ djb_worker_thread(void UNUSED *arg) {
 			break;
 		}
 
-		assert(pr->hcl);
+		fassert(pr->hcl);
 
 		logline(log_DEBUG_, "got request " HCL_ID ", getting poller",
 			pr->hcl->id);
