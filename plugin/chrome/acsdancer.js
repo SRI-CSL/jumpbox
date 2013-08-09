@@ -6,7 +6,7 @@ var ACSDancer;
 
 ACSDancer = {
 
-    netfetcher_uri: 'http://dgw1.demo.safdef.isc.org/safdef/net-fetcher/',
+    netfetcher_uri: 'http://dgw1.demo.safdef.org/safdef/net-fetcher/',
 
     current_net: null,
     net_obj: null,
