@@ -101,7 +101,6 @@ json from jumbox to plugin:
 
  { onion_type: "type of onion",  
    info: "onion information",  
-   additional: "error message", 
    status: "previous outcomes for displaying"  }
  
 info can in the case of a 

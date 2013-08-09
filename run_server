@@ -11,7 +11,9 @@ SERVER="server/djb run"
 
 if [ -n "$VALGRIND" ]
 then
-valgrind --leak-check=yes  --dsymutil=yes --trace-children=yes ${SERVER}
+valgrind --leak-check=yes  --dsymutil=yes  ${SERVER}
 else
 ${SERVER}
 fi
+
+#--num-callers=30 -v --db-attach=yes --gen-suppressions=all --track-fds=yes

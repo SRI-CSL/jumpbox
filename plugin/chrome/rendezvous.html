@@ -53,23 +53,23 @@
       </table> 
       
       <table id="base_peeler">
-        <tr><td><label id="base_peeling_intructions">Your NET (network entry ticket) is shown below. Press OK to commence the ACS dance!</label></td></tr>
+        <tr><td><label id="base_peeling_intructions">Your NET (network entry ticket) is available. Press OK to fetch it</label></td></tr>
         <tr>
-          <td><div id="net_textarea_div"> <textarea id="net_textarea" rows="8" cols="50"></textarea></div></td>
+          <td><div id="net_textarea_div"> </div></td>
         </tr>
         <tr>
           <td><button id="base_peeler_button" type="button">OK</button></td>
         </tr>
       </table> 
-      
+
+      <textarea id="net_textarea" rows="8" cols="50"></textarea>
       
       
       <table id="pow_peeler">
         <tr><td><label id="pow_peeling_intructions">Your onion is a proof of work onion, press OK to see its progress.</label></td></tr>
         <tr>
           <td>
-            <div id="pow_container" style="width:100%; height:50px; border:1px solid black;">
-              <div id="pow_progress-bar" style="background-image:url(red.png); height:50px; width:0%;"> </div>
+            <div id="pow_progress_bar_div">
             </div>
           </td>
         </tr>
@@ -78,6 +78,10 @@
         </tr>
       </table> 
       
+      <div id="pow_container" style="width:100%; height:50px; border:1px solid black;">
+        <div id="pow_progress_bar" style="background-image:url(red.png); height:50px; width:0%;"> </div>
+      </div>
+ 
     </div> <!-- grab_bag -->
   </body>
 
