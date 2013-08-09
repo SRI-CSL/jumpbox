@@ -1,8 +1,8 @@
 #include <libfutil/httpsrv.h>
 #include <libfutil/list.h>
 
+#include "djb.h"
 #include "rendezvous.h"
-#include "shared.h"
 
 #define DJB_WORKERS	8
 #define DJB_HOST	"localhost"
@@ -146,6 +146,34 @@ djb_html_tail(httpsrv_client_t *hcl) {
 		"</html>");
 }
 
+void
+djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg);
+void
+djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
+	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", code, msg);
+
+#if 0
+	/* Note it is us, very helpful while debugging pcap traces */
+	conn_addheaderf(&hcl->conn, "X-JumpBox: Yes");
+#endif
+}
+
+void
+djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
+	djb_httpanswer(hcl, code, msg);
+
+	djb_html_top(hcl);
+	conn_printf(&hcl->conn,
+		    "<h1>Error</h1>\n"
+		    "<p>\n"
+		    "%s\n"
+		    "</p>\n",
+		    msg);
+	djb_html_tail(hcl);
+
+	httpsrv_done(hcl);
+}
+
 /* API-Pull, requests a new Proxy-request */
 djb_req_t *
 djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl);
@@ -242,18 +270,6 @@ djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh) {
 	}
 
 	return (pr);
-}
-
-void
-djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg);
-void
-djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
-	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", code, msg);
-
-#if 0
-	/* Note it is us, very helpful while debugging pcap traces */
-	conn_addheaderf(&hcl->conn, "X-JumpBox: Yes");
-#endif
 }
 
 bool
@@ -733,28 +749,12 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 }
 
 void
-djb_freereadbody(httpsrv_client_t *hcl) {
-	logline(log_DEBUG_,
-		HCL_ID " readbody = %p",
-		hcl->id, (void *)hcl->readbody);
-
-	if (hcl->readbody) {
-		mfree(hcl->readbody, hcl->readbodylen + hcl->readbodyoff, "HTTPBODY");
-		hcl->readbody = NULL;
-		hcl->readbodylen = 0;
-		hcl->readbodyoff = 0;
-	}
-}
-
-void
 djb_done(httpsrv_client_t *hcl, void *user);
 void
 djb_done(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t  *dh = (djb_headers_t *)user;
 
 	logline(log_DEBUG_, HCL_ID, hcl->id);
-
-	djb_freereadbody(hcl);
 
 	memzero(dh, sizeof *dh);
 }

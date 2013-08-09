@@ -1,5 +1,5 @@
+#include "djb.h"
 #include "rendezvous.h"
-#include "shared.h"
 
 #include "defiantclient.h"
 #include "defiantbf.h"
@@ -35,9 +35,6 @@ static onion_t pow_inner_onion = NULL;
 static volatile long pow_thread_progress = 0;
 
 
-
-/* put this next to djb_freereadbody when the dust settles */
-static int djb_allocreadbody(httpsrv_client_t *hcl);
 
 static char* randomPath(void){
   char *retval = (char *)calloc(1024, sizeof(char));
@@ -147,33 +144,11 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
   free(request);
 }
 
-
-int djb_allocreadbody(httpsrv_client_t *hcl){
-  /* Ian says:  {} is fine as a body for me. */
-  if (hcl->headers.content_length < 2) {
-    djb_error(hcl, 500, "POST body too puny");
-    return 1;
-  }
-  
-  if (hcl->headers.content_length >= (5*1024*1024)) {
-    djb_error(hcl, 500, "POST body too big");
-    return 2;
-  }
-  logline(log_DEBUG_, "djb_allocreadbody: asking for the body");
-  /* Let the HTTP engine read the body in here */
-  hcl->readbody = mcalloc(hcl->headers.content_length + 1, "HTTPBODY");  //keep some room for the NULL (keep VALGRIND happy)
-  hcl->readbodylen = hcl->headers.content_length;
-  hcl->readbodyoff = 0;
-  hcl->readbody[hcl->headers.content_length] = '\0';
-  logline(log_DEBUG_, "djb_allocreadbody: alloced %" PRIu64 " bytes\n", hcl->headers.content_length + 1);
-  return 0;
-}
-
 static void gen_request(httpsrv_client_t* hcl) {
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
-    if(djb_allocreadbody(hcl)){
-      logline(log_DEBUG_, "gen_request: djb_allocreadbody crapped out");
+    if(httpsrv_readbody_alloc(hcl, 2, 0) < 0){
+      logline(log_DEBUG_, "gen_request: httpsrv_readbody_alloc( failed");
     }
     return;
   } else {
@@ -183,7 +158,7 @@ static void gen_request(httpsrv_client_t* hcl) {
     int secure = 0;
     logline(log_DEBUG_, "gen_request: %s", hcl->readbody);
     root = json_loads(hcl->readbody, 0, &error);
-    djb_freereadbody(hcl);
+    httpsrv_readbody_free(hcl);
     if(root != NULL && json_is_object(root)){
       json_t *server_val, *secure_val;
       secure_val = json_object_get(root, "secure");
@@ -232,15 +207,15 @@ static void image(httpsrv_client_t*  hcl) {
   logline(log_DEBUG_, "image %d", hcl->readbody == NULL);
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
-    if(djb_allocreadbody(hcl)){
-      logline(log_DEBUG_, "image: djb_allocreadbody crapped out");
+    if(httpsrv_readbody_alloc(hcl, 0, 0) < 0){
+      logline(log_DEBUG_, "image: httpsrv_readbody_alloc( failed");
     }
     return;
   } else {
     size_t encrypted_onion_sz = 0;
     int retcode = DEFIANT_OK;
     retcode = extract_n_save(password, hcl->readbody, hcl->readbodyoff,  &encrypted_onion, &encrypted_onion_sz, &image_path, &image_dir);
-    djb_freereadbody(hcl);
+    httpsrv_readbody_free(hcl);
     if(retcode != DEFIANT_OK){
       logline(log_DEBUG_, "image: extract_n_save with password %s returned %d -- %s", password, retcode, defiant_strerror(retcode));
       djb_error(hcl, 500, "Not implemented yet");
@@ -477,8 +452,8 @@ static char *peel_signed(void) {
 static void peel(httpsrv_client_t * hcl) {
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
-    if(djb_allocreadbody(hcl)){
-      logline(log_DEBUG_, "peel: djb_allocreadbody crapped out");
+    if(httpsrv_readbody_alloc(hcl, 0, 0) < 0){
+      logline(log_DEBUG_, "peel: httpsrv_readbody_alloc( failed");
     }
     return;
   } else {
@@ -487,7 +462,7 @@ static void peel(httpsrv_client_t * hcl) {
     json_t *root;
     logline(log_DEBUG_, "peel: %s", hcl->readbody);
     root = json_loads(hcl->readbody, 0, &error);
-    djb_freereadbody(hcl);
+    httpsrv_readbody_free(hcl);
     if(root == NULL){
       logline(log_DEBUG_, "peel: libjansson error: line: %d msg: %s", error.line, error.text);
     } else if((current_onion == NULL) || !ONION_IS_ONION(current_onion)) {
