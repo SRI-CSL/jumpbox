@@ -49,8 +49,8 @@ static char* randomPath(void){
 
 
 static void respond(httpsrv_client_t *hcl, unsigned int errcode, const char *api, const char *msg) {
-  conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s\r\n", errcode, api);
-  conn_addheaderf(&hcl->conn, "Content-Type: application/json\r\n");
+  conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", errcode, api);
+  conn_addheaderf(&hcl->conn, "Content-Type: application/json");
 
   conn_printf(&hcl->conn, "%s", msg);
   httpsrv_done(hcl);
