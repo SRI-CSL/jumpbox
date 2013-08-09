@@ -254,7 +254,6 @@ djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
 	/* Note it is us, very helpful while debugging pcap traces */
 	conn_addheaderf(&hcl->conn, "X-JumpBox: Yes\r\n");
 #endif
-#endif
 }
 
 bool
