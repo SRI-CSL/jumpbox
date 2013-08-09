@@ -35,6 +35,9 @@ PROJECT_BUILDTIME=$(shell date +"%Y.%m.%d-%H:%M:%S")
 # Debug build
 CFLAGS += -DDEBUG
 
+# Do stack dumps?
+CFLAGS += -DDEBUG_STACKDUMPS
+
 #########################################################
 export PROJECT_NAME
 export PROJECT_VERSION
