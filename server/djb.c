@@ -749,28 +749,12 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 }
 
 void
-djb_freereadbody(httpsrv_client_t *hcl) {
-	logline(log_DEBUG_,
-		HCL_ID " readbody = %p",
-		hcl->id, (void *)hcl->readbody);
-
-	if (hcl->readbody) {
-		mfree(hcl->readbody, hcl->readbodylen + hcl->readbodyoff, "HTTPBODY");
-		hcl->readbody = NULL;
-		hcl->readbodylen = 0;
-		hcl->readbodyoff = 0;
-	}
-}
-
-void
 djb_done(httpsrv_client_t *hcl, void *user);
 void
 djb_done(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t  *dh = (djb_headers_t *)user;
 
 	logline(log_DEBUG_, HCL_ID, hcl->id);
-
-	djb_freereadbody(hcl);
 
 	memzero(dh, sizeof *dh);
 }
