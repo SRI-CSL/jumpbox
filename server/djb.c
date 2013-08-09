@@ -52,7 +52,7 @@ djb_html_top(httpsrv_client_t *hcl) {
 		"<!doctype html>\n"
 		"<html lang=\"en\">\n"
 		"<head>\n"
-		"<title>JumpBox</title>\n"
+		"<title>DEFIANCE JumpBox</title>\n"
 		"<link rel=\"icon\" type=\"image/png\" "
 		"href=\"http://www.farsightsecurity.com/favicon.ico\">\n"
 		"<style type=\"text/css\">\n"
@@ -123,7 +123,10 @@ djb_html_top(httpsrv_client_t *hcl) {
 		"}\n"
 		"</style>\n"
 		"</head>\n"
-		"<body>");
+		"<body>"
+		"<div class=\"header\">\n"
+		"SAFER DEFIANCE :: JumpBox"
+		"</div>\n");
 }
 
 void
@@ -133,42 +136,17 @@ djb_html_tail(httpsrv_client_t *hcl) {
 
 	/* HTML header */
 	conn_put(&hcl->conn,
+		"<div class=\"footer\">\n"
+		"SAFER DEFIANCE :: Defiance JumpBox (djb) by "
+		"<a href=\"http://www.farsightsecurity.com\">"
+		"Farsight Security, Inc"
+		"</a>."
+		"</div>\n"
 		"</body>"
 		"</html>");
 }
 
-void
-djb_pull(httpsrv_client_t *hcl);
-void
-djb_pull(httpsrv_client_t *hcl){
-	djb_req_t *ar;
-
-	logline(log_DEBUG_, HCL_ID, hcl->id);
-
-	/* Proxy request - add it to the requester list */
-	ar = mcalloc(sizeof *ar, "djb_req_t *");
-	if (!ar) {
-		djb_error(hcl, 500, "Out of memory");
-		return;
-	}
-
-	/* Fill in the details */
-	ar->hcl = hcl;
-
-	/* Stop reading from the socket for now */
-	httpsrv_silence(hcl);
-
-	/*
-	 * Add this request to the queue
-	 * The manager will divide the work
-	 */
-	list_addtail_l(&lst_api_pull, &ar->node);
-
-	logline(log_DEBUG_,
-		HCL_ID " Request added to api_pull",
-		hcl->id);
-}
-
+/* API-Pull, requests a new Proxy-request */
 djb_req_t *
 djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl);
 djb_req_t *
@@ -266,10 +244,59 @@ djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh) {
 	return (pr);
 }
 
-/* Pull request, look up the SeqNo and handle it */
 void
+djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg);
+void
+djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
+	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s\r\n", code, msg);
+
+#if 0
+	/* Note it is us, very helpful while debugging pcap traces */
+	conn_addheaderf(&hcl->conn, "X-JumpBox: Yes\r\n");
+#endif
+#endif
+}
+
+bool
+djb_pull(httpsrv_client_t *hcl);
+bool
+djb_pull(httpsrv_client_t *hcl){
+	djb_req_t *ar;
+
+	logline(log_DEBUG_, HCL_ID, hcl->id);
+
+	/* Proxy request - add it to the requester list */
+	ar = mcalloc(sizeof *ar, "djb_req_t *");
+	if (!ar) {
+		djb_error(hcl, 500, "Out of memory");
+		return (true);
+	}
+
+	/* Fill in the details */
+	ar->hcl = hcl;
+
+	/* Stop reading from the socket for now */
+	httpsrv_silence(hcl);
+
+	/*
+	 * Add this request to the queue
+	 * The manager will divide the work
+	 */
+	list_addtail_l(&lst_api_pull, &ar->node);
+
+	logline(log_DEBUG_,
+		HCL_ID " Request added to api_pull",
+		hcl->id);
+
+	/* No need to read from it further for the moment */
+	return (true);
+}
+
+
+/* Push request, answer to a pull request */
+bool
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh);
-void
+bool
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	djb_req_t *pr;
 
@@ -277,8 +304,10 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* Find the request */
 	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
-	if (pr == NULL)
-		return;
+	if (pr == NULL) {
+		assert(false);
+		return (true);
+	}
 
 	/* XXX: check if pr->hcl is still valid */
 
@@ -286,7 +315,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	httpsrv_speak(pr->hcl);
 
 	/* We got an answer, send back what we have already */
-	conn_addheaderf(&pr->hcl->conn, "HTTP/1.1 %s OK\r\n", dh->httpcode);
+	djb_httpanswer(pr->hcl, atoi(dh->httpcode), "OK");
 
 	/* We need to translate the cookie header back */
 	if (strlen(dh->cookie) > 0) {
@@ -303,7 +332,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 		/* Release it */
 		free(pr);
-		return;
+		return (false);
 	}
 
 	/* Still need to forward the body as there is length */
@@ -325,6 +354,9 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	logline(log_DEBUG_,
 		"Forwarding body from " HCL_ID " to " HCL_ID,
 		pr->hcl->id, hcl->id);
+
+	/* No need to read from it further for the moment */
+	return (true);
 }
 
 /* hcl == the client proxy request, pr->hcl = pull API request */
@@ -347,17 +379,42 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 	/* Send a content-length again if there is one */
 	conn_add_contentlen(&pr->hcl->conn, true);
 
-	/* The forwarded request is done */
-	httpsrv_done(pr->hcl);
+	/* Was this a push? Then we answer that it is okay */
+	if (strcasecmp(hcl->headers.uri, "/push/") == 0) {
+		/* Send back a 200 OK as we proxied it */
+		logline(log_DEBUG_, "API push, done with it");
 
-	/* Send back a 200 OK as we forwarded it */
+		/* HTTP okay */
+		djb_httpanswer(hcl, 200, "OK");
+		conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
 
-	/* HTTP okay */
-	conn_addheaderf(&hcl->conn, "HTTP/1.1 200 OK\r\n");
-	conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
+		/* A message as a body (Content-Length is arranged by conn) */
+		conn_printf(&hcl->conn, "Push Body Forward successful\r\n");
 
-	/* Body is just JumpBox (Content-Length is arranged by conn) */
-	conn_printf(&hcl->conn, "Body Forward successful\r\n");
+		/* The forwarded request is done */
+		httpsrv_done(hcl);
+
+		/* The calling request is done too */
+		httpsrv_done(pr->hcl);
+
+		/* All done */
+		free(pr);
+	} else {
+		/* This was a proxy-POST, thus add it back to process queue */
+		logline(log_DEBUG_, "proxy-POST, adding back to queue");
+
+		/* Silence the proxy-POST for the time being */
+		/* httpsrv_silence(hcl); */
+
+		/* The forwarded request is done */
+		httpsrv_done(pr->hcl);
+
+		/* Done with this leg */
+		free(pr);
+
+		/* Served another one */
+		thread_serve();
+	}
 
 	/* Done for this request is handled by caller: httpsrv_handle_http() */
 	logline(log_DEBUG_, "end");
@@ -536,7 +593,7 @@ void
 djb_status(httpsrv_client_t *hcl);
 void
 djb_status(httpsrv_client_t *hcl) {
-	conn_addheaderf(&hcl->conn, "HTTP/1.1 200 OK\r\n");
+	djb_httpanswer(hcl, 200, "OK");
 	conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
 
 	/* Body is just JumpBox (Content-Length is arranged by conn) */
@@ -569,9 +626,9 @@ djb_status(httpsrv_client_t *hcl) {
 	httpsrv_done(hcl);
 }
 
-void
+bool
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh);
-void
+bool
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* A DJB API request */
@@ -581,39 +638,37 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* Our API URIs */
 	if (strcasecmp(hcl->headers.uri, "/pull/") == 0) {
-		djb_pull(hcl);
-		return;
+		return djb_pull(hcl);
 
 	} else if (strcasecmp(hcl->headers.uri, "/push/") == 0) {
-		djb_push(hcl, dh);
-		return;
+		return djb_push(hcl, dh);
 
 	} else if (strcasecmp(hcl->headers.uri, "/shutdown/") == 0) {
 		djb_error(hcl, 200, "Shutting down");
 		thread_stop_running();
-		return;
+		return (true);
 
 	} else if (strcasecmp(hcl->headers.uri, "/acs/") == 0) {
-                djb_error(hcl, 500, "Not implemented yet");
-                return;
+		djb_error(hcl, 500, "Not implemented yet");
+		return (false);
 
 	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", strlen("/rendezvous/")) == 0) {
-                rendezvous(hcl);
-                return;
+		rendezvous(hcl);
+		return (false);
 
 	} else if (strcasecmp(hcl->headers.uri, "/") == 0) {
 		djb_status(hcl);
-                return;
+		return (false);
 	}
 
 	/* Not a valid API request */
 	djb_error(hcl, 500, "Not a DJB API request");
-	return;
+	return (false);
 }
 
-void
+bool
 djb_handle_proxy(httpsrv_client_t *hcl);
-void
+bool
 djb_handle_proxy(httpsrv_client_t *hcl) {
 	djb_req_t	*pr;
 
@@ -621,7 +676,7 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 	pr = mcalloc(sizeof *pr, "djb_req_t *");
 	if (!pr) {
 		djb_error(hcl, 500, "Out of memory");
-		return;
+		return (true);
 	}
 
 	/* Fill in the details */
@@ -639,13 +694,17 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 	logline(log_DEBUG_,
 		HCL_ID " Request added to proxy_new",
 		hcl->id);
+
+	/* No need to read more for now */
+	return (true);
 }
 
-void
+bool
 djb_handle(httpsrv_client_t *hcl, void *user);
-void
+bool
 djb_handle(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t	*dh = (djb_headers_t *)user;
+	bool		done;
 
 	logline(log_DEBUG_,
 		HCL_ID " hostname: %s uri: %s",
@@ -654,7 +713,7 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 	/* Parse the request */
 	if (!httpsrv_parse_request(hcl)) {
 		/* function has added error already */
-		return;
+		return (true);
 	}
 
 	/* Is this a DJB API or a proxy request? */
@@ -663,11 +722,15 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 		strcmp(hcl->headers.hostname, "localhost:6543"	) == 0) {
 
 		/* API request */
-		djb_handle_api(hcl, dh);
+		done = djb_handle_api(hcl, dh);
 	} else {
 		/* Proxied request */
-		djb_handle_proxy(hcl);
+		done = djb_handle_proxy(hcl);
 	}
+
+	logline(log_DEBUG_, HCL_ID " end", hcl->id);
+
+	return (done);
 }
 
 void
@@ -733,7 +796,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 	dh = (djb_headers_t *)pr->hcl->user;
 
 	/* HTTP okay */
-	conn_addheaderf(&ar->hcl->conn, "HTTP/1.1 200 OK\r\n");
+	djb_httpanswer(ar->hcl, 200, "OK");
 
 	/* DJB headers */
 	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s\r\n",
@@ -787,6 +850,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 			"req " HCL_ID " with puller " HCL_ID " is POST",
 			pr->hcl->id, ar->hcl->id);
 
+		/* Add the content type of the data to come */
 		conn_addheaderf(&ar->hcl->conn, "Content-Type: %s\r\n",
 				strlen(pr->hcl->headers.content_type) > 0 ?
 					pr->hcl->headers.content_type :
@@ -821,6 +885,8 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 				pr->hcl->id, ar->hcl->id);
 		}
 	}
+
+	logline(log_DEBUG_, "end");
 }
 
 static void *
@@ -869,7 +935,12 @@ djb_worker_thread(void UNUSED *arg) {
 			break;
 		}
 
+		logline(log_DEBUG_, "got request " HCL_ID " and poller "HCL_ID,
+			pr->hcl->id, ar->hcl->id);
+
 		djb_handle_forward(pr, ar, hostname);
+
+		logline(log_DEBUG_, "end");
 	}
 
 	logline(log_DEBUG_, "exit");
