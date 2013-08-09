@@ -1,5 +1,5 @@
+#include "djb.h"
 #include "rendezvous.h"
-#include "shared.h"
 
 #include "defiantclient.h"
 #include "defiantbf.h"
