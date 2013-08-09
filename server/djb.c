@@ -153,8 +153,8 @@ djb_req_t *
 djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl) {
 	djb_req_t	*r, *rn, *pr = NULL;
 
-	assert(lst != NULL);
-	assert(hcl != NULL);
+	fassert(lst != NULL);
+	fassert(hcl != NULL);
 
 	/* Find this HCL in our outstanding proxy requests */
 	list_lock(lst);
@@ -248,11 +248,11 @@ void
 djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg);
 void
 djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
-	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s\r\n", code, msg);
+	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", code, msg);
 
 #if 0
 	/* Note it is us, very helpful while debugging pcap traces */
-	conn_addheaderf(&hcl->conn, "X-JumpBox: Yes\r\n");
+	conn_addheaderf(&hcl->conn, "X-JumpBox: Yes");
 #endif
 }
 
@@ -304,7 +304,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/* Find the request */
 	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
 	if (pr == NULL) {
-		assert(false);
+		fassert(false);
 		return (true);
 	}
 
@@ -318,12 +318,12 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* We need to translate the cookie header back */
 	if (strlen(dh->cookie) > 0) {
-		conn_addheaderf(&pr->hcl->conn, "DJB-Cookie: %s\r\n",
+		conn_addheaderf(&pr->hcl->conn, "DJB-Cookie: %s",
 				dh->cookie);
 	}
 
 	/* Add all the headers we received */
-	conn_addheader(&pr->hcl->conn, buf_buffer(&hcl->the_headers));
+	conn_addheaders(&pr->hcl->conn, buf_buffer(&hcl->the_headers));
 
 	if (hcl->headers.content_length == 0) {
 		/* This request is done (after flushing) */
@@ -369,7 +369,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 	pr = djb_find_hcl(&lst_proxy_body, hcl->bodyfwd);
 
 	/* Should always be there */
-	assert(pr);
+	fassert(pr);
 
 	logline(log_DEBUG_,
 		"Done forwarding body from " HCL_ID " to " HCL_ID,
@@ -385,7 +385,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 
 		/* HTTP okay */
 		djb_httpanswer(hcl, 200, "OK");
-		conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
+		conn_addheaderf(&hcl->conn, "Content-Type: text/html");
 
 		/* A message as a body (Content-Length is arranged by conn) */
 		conn_printf(&hcl->conn, "Push Body Forward successful\r\n");
@@ -593,7 +593,7 @@ djb_status(httpsrv_client_t *hcl);
 void
 djb_status(httpsrv_client_t *hcl) {
 	djb_httpanswer(hcl, 200, "OK");
-	conn_addheaderf(&hcl->conn, "Content-Type: text/html\r\n");
+	conn_addheaderf(&hcl->conn, "Content-Type: text/html");
 
 	/* Body is just JumpBox (Content-Length is arranged by conn) */
 	djb_html_top(hcl);
@@ -777,15 +777,15 @@ static void
 djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 	djb_headers_t	*dh;
 
-	assert(pr->hcl);
-	assert(ar->hcl);
+	fassert(pr->hcl);
+	fassert(ar->hcl);
 
 	logline(log_DEBUG_,
 		"got request " HCL_ID ", got puller " HCL_ID,
 		pr->hcl->id, ar->hcl->id);
 
-	assert(conn_is_valid(&pr->hcl->conn));
-	assert(conn_is_valid(&ar->hcl->conn));
+	fassert(conn_is_valid(&pr->hcl->conn));
+	fassert(conn_is_valid(&ar->hcl->conn));
 
 	/* Resume reading from the sockets */
 	httpsrv_speak(pr->hcl);
@@ -798,26 +798,26 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 	djb_httpanswer(ar->hcl, 200, "OK");
 
 	/* DJB headers */
-	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s\r\n",
+	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s",
 			hostname ? hostname : pr->hcl->headers.hostname,
 			pr->hcl->headers.uri,
 			(strlen(pr->hcl->headers.args) > 0) ? "?" : "",
 			pr->hcl->headers.args);
 
-	conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s\r\n",
+	conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s",
 			httpsrv_methodname(pr->hcl->method));
 
-	conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64 "\r\n",
+	conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64,
 			pr->hcl->id, pr->hcl->reqid);
 
 	/* We need to translate the cookie header back */
 	if (strlen(dh->setcookie) > 0) {
-		conn_addheaderf(&ar->hcl->conn, "DJB-Set-Cookie: %s\r\n",
+		conn_addheaderf(&ar->hcl->conn, "DJB-Set-Cookie: %s",
 				dh->setcookie);
 	}
 
 	if (strlen(dh->cookie) > 0) {
-		conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s\r\n",
+		conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s",
 				dh->cookie);
 	}
 
@@ -827,7 +827,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 			pr->hcl->id, ar->hcl->id);
 
 		/* XHR requires a return, thus just give it a blank body */
-		conn_addheaderf(&ar->hcl->conn, "Content-Type: text/html\r\n");
+		conn_addheaderf(&ar->hcl->conn, "Content-Type: text/html");
 
 		/* Empty-ish body (Content-Length is arranged by conn) */
 		conn_printf(&ar->hcl->conn, "Non-POST JumpBox response\r\n");
@@ -850,7 +850,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 			pr->hcl->id, ar->hcl->id);
 
 		/* Add the content type of the data to come */
-		conn_addheaderf(&ar->hcl->conn, "Content-Type: %s\r\n",
+		conn_addheaderf(&ar->hcl->conn, "Content-Type: %s",
 				strlen(pr->hcl->headers.content_type) > 0 ?
 					pr->hcl->headers.content_type :
 					"text/html");
@@ -916,7 +916,7 @@ djb_worker_thread(void UNUSED *arg) {
 			break;
 		}
 
-		assert(pr->hcl);
+		fassert(pr->hcl);
 
 		logline(log_DEBUG_, "got request " HCL_ID ", getting poller",
 			pr->hcl->id);

@@ -227,6 +227,7 @@ DJB_OBJS	+=	djb.o					\
 			$(OBJFUTIL)list.o			\
 			$(OBJFUTIL)misc.o			\
 			$(OBJFUTIL)rwl.o			\
+			$(OBJFUTIL)stack.o			\
 			$(OBJFUTIL)thread.o
 
 # All the objects in this project nicely in alpha order
