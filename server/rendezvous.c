@@ -35,9 +35,9 @@ static volatile long pow_thread_progress = 0;
 
 static char* randomPath(void){
   char *retval = (char *)calloc(1024, sizeof(char));
-  int r = rand();
+  uint64_t r = generate_random_number();
   //look like flickr for today:
-  snprintf(retval, 1024, "photos/26907150@N08/%d/lightbox", r);
+  snprintf(retval, 1024, "photos/26907150@N08/%" PRIu64 "/lightbox", r);
   return retval;
 }
 
@@ -129,8 +129,12 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
     djb_error(hcl, 500, defiant_strerror(defcode));
   }
   bf_free_params(params);
-  free(path);
-  free(request);
+
+  if (path)
+	free(path);
+
+  if (request)
+  	free(request);
 }
 
 static void gen_request(httpsrv_client_t* hcl) {
@@ -162,7 +166,7 @@ static void gen_request(httpsrv_client_t* hcl) {
     } else {
       djb_error(hcl, 500, "POST data conundrum");
       if(root == NULL){
-        logline(log_DEBUG_, "gen_request: data = %s error: line: %d msg: %s", hcl->readbody, error.line, error.text);
+        logline(log_DEBUG_, "gen_request: data = %s error: line: %u msg: %s", hcl->readbody, error.line, error.text);
       }
     }
     json_decref(root);
@@ -175,7 +179,7 @@ static char *make_image_response(char *path, int onion_type){
   int chars = 0, response_size = 0;
   while (1) {
     chars = snprintf(response, response_size,
-                     "{ \"image\": \"file://%s\", \"onion_type\": %d}",
+                     "{ \"image\": \"file://%s\", \"onion_type\": %u}",
                      path, onion_type);
     if (response_size != 0 && chars > response_size) {
       break;
@@ -193,7 +197,7 @@ static char *make_image_response(char *path, int onion_type){
 
 static void image(httpsrv_client_t*  hcl) {
   char *response = NULL, *image_path = NULL, *image_dir = NULL, *encrypted_onion = NULL,  *onion = NULL;
-  logline(log_DEBUG_, "image %d", hcl->readbody == NULL);
+  logline(log_DEBUG_, "image %s", yesno(hcl->readbody == NULL));
   /* No body yet? Then allocate some memory to get it */
   if (hcl->readbody == NULL) {
     if(httpsrv_readbody_alloc(hcl, 0, 0) < 0){
@@ -210,7 +214,7 @@ static void image(httpsrv_client_t*  hcl) {
       djb_error(hcl, 500, "Not implemented yet");
     } else {
       int onion_sz = 0;
-      onion = (onion_t)defiant_pwd_decrypt(password, (const uchar*)encrypted_onion, (int)encrypted_onion_sz, &onion_sz); 
+      onion = (onion_t)defiant_pwd_decrypt(password, (const uchar*)encrypted_onion, encrypted_onion_sz, &onion_sz); 
       if(onion == NULL){
         logline(log_DEBUG_, "image: Decrypting onion failed: No onion");
       } else if (onion_sz < (int)sizeof(onion_header_t)) {
@@ -218,7 +222,7 @@ static void image(httpsrv_client_t*  hcl) {
       } else if (!ONION_IS_ONION(onion)) {
         logline(log_DEBUG_, "image: Decrypting onion failed: Onion Magic Incorrect");
       } else if (onion_sz != (int)ONION_SIZE(onion)) {
-        logline(log_DEBUG_, "image: Decrypting onion failed: onion_sz (%d) does nat match real onion size (%d)", onion_sz, (int)ONION_SIZE(onion));
+        logline(log_DEBUG_, "image: Decrypting onion failed: onion_sz (%u) does nat match real onion sizeu(%d)", onion_sz, (int)ONION_SIZE(onion));
       } else {
         response = make_image_response(image_path, ONION_TYPE(onion)); 
         if(response != NULL){
@@ -272,14 +276,14 @@ static char *make_peel_response(const char* info, const char* status){
   return retval;
 }
 
-static char *make_pow_response(int percent, const char* status){
+static char *make_pow_response(unsigned int percent, const char* status){
   int onion_type = ONION_TYPE(current_onion);
   char* retval = NULL;
   char* response = NULL;
   int chars = 0, response_size = 0;
   while (1) {
     chars = snprintf(response, response_size,
-                     "{ \"info\": %d,  \"status\": \"%s\", \"onion_type\": %d}",
+                     "{ \"info\": %u,  \"status\": \"%s\", \"onion_type\": %d}",
                      percent, status, onion_type);
     if (response_size != 0 && chars > response_size) {
       break;
@@ -314,7 +318,9 @@ static char *peel_base(void) {
   return response;
 }
 
-static int drivel = 0;
+/* Show progress */
+#undef DRIVEL
+
 /* we are currently forcing passwords to start with "aaa" */
 static long maxAttempts = 1 * 1 * 1 * 26 * 26 * 26 * 26 * 26;
 
@@ -335,21 +341,21 @@ void *pow_worker(void *arg){
 }
 
 
-int attempts2percent(void);
-int attempts2percent(void){
-  int retval = 0;
-  long current = pow_thread_progress;
+unsigned int attempts2percent(void);
+unsigned int attempts2percent(void){
+  unsigned int retval = 0;
+  unsigned long current = pow_thread_progress;
   retval = ((current * 100)/maxAttempts);
-  if(drivel){
-    logline(log_DEBUG_, "%ld %d%c\n", current, retval, '%');
-  }
+#ifdef DRIVEL
+    logline(log_DEBUG_, "%lu %u%%\n", current, retval);
+#endif
   return retval;
 }
 
 
 static char *peel_pow(void) {
   char *response = NULL;
-  int pc = attempts2percent();
+  unsigned int pc = attempts2percent();
   if(pow_thread_started == 0){
     /* need to start the pow thread */
     if (thread_add("RendezvousPOW", pow_worker, NULL)) {
@@ -455,7 +461,7 @@ static void peel(httpsrv_client_t * hcl) {
     root = json_loads(hcl->readbody, 0, &error);
     httpsrv_readbody_free(hcl);
     if(root == NULL){
-      logline(log_DEBUG_, "peel: libjansson error: line: %d msg: %s", error.line, error.text);
+      logline(log_DEBUG_, "peel: libjansson error: line: %u msg: %s", error.line, error.text);
     } else if((current_onion == NULL) || !ONION_IS_ONION(current_onion)) {
       djb_error(hcl, 500, "Bad onion");
     } else {
