@@ -322,9 +322,9 @@ static char *peel_base(void) {
   return response;
 }
 
-int drivel = 0;
+static int drivel = 0;
 /* we are currently forcing passwords to start with "aaa" */
-long maxAttempts = 1 * 1 * 1 * 26 * 26 * 26 * 26 * 26;
+static long maxAttempts = 1 * 1 * 1 * 26 * 26 * 26 * 26 * 26;
 
 void *pow_worker(void *arg);
 void *pow_worker(void *arg){

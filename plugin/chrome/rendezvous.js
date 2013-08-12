@@ -208,10 +208,10 @@ UI = {
 
     init: function () {
         document.querySelector('#signed_peeler_button').addEventListener('click', UI.peel_away);
-        document.querySelector('#pow_peeler_button').addEventListener('click', UI.peel_away);
     },
 
     peel_away: function () {
+        console.log("Peeling away");
         /* not much work needed here */
         Rendezvous.peel({});
     },
@@ -286,29 +286,49 @@ UI = {
 
     update_BASE_display: function (robj) {
         if(typeof robj.info == 'object'){
+            var net_textarea_div = document.querySelector('#net_textarea_div');
             var net_textarea = document.querySelector('#net_textarea');
+            var instructions =  document.querySelector('#base_peeling_intructions');
             Rendezvous.net = JSON.stringify(robj.info);
             net_textarea.value =  Rendezvous.net;
+            net_textarea_div.appendChild(net_textarea);
+            instructions.textContent = 'Press OK to start the dance';
             document.querySelector('#base_peeler_button').removeEventListener('click', UI.peel_away);
             document.querySelector('#base_peeler_button').addEventListener('click', Rendezvous.dance);
         } else {
-
             document.querySelector('#base_peeler_button').addEventListener('click', UI.peel_away);            
 
         }
+    },
+
+    pow_commenced: false,
+    
+    pow_commence: function () {
+        var pow_div = document.querySelector('#pow_progress_bar_div');
+        var pow  = document.querySelector('#pow_container');
+        pow_div.appendChild(pow);
+        UI.peel_away();
     },
     
     update_POW_display: function (robj) {
         console.log('update_POW_display: ' + robj.info);
         if (typeof robj.info === 'number') {
-            document.querySelector('#pow_progress-bar').setAttribute('style', "background-image:url(red.png); height:50px; width:" + robj.info + "%; ");
+            if(!UI.pow_commenced){
+                UI.pow_commenced = true;
+                document.querySelector('#base_peeler_button').removeEventListener('click', UI.pow_commence);
+                document.querySelector('#pow_peeler_button').addEventListener('click', UI.peel_away);
+            }
+            document.querySelector('#pow_progress_bar').setAttribute('style', "background-image:url(red.png); height:50px; width:" + robj.info + "%; ");
             if (robj.info < 100) {
                 document.querySelector('#pow_peeler_button').disabled = true;
                 setTimeout(UI.peel_away, 50);
             } else {
                 document.querySelector('#pow_peeler_button').disabled = false;
             }
-        } 
+        } else {
+            document.querySelector('#pow_peeler_button').addEventListener('click', UI.pow_commence);
+        }
+ 
     },
     
     update_CAPTCHA_display: function(robj){
