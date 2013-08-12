@@ -1,9 +1,10 @@
+// http://developer.chrome.com/extensions/manifest.html
 {
-  "manifest_version": 2,
 
   "name": "JumpBox",
-  "description": "This extension is the Stegotorus client's conduit to the Stegotorus server.",
+  "description": "This extension is the Stegotorus client's conduit to the Stegotorus server and provides Rendezvous and ACS support from inside the browser.",
   "version": "1.0",
+  "manifest_version": 2,
 
   "options_page": "options.html",
 
