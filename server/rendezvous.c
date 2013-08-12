@@ -45,14 +45,6 @@ static char* randomPath(void){
 }
 
 
-static void respond(httpsrv_client_t *hcl, unsigned int errcode, const char *api, const char *msg) {
-  conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", errcode, api);
-  conn_addheaderf(&hcl->conn, "Content-Type: application/json");
-
-  conn_printf(&hcl->conn, "%s", msg);
-  httpsrv_done(hcl);
-}
-
 static void onion_reset(void);
 void onion_reset(void){
   logline(log_DEBUG_, "onion_reset");
@@ -115,7 +107,7 @@ static void reset(httpsrv_client_t* hcl) {
   captcha_reset();
   image_reset();
   pow_reset(); 
-  respond(hcl, 200, "reset", "Reset OK");
+  djb_result(hcl, "Reset OK");
 }
 
 static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
@@ -132,7 +124,7 @@ static void gen_request_aux(httpsrv_client_t* hcl, char* server, int secure){
     }
   }
   if(defcode == DEFIANT_OK){
-    respond(hcl, 200, "gen_request", request);
+    djb_result(hcl, request);
     logline(log_DEBUG_, "gen_request: secure=%s, password = %s, request = %s",
 	    secure ? "yes" : "no",
 	    password, request);
@@ -239,7 +231,7 @@ static void image(httpsrv_client_t*  hcl) {
           current_image_path = image_path;
           current_image_dir = image_dir;
           logline(log_DEBUG_, "image: onion_sz %d -- onion_type: %d", (int)current_onion_size, ONION_TYPE(current_onion));
-          respond(hcl, 200, "image", response);
+          djb_result(hcl, response);
         }
       }
     }
@@ -491,7 +483,7 @@ static void peel(httpsrv_client_t * hcl) {
       djb_error(hcl, 500, "Onion method not implemented yet");
       }
       if(response != NULL){
-        respond(hcl, 200, "peel", response);
+        djb_result(hcl, response);
       } else {
         djb_error(hcl, 500, "make_peel_response failed");
       }

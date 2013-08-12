@@ -159,10 +159,12 @@ djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user) {
 }
 
 void
-djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg);
-void
-djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
+djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const char *ctype) {
 	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", code, msg);
+
+	if (ctype != NULL) {
+		conn_addheaderf(&hcl->conn, "Content-Type: %s", ctype);
+	}
 
 #if 0
 	/* Note it is us, very helpful while debugging pcap traces */
@@ -172,7 +174,7 @@ djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
 
 void
 djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
-	djb_httpanswer(hcl, code, msg);
+	djb_httpanswer(hcl, code, msg, "text/html");
 
 	djb_html_top(hcl, NULL);
 	conn_printf(&hcl->conn,
@@ -182,6 +184,15 @@ djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
 		    "</p>\n",
 		    code, msg);
 	djb_html_tail(hcl, NULL);
+
+	httpsrv_done(hcl);
+}
+
+void
+djb_result(httpsrv_client_t *hcl, const char *msg) {
+	djb_httpanswer(hcl, 200, "OK", "application/json");
+
+	conn_put(&hcl->conn, msg);
 
 	httpsrv_done(hcl);
 }
@@ -350,18 +361,12 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	httpsrv_speak(pr->hcl);
 
 	/* We got an answer, send back what we have already */
-	djb_httpanswer(pr->hcl, atoi(dh->httpcode), "OK");
+	djb_httpanswer(pr->hcl, atoi(dh->httpcode), "OK", NULL);
 
 	/* Server to Client */
 	if (strlen(dh->setcookie) > 0) {
 		conn_addheaderf(&pr->hcl->conn, "Set-Cookie: %s",
 				dh->setcookie);
-	}
-
-	/* Client to Server */
-	if (strlen(dh->cookie) > 0) {
-		conn_addheaderf(&pr->hcl->conn, "DJB-Cookie: %s",
-				dh->cookie);
 	}
 
 	/* Add all the headers we received */
@@ -427,8 +432,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 		logline(log_DEBUG_, "API push, done with it");
 
 		/* HTTP okay */
-		djb_httpanswer(hcl, 200, "OK");
-		conn_addheaderf(&hcl->conn, "Content-Type: text/html");
+		djb_httpanswer(hcl, 200, "OK", "text/html");
 
 		/* A message as a body (Content-Length is arranged by conn) */
 		conn_printf(&hcl->conn, "Push Body Forward successful\r\n");
@@ -635,8 +639,7 @@ void
 djb_status(httpsrv_client_t *hcl);
 void
 djb_status(httpsrv_client_t *hcl) {
-	djb_httpanswer(hcl, 200, "OK");
-	conn_addheaderf(&hcl->conn, "Content-Type: text/html");
+	djb_httpanswer(hcl, 200, "OK", "text/html");
 
 	/* Body is just JumpBox (Content-Length is arranged by conn) */
 	djb_html_top(hcl, NULL);
@@ -703,8 +706,7 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return (false);
 
 	} else if (strcasecmp(hcl->headers.uri, "/djb.css") == 0) {
-		djb_httpanswer(hcl, 200, "OK");
-		conn_addheaderf(&hcl->conn, "Content-Type: text/css");
+		djb_httpanswer(hcl, 200, "OK", "text/css");
 
 		djb_html_css(hcl);
 
@@ -831,7 +833,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 	dh = (djb_headers_t *)pr->hcl->user;
 
 	/* HTTP okay */
-	djb_httpanswer(ar->hcl, 200, "OK");
+	djb_httpanswer(ar->hcl, 200, "OK", NULL);
 
 	/* DJB headers */
 	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s",
