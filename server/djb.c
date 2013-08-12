@@ -123,9 +123,9 @@ djb_html_top(httpsrv_client_t *hcl) {
 		"}\n"
 		"</style>\n"
 		"</head>\n"
-		"<body>"
+		"<body>\n"
 		"<div class=\"header\">\n"
-		"SAFER DEFIANCE :: JumpBox"
+		"SAFER DEFIANCE :: JumpBox\n"
 		"</div>\n");
 }
 
@@ -140,10 +140,10 @@ djb_html_tail(httpsrv_client_t *hcl) {
 		"SAFER DEFIANCE :: Defiance JumpBox (djb) by "
 		"<a href=\"http://www.farsightsecurity.com\">"
 		"Farsight Security, Inc"
-		"</a>."
+		"</a>.\n"
 		"</div>\n"
-		"</body>"
-		"</html>");
+		"</body>\n"
+		"</html>\n");
 }
 
 void
@@ -474,7 +474,7 @@ djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
 	conn_printf(&hcl->conn,
 		"<h1>List: %s</h1>\n"
 		"<p>\n"
-		"%s\n"
+		"%s.\n"
 		"</p>\n",
 		title,
 		desc);
@@ -507,7 +507,7 @@ djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
 
 	if (cnt == 0) {
 		conn_put(&hcl->conn,
-			"No outstanding request");
+			"No outstanding requests.");
 	} else {
 		conn_put(&hcl->conn,
 			"</table>\n");
