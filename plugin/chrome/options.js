@@ -2,21 +2,26 @@ var Options;
 
 Options = {
     
-    debug: false,
+    debug: true,
 
-    options: { server_name: 'server_name', jumpbox_port: 'jumpbox_port' },
+    options: { server_name: 'server_name', jumpbox_port: 'jumpbox_port', debug_mode: 'debug_mode' },
 
+    properties: { server_name: 'value', jumpbox_port: 'value', debug_mode: 'checked' },
+
+    types: { server_name: 'string', jumpbox_port: 'string', debug_mode: 'boolean' },
+    
     init: function () {
         Options.restore_options();
         document.querySelector('#save').addEventListener('click', Options.save_options);
     },
     
     save_options: function () {
-        var option_id, value, field;
+        var option_id, value, field, property;
         for(option_id in Options.options){
             field = document.getElementById(option_id);
+            property = Options.properties[option_id];
             if(field){
-                value = field.value;
+                value = field[property];
                 if(Options.debug){
                     console.log('option_id: ' + option_id);
                     console.log('value: ' + value);
@@ -39,12 +44,27 @@ Options = {
     },
     
     restore_options: function () {
-        var option_id, value, field;
+        var option_id, value, field, property, type;
         for(option_id in Options.options){
+            property = Options.properties[option_id];
+            type = Options.types[option_id];
             value = localStorage[option_id];
+            if(Options.debug){
+                console.log('option_id: ' + option_id);
+                console.log('value: ' + value);
+                console.log('typeof value: ' + typeof(value));
+            } 
             if (typeof(value) === "string") {
                 field = document.getElementById(option_id);
-                if(field){ field.value = value; }
+                if(field){ 
+                    if(type === 'string'){
+                        field[property] = value; 
+                    } else if(type === 'boolean'){
+                        field[property] = (value === 'true');
+                    } else {
+                        console.log('unknown type: ' + type);
+                    }
+                }
             }
         }
     }

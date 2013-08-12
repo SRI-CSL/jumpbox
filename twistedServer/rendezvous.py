@@ -45,19 +45,21 @@ class Rendezvous(Resource):
             content = request.content.read()
            #onion_type:  { BASE : 0, POW : 1, CAPTCHA : 2, SIGNED : 3, COLLECTION : 4 },
             if Rendezvous.onion_type == 0:
-                pass
+                return '{ "onion_type": 0 ,  "info": "%s" }' % Rendezvous.nep
             elif Rendezvous.onion_type == 1:
+                if Rendezvous.pow_status <= 100:
+                    retval = '{ "onion_type": 1,  "info": %s }' % Rendezvous.pow_status
+                    Rendezvous.pow_status += 5
+                    return retval
+                else:
+                    return '{ "onion_type": 0  }'
                 pass
             elif Rendezvous.onion_type == 2:
                 pass
             elif Rendezvous.onion_type == 3:
+                Rendezvous.onion_type = 1
                 print 'POST: %s submitted %s (pow_status = %s)\n' % (self.name, content, Rendezvous.pow_status)
-                if Rendezvous.pow_status <= 100:
-                    retval = '{ "type": 1,  "info": %s }' % Rendezvous.pow_status
-                    Rendezvous.pow_status += 5
-                    return retval
-                else:
-                    return '{ "type": 0,  "info": "%s" }' % Rendezvous.nep
+                return '{ "onion_type": 1 }'
 
     
             

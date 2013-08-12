@@ -60,6 +60,7 @@ Controls = {
 
     start : function () {
         Controls.running = true;
+        JumpBox.init();
         Circuitous.jb_pull();
     },
 
@@ -86,11 +87,16 @@ JumpBox = {
     jb_ext_id    : chrome.i18n.getMessage("@@extension_id"),
 
     init : function () {
-        var port = localStorage.jumpbox_port;
+        var port, debug_mode;
+        port = localStorage.jumpbox_port;
+        debug_mode = localStorage.debug_mode;
         if (port) {
             JumpBox.jb_port = port;
         }
-
+        if(typeof debug_mode === 'string'){
+            Debug.debug = (debug_mode === 'true');
+        }
+        console.log("Debug.debug: " + Debug.debug); 
         JumpBox.jb_host = JumpBox.jb_server + ':' + JumpBox.jb_port;
         JumpBox.jb_pull_url = JumpBox.jb_host + JumpBox.jb_pull_path;
         JumpBox.jb_push_url = JumpBox.jb_host + JumpBox.jb_push_path;
@@ -104,7 +110,6 @@ Circuitous = {
     jb_pull : function () {
         Debug.log('jb_pull()');
         var jb_pull_request = new XMLHttpRequest();
-        JumpBox.init();
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request); };
         jb_pull_request.open('GET', JumpBox.jb_pull_url);
         jb_pull_request.send(null);
@@ -332,6 +337,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(Headers.onBeforeSendHeaders, {
 chrome.webRequest.onHeadersReceived.addListener(Headers.onHeadersReceived, {urls: ["<all_urls>"]}, ["blocking", "responseHeaders"]);
 
 try {
+    JumpBox.init();
     Circuitous.jb_pull();
 } catch (e) {
     Debug.log('loop: ' + e);
