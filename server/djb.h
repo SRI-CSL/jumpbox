@@ -7,6 +7,7 @@
 #endif
 
 #include <libfutil/httpsrv.h>
+#include <jansson.h>
 
 void
 djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const char *ctype);
@@ -19,5 +20,8 @@ djb_result(httpsrv_client_t *hcl, const char *msg);
 
 int djb_allocreadbody(httpsrv_client_t *hcl, uint64_t min, uint64_t max);
 void djb_freereadbody(httpsrv_client_t *hcl);
+
+void
+acs_set_net(json_t *net_);
 
 #endif /* SHARED_H */
