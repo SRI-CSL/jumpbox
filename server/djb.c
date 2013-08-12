@@ -47,19 +47,12 @@ misc_map_t djb_headers[] = {
 };
 
 void
-djb_html_top(httpsrv_client_t *hcl);
+djb_html_css(httpsrv_client_t *hcl);
 void
-djb_html_top(httpsrv_client_t *hcl) {
-
+djb_html_css(httpsrv_client_t *hcl) {
 	/* HTML header */
 	conn_put(&hcl->conn,
-		"<!doctype html>\n"
-		"<html lang=\"en\">\n"
-		"<head>\n"
-		"<title>DEFIANCE JumpBox</title>\n"
-		"<link rel=\"icon\" type=\"image/png\" "
-		"href=\"http://www.farsightsecurity.com/favicon.ico\">\n"
-		"<style type=\"text/css\">\n"
+		"/* JumpBox CSS */\n"
 		"label\n"
 		"{\n"
 		"	float		: left;\n"
@@ -124,8 +117,23 @@ djb_html_top(httpsrv_client_t *hcl) {
 		".right\n"
 		"{\n"
 		"	text-align	: right\n"
-		"}\n"
-		"</style>\n"
+		"}\n");
+}
+
+void
+djb_html_top(httpsrv_client_t *hcl);
+void
+djb_html_top(httpsrv_client_t *hcl) {
+
+	/* HTML header */
+	conn_put(&hcl->conn,
+		"<!doctype html>\n"
+		"<html lang=\"en\">\n"
+		"<head>\n"
+		"<title>DEFIANCE JumpBox</title>\n"
+		"<link rel=\"icon\" type=\"image/png\" "
+		"href=\"http://www.farsightsecurity.com/favicon.ico\">\n"
+		"<link rel=\"stylesheet\" type=\"text/css\" href=\"/djb.css\" />\n"
 		"</head>\n"
 		"<body>\n"
 		"<div class=\"header\">\n"
@@ -692,6 +700,15 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	} else if (strcasecmp(hcl->headers.uri, "/") == 0) {
 		djb_status(hcl);
+		return (false);
+
+	} else if (strcasecmp(hcl->headers.uri, "/djb.css") == 0) {
+		djb_httpanswer(hcl, 200, "OK");
+		conn_addheaderf(&hcl->conn, "Content-Type: text/css");
+
+		djb_html_css(hcl);
+
+		httpsrv_done(hcl);
 		return (false);
 	}
 
