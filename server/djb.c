@@ -619,6 +619,20 @@ djb_status_threads(httpsrv_client_t *hcl) {
 }
 
 static void
+djb_status_httpsrv(httpsrv_client_t *hcl);
+static void
+djb_status_httpsrv(httpsrv_client_t *hcl) {
+	conn_put(&hcl->conn,
+		"<h2>JumpBox HTTP Server Sessions</h2>\n"
+		"<p>\n"
+		"Following sessions are currently running in the HTTP Server.\n"
+		"</p>\n"
+		"\n");
+
+	httpsrv_sessions(hcl);
+}
+
+static void
 djb_status_version(httpsrv_client_t *hcl);
 static void
 djb_status_version(httpsrv_client_t *hcl) {
@@ -664,6 +678,8 @@ djb_status(httpsrv_client_t *hcl) {
 			"API Pull",
 			"Requests that want a pull, "
 			"waiting for proxy_new entry");
+
+	djb_status_httpsrv(hcl);
 
 	djb_html_tail(hcl, NULL);
 
