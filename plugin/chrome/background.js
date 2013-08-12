@@ -220,7 +220,7 @@ Translator = {
         /* Keep the SeqNo */
         request.djb_seqno = djb_seqno;
 
-        /* Ian added this, it does fix pdf bloat, but maybe should be more discerning */
+        /* Ian added this, it does fix pdf bloat, but maybe we should be more discerning */
         request.responseType = 'blob';
 
         return djb_contents;
@@ -258,7 +258,6 @@ Translator = {
             Debug.log('ss_push_response: content-type = ' + djb_content_type);
             request.setRequestHeader('Content-Type', djb_content_type);
         }
-
         return response.response;
     }
 };

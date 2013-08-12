@@ -336,7 +336,6 @@ UI = {
         if ((typeof robj.info === 'string') && (robj.info !== "")){
             /* display the image and prompt for an answer */
             UI.display_captcha(robj.info);
-
         } else {
             /* just get ready to ask for it */
             document.querySelector('#captcha_peeler_button').addEventListener('click', UI.peel_away);
@@ -344,7 +343,8 @@ UI = {
     },
 
     display_captcha: function (captcha_url) {
-        var image, image_div, input, input_div;
+        var image, image_div, input, input_div, instructions;            
+
         image = document.querySelector('#captcha_image');
         image.src = captcha_url;
         image_div = document.querySelector('#captcha_image_div');
@@ -352,6 +352,8 @@ UI = {
         input_div = document.querySelector('#captcha_answer_div');
         input = document.querySelector('#captcha_answer');
         input_div.appendChild(input);
+        instructions =  document.querySelector('#captcha_peeling_intructions');
+        instructions.textContent = 'Solve the captcha, and press OK';
         document.querySelector('#captcha_peeler_button').removeEventListener('click', UI.peel_away);
         document.querySelector('#captcha_peeler_button').addEventListener('click', UI.peel_captcha);
     },
