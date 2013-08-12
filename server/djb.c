@@ -301,7 +301,7 @@ bool
 djb_pull(httpsrv_client_t *hcl);
 bool
 djb_pull(httpsrv_client_t *hcl){
-	djb_req_t *ar;
+	djb_req_t		*ar;
 
 	logline(log_DEBUG_, HCL_ID, hcl->id);
 
@@ -723,7 +723,9 @@ bool
 djb_handle_proxy(httpsrv_client_t *hcl);
 bool
 djb_handle_proxy(httpsrv_client_t *hcl) {
-	djb_req_t	*pr;
+	static const char	*hostname = NULL;
+	static bool		got_hostname = false;
+	djb_req_t		*pr;
 
 	/* Proxy request - add it to the requester list */
 	pr = mcalloc(sizeof *pr, "djb_req_t *");
@@ -737,6 +739,33 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 
 	/* For now, silence a bit */
 	httpsrv_silence(hcl);
+
+	/* Only fetch this once, ever */
+	if (got_hostname == false) {
+		got_hostname = true;
+
+		/*
+		 * Force the hostname to something else
+		 * than what the requestor wants?
+		 */
+		hostname = getenv("DJB_FORCED_HOSTNAME");
+
+		if (hostname) {
+			logline(log_DEBUG_,
+				"Proxy Hostname Override: %s",
+				hostname);
+		}
+	}
+
+	/* Override the hostname? */
+	if (hostname != NULL) {
+		strncpy(hcl->headers.hostname,
+			hostname,
+			sizeof hcl->headers.hostname);
+		logline(log_DEBUG_,
+			"Forcing Hostname to: %s",
+			hcl->headers.hostname);
+	}
 
 	/*
 	 * Add this request to the queue
@@ -810,9 +839,9 @@ djb_close(httpsrv_client_t *hcl, void UNUSED *user) {
  * ar = /pull/ API request
  */
 static void
-djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname);
+djb_handle_forward(djb_req_t *pr, djb_req_t *ar);
 static void
-djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
+djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	djb_headers_t	*dh;
 
 	fassert(pr->hcl);
@@ -837,7 +866,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 
 	/* DJB headers */
 	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s",
-			hostname ? hostname : pr->hcl->headers.hostname,
+			pr->hcl->headers.hostname,
 			pr->hcl->headers.uri,
 			(strlen(pr->hcl->headers.args) > 0) ? "?" : "",
 			pr->hcl->headers.args);
@@ -925,13 +954,9 @@ static void *
 djb_worker_thread(void UNUSED *arg);
 static void *
 djb_worker_thread(void UNUSED *arg) {
-	const char	*hostname = NULL;
 	djb_req_t	*pr, *ar;
 
 	logline(log_DEBUG_, "...");
-
-	/* Forcing the hostname to something else than what the requestor wants? */
-	hostname = getenv("DJB_FORCED_HOSTNAME");
 
 	while (thread_keep_running()) {
 		logline(log_DEBUG_, "waiting for proxy request");
@@ -970,7 +995,7 @@ djb_worker_thread(void UNUSED *arg) {
 		logline(log_DEBUG_, "got request " HCL_ID " and poller "HCL_ID,
 			pr->hcl->id, ar->hcl->id);
 
-		djb_handle_forward(pr, ar, hostname);
+		djb_handle_forward(pr, ar);
 
 		logline(log_DEBUG_, "end");
 	}
