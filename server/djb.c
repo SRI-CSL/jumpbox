@@ -235,7 +235,9 @@ djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid) {
 	list_unlock(lst);
 
 	if (pr != NULL) {
-		logline(log_DEBUG_, HCL_ID, pr->hcl->id);
+		logline(log_DEBUG_,
+			"%" PRIu64 ":%" PRIu64 " = " HCL_ID,
+			id, reqid, pr->hcl->id);
 	} else {
 		logline(log_WARNING_,
 			"No such HCL (%" PRIu64 ":%" PRIu64 " found!?",
@@ -320,11 +322,17 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/* Find the request */
 	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
 	if (pr == NULL) {
-		fassert(false);
+		/* Can happen if the request timed out etc */
 		return (true);
 	}
 
-	/* XXX: check if pr->hcl is still valid */
+	/* Connections might close before the answer is returned */
+	if (!conn_is_valid(&pr->hcl->conn)) {
+		logline(log_DEBUG_,
+			HCL_ID " " CONN_ID " closed",
+			hcl->id, conn_id(&pr->hcl->conn));
+		return (true);
+	}
 
 	/* Resume reading/writing from the sockets */
 	httpsrv_speak(pr->hcl);
@@ -339,6 +347,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	}
 
 	/* Add all the headers we received */
+	/* XXX: We should scrub DJB-SeqNo */
 	conn_addheaders(&pr->hcl->conn, buf_buffer(&hcl->the_headers));
 
 	if (hcl->headers.content_length == 0) {
