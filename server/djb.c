@@ -37,7 +37,11 @@ typedef struct {
 misc_map_t djb_headers[] = {
 	{ "DJB-HTTPCode",	DJBH(httpcode)	},
 	{ "DJB-SeqNo",		DJBH(seqno)	},
+
+	/* Server -> Client */
 	{ "DJB-Set-Cookie",	DJBH(setcookie)	},
+
+	/* Client -> Server */
 	{ "Cookie",		DJBH(cookie)	},
 	{ NULL,			0, 0		}
 };
@@ -340,7 +344,13 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/* We got an answer, send back what we have already */
 	djb_httpanswer(pr->hcl, atoi(dh->httpcode), "OK");
 
-	/* We need to translate the cookie header back */
+	/* Server to Client */
+	if (strlen(dh->setcookie) > 0) {
+		conn_addheaderf(&pr->hcl->conn, "Set-Cookie: %s",
+				dh->setcookie);
+	}
+
+	/* Client to Server */
 	if (strlen(dh->cookie) > 0) {
 		conn_addheaderf(&pr->hcl->conn, "DJB-Cookie: %s",
 				dh->cookie);
@@ -819,12 +829,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar, const char *hostname) {
 	conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64,
 			pr->hcl->id, pr->hcl->reqid);
 
-	/* We need to translate the cookie header back */
-	if (strlen(dh->setcookie) > 0) {
-		conn_addheaderf(&ar->hcl->conn, "DJB-Set-Cookie: %s",
-				dh->setcookie);
-	}
-
+	/* Client to server */
 	if (strlen(dh->cookie) > 0) {
 		conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s",
 				dh->cookie);
