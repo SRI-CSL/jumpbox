@@ -1,8 +1,4 @@
-#include <libfutil/httpsrv.h>
-#include <libfutil/list.h>
-
 #include "djb.h"
-#include "rendezvous.h"
 
 #define DJB_WORKERS	8
 #define DJB_HOST	"localhost"

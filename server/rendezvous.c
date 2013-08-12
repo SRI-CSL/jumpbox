@@ -1,5 +1,4 @@
 #include "djb.h"
-#include "rendezvous.h"
 
 #include "defiantclient.h"
 #include "defiantbf.h"
@@ -533,7 +532,7 @@ void rendezvous(httpsrv_client_t *hcl) {
 
   } else {
 
-    djb_error(hcl, 500, "Not a DJB API request");
+    djb_error(hcl, 500, "No such DJB API request (Rendezvous)");
     return;
 
   }
