@@ -211,6 +211,7 @@ RFC6234_OBJS	+=	$(OBJFUTIL)rfc6234/hmac.o	\
 # DJB
 BINS		+=	djb$(EXT)
 DJB_OBJS	+=	djb.o					\
+			acs.o					\
 			rendezvous.o				\
 			$(LIBDEFIANTCLIENT)defiantclient.o	\
 			$(LIBDEFIANTCLIENT)defiantbf.o		\
