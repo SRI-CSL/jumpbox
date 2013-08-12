@@ -121,9 +121,9 @@ djb_html_css(httpsrv_client_t *hcl) {
 }
 
 void
-djb_html_top(httpsrv_client_t *hcl);
+djb_html_top(httpsrv_client_t *hcl, void UNUSED *user);
 void
-djb_html_top(httpsrv_client_t *hcl) {
+djb_html_top(httpsrv_client_t *hcl, void UNUSED *user) {
 
 	/* HTML header */
 	conn_put(&hcl->conn,
@@ -142,9 +142,9 @@ djb_html_top(httpsrv_client_t *hcl) {
 }
 
 void
-djb_html_tail(httpsrv_client_t *hcl);
+djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user);
 void
-djb_html_tail(httpsrv_client_t *hcl) {
+djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user) {
 
 	/* HTML header */
 	conn_put(&hcl->conn,
@@ -174,14 +174,14 @@ void
 djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
 	djb_httpanswer(hcl, code, msg);
 
-	djb_html_top(hcl);
+	djb_html_top(hcl, NULL);
 	conn_printf(&hcl->conn,
-		    "<h1>Error</h1>\n"
+		    "<h1>Error %u</h1>\n"
 		    "<p>\n"
 		    "%s\n"
 		    "</p>\n",
-		    msg);
-	djb_html_tail(hcl);
+		    code, msg);
+	djb_html_tail(hcl, NULL);
 
 	httpsrv_done(hcl);
 }
@@ -639,7 +639,7 @@ djb_status(httpsrv_client_t *hcl) {
 	conn_addheaderf(&hcl->conn, "Content-Type: text/html");
 
 	/* Body is just JumpBox (Content-Length is arranged by conn) */
-	djb_html_top(hcl);
+	djb_html_top(hcl, NULL);
 
 	djb_status_version(hcl);
 	djb_status_threads(hcl);
@@ -662,7 +662,7 @@ djb_status(httpsrv_client_t *hcl) {
 			"Requests that want a pull, "
 			"waiting for proxy_new entry");
 
-	djb_html_tail(hcl);
+	djb_html_tail(hcl, NULL);
 
 	/* This request is done */
 	httpsrv_done(hcl);
@@ -713,7 +713,7 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	}
 
 	/* Not a valid API request */
-	djb_error(hcl, 500, "Not a DJB API request");
+	djb_error(hcl, 404, "No such DJB API request");
 	return (false);
 }
 
@@ -1005,6 +1005,8 @@ djb_run(void) {
 
 		/* Initialize a HTTP Server */
 		if (!httpsrv_init(hs, NULL,
+				  djb_html_top,
+				  djb_html_tail,
 				  djb_accept,
 				  djb_header,
 				  djb_handle,
