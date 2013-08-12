@@ -710,7 +710,7 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return (true);
 
 	} else if (strcasecmp(hcl->headers.uri, "/acs/") == 0) {
-		djb_error(hcl, 500, "Not implemented yet");
+		acs(hcl);
 		return (false);
 
 	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", strlen("/rendezvous/")) == 0) {
