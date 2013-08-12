@@ -10,8 +10,6 @@
 #include "onion.h"
 #include "outguess.h"
 
-#include <jansson.h>
-
 #include <openssl/sha.h>
 
 #define KBYTE 1024
@@ -30,7 +28,6 @@ static char* captcha_image_path = NULL;
 static int pow_thread_started = 0;
 static int pow_thread_finished = 0;
 static int pow_thread_quit = 0;
-static pthread_t pow_thread;
 static onion_t pow_inner_onion = NULL;
 static volatile long pow_thread_progress = 0;
 
@@ -307,6 +304,9 @@ static char *peel_base(void) {
   if(root != NULL){
     json_t *resp = json_pack("{s:i, s:s, s:o}", "onion_type", ONION_TYPE(current_onion), "status", "Here is your NET!", "info", root);
     response = json_dumps(resp, 0);
+
+    /* Pass the NET to ACS so that it can Dance */
+    acs_set_net(root);
   } else {
     logline(log_DEBUG_, "peel_base: data = %s error: line: %d msg: %s", nep, error.line, error.text);
     response = make_peel_response("Sorry your nep did not parse as JSON", "");
@@ -341,7 +341,7 @@ int attempts2percent(void){
   long current = pow_thread_progress;
   retval = ((current * 100)/maxAttempts);
   if(drivel){
-    fprintf(stderr, "%ld %d%c\n", current, retval, '%');
+    logline(log_DEBUG_, "%ld %d%c\n", current, retval, '%');
   }
   return retval;
 }
@@ -352,12 +352,11 @@ static char *peel_pow(void) {
   int pc = attempts2percent();
   if(pow_thread_started == 0){
     /* need to start the pow thread */
-    int errcode = pthread_create(&pow_thread, NULL, pow_worker, NULL);
-    if(errcode != 0){
-      response = make_peel_response("", "Creating the Proof-Of-Work failed :-(");
-    } else {
+    if (thread_add("RendezvousPOW", pow_worker, NULL)) {
       pow_thread_started = 1;
       response = make_pow_response(pc, "OK the Proof-Of-Work has commenced");
+    } else {
+      response = make_peel_response("", "Creating the Proof-Of-Work failed :-(");
     }
   } else {
     /* monitor the progress of the thread; or do the current <--> inner switch */
