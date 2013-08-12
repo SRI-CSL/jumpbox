@@ -705,11 +705,12 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		thread_stop_running();
 		return (true);
 
-	} else if (strcasecmp(hcl->headers.uri, "/acs/") == 0) {
-		acs(hcl);
-		return (false);
+	/*					  12345 */
+	} else if (strncasecmp(hcl->headers.uri, "/acs/", 5) == 0) {
+		return acs(hcl);
 
-	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", strlen("/rendezvous/")) == 0) {
+	/*					  123456789012 */
+	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", 12) == 0) {
 		rendezvous(hcl);
 		return (false);
 
@@ -732,23 +733,40 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 }
 
 bool
-djb_handle_proxy(httpsrv_client_t *hcl);
-bool
-djb_handle_proxy(httpsrv_client_t *hcl) {
-	static const char	*hostname = NULL;
-	static bool		got_hostname = false;
+djb_proxy_add(httpsrv_client_t *hcl) {
 	djb_req_t		*pr;
 
 	/* Proxy request - add it to the requester list */
 	pr = mcalloc(sizeof *pr, "djb_req_t *");
 	if (!pr) {
 		djb_error(hcl, 500, "Out of memory");
-		return (true);
+		return (false);
 	}
 
 	/* Fill in the details */
 	pr->hcl = hcl;
 
+	/*
+	 * Add this request to the queue
+	 * The manager will divide the work
+	 */
+	list_addtail_l(&lst_proxy_new, &pr->node);
+
+	logline(log_DEBUG_,
+		HCL_ID " Request added to proxy_new",
+		hcl->id);
+
+	/* No need to read more for now */
+	return (true);
+
+}
+
+bool
+djb_handle_proxy(httpsrv_client_t *hcl);
+bool
+djb_handle_proxy(httpsrv_client_t *hcl) {
+	static const char	*hostname = NULL;
+	static bool		got_hostname = false;
 	/* For now, silence a bit */
 	httpsrv_silence(hcl);
 
@@ -779,18 +797,7 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 			hcl->headers.hostname);
 	}
 
-	/*
-	 * Add this request to the queue
-	 * The manager will divide the work
-	 */
-	list_addtail_l(&lst_proxy_new, &pr->node);
-
-	logline(log_DEBUG_,
-		HCL_ID " Request added to proxy_new",
-		hcl->id);
-
-	/* No need to read more for now */
-	return (true);
+	return (djb_proxy_add(hcl));
 }
 
 bool

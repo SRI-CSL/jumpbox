@@ -60,9 +60,9 @@ acs_result_e(httpsrv_client_t *hcl, const char *msg) {
 	acs_result(hcl, "error", msg);
 }
 
-void
+bool
 acs_initial(httpsrv_client_t *hcl);
-void
+bool
 acs_initial(httpsrv_client_t *hcl) {
 	json_error_t	jerr;
 	json_t		*initial_j, *root;
@@ -80,12 +80,14 @@ acs_initial(httpsrv_client_t *hcl) {
 
 			if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
 				acs_result_e(hcl, "Out of Memory");
+				return (true);
 			} else {
 				logline(log_DEBUG_, "POST let it be read");
 				/* Let httpsrv read it in */
 			}
 
-			return;
+			/* Nothing to do currently */
+			return (false);
 		}
 
 		logline(log_DEBUG_, "Got a POST body, set the NET");
@@ -101,7 +103,7 @@ acs_initial(httpsrv_client_t *hcl) {
 			dumppacket(LOG_ERR, (uint8_t *)hcl->readbody, hcl->readbodylen);
 
 			httpsrv_readbody_free(hcl);
-			return;
+			return (true);
 		}
 
 		/* Set the JSON root */
@@ -115,13 +117,13 @@ acs_initial(httpsrv_client_t *hcl) {
 
 	} else if (hcl->method != HTTP_M_GET) {
 		acs_result_e(hcl, "Invalid Method");
-		return;
+		return (true);
 	}
 
 	/* No NET yet? */
 	if (net == NULL) {
 		acs_result_e(hcl, "No NET was provided");
-		return;
+		return (true);
 	}
 
 	/* Get the Initial Gateway from the NET */
@@ -129,44 +131,52 @@ acs_initial(httpsrv_client_t *hcl) {
 
 	if (!json_is_string(initial_j)) {
 		acs_result_e(hcl, "No initial gateway in NET");
-		return;
+		return (true);
 	}
 
 	initial = json_string_value(initial_j);
 
 	logline(log_DEBUG_, "Initial Gateway: %s", initial);
 
-	/* Ask the plugin to contact the Initial gateway */
-
-	/* httpsrv_newcl(hcl); */
-
-	/* XXX */
+	/*
+	 * We ask the plugin to contact the Initial gateway
+	 * we 're-use' the current request
+	 */
+	hcl->method = HTTP_M_GET;
+	memzero(hcl->the_request, sizeof hcl->the_request);
+	buf_empty(&hcl->the_headers);
+	memzero(&hcl->headers, sizeof hcl->headers);
+	strcpy(hcl->headers.hostname, initial);
+	strcpy(hcl->headers.uri, "/");
 
 	/* Block till we are done */
-	djb_error(hcl, 500, "Not fully implemented");
+	djb_proxy_add(hcl);
+
+	/* Nothing further to process for the moment */
+	return (true);
 }
 
-void
+bool
 acs_redirect(httpsrv_client_t *hcl);
-void
+bool
 acs_redirect(httpsrv_client_t *hcl) {
 	djb_error(hcl, 500, "Not implemented");
+	return (true);
 }
 
-void
+bool
 acs(httpsrv_client_t *hcl) {
 	const char *uri = &hcl->headers.uri[4];
 
 	if (strcasecmp(uri, "/initial/") == 0) {
-		acs_initial(hcl);
-		return;
+		return (acs_initial(hcl));
 
 	} else if (strcasecmp(uri, "/redirect/") == 0) {
-		acs_redirect(hcl);
-		return;
+		return (acs_redirect(hcl));
 	}
 
 	/* Not a valid API request */
 	djb_error(hcl, 404, "No such DJB API request (ACS)");
+	return (true);
 }
 

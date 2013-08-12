@@ -13,20 +13,15 @@
 /* Jansson - the JSON parser */
 #include <jansson.h>
 
-void
-djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const char *ctype);
+/* DJB provided functions */
+void djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const char *ctype);
+void djb_error(httpsrv_client_t *hcl, unsigned int errcode, const char *msg);
+void djb_result(httpsrv_client_t *hcl, const char *msg);
 
-void
-djb_error(httpsrv_client_t *hcl, unsigned int errcode, const char *msg);
-
-void
-djb_result(httpsrv_client_t *hcl, const char *msg);
-
-int djb_allocreadbody(httpsrv_client_t *hcl, uint64_t min, uint64_t max);
-void djb_freereadbody(httpsrv_client_t *hcl);
+bool djb_proxy_add(httpsrv_client_t *hcl);
 
 /* ACS API */
-void acs(httpsrv_client_t *hcl);
+bool acs(httpsrv_client_t *hcl);
 void acs_set_net(json_t *net_);
 
 /* Rendezvous API */
