@@ -120,15 +120,11 @@ JumpBox = {
 
         Debug.log('JumpBox::init pull: ' + JumpBox.jb_pull_url);
 
-        console.log('JumpBox.preferences_push()-ing');
-
         try {
             JumpBox.preferences_push();
         }catch (e){
             console.log(e);
         }
-
-        console.log('JumpBox.preferences_push()-ed');
 
     },
 

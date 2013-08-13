@@ -8,7 +8,7 @@ void preferences(httpsrv_client_t *hcl) {
     return;
   } else {
     logline(log_DEBUG_, "preferences: data = %s", hcl->readbody);
-    fprintf(stderr, "preferences: data = %s\n", hcl->readbody);
+    //fprintf(stderr, "preferences: data = %s\n", hcl->readbody);
     djb_result(hcl, "Preferences OK");
   }
 }
