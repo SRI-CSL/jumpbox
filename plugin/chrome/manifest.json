@@ -19,6 +19,7 @@
 
 
   "permissions": [
+    "tabs",
     "background",
     "<all_urls>",         
     "webRequest",
