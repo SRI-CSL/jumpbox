@@ -27,4 +27,7 @@ void acs_set_net(json_t *net_);
 /* Rendezvous API */
 void rendezvous(httpsrv_client_t *hcl);
 
+/* Preferences API */
+void preferences(httpsrv_client_t *hcl);
+
 #endif /* SHARED_H */

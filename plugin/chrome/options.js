@@ -4,38 +4,100 @@ Options = {
     
     debug: true,
 
-    options: { server_name: 'server_name', jumpbox_port: 'jumpbox_port', debug_mode: 'debug_mode' },
+    bkg: null,
 
-    properties: { server_name: 'value', jumpbox_port: 'value', debug_mode: 'checked' },
 
-    types: { server_name: 'string', jumpbox_port: 'string', debug_mode: 'boolean' },
+   options: { 
+        
+        server_name: {
+            getter: function () {       
+                return document.getElementById('server_name').value;
+            },
+            setter: function () { 
+                var value = localStorage['server_name'];
+                if(typeof value === 'string'){
+                    document.getElementById('server_name').value = value;
+                }
+            },
+        },
+        
+        jumpbox_port: {
+            getter: function () {   
+                return document.getElementById('jumpbox_port').value;
+            },
+            
+            setter: function () {       
+                var value = localStorage['jumpbox_port'];
+                if(typeof value === 'string'){
+                    document.getElementById('jumpbox_port').value = value;
+                }
+            },
+        },
+
+        debug_mode: {
+            getter: function () {      
+                return document.getElementById('debug_mode').checked;
+            },
+            
+            setter: function () {       
+                var value = localStorage['debug_mode'];
+                if(typeof value === 'string'){
+                    document.getElementById('debug_mode').checked = (value === 'true');
+                }
+            }, 
+            
+        },
+        plugin_circuit_count: {
+            getter: function ( ) {  
+                var select = document.getElementById('plugin_circuit_count');
+                return select.children[select.selectedIndex].value;
+            },
+            
+            setter:  function ( ) {  
+                var value, select, index, child;
+                value = localStorage['plugin_circuit_count'];
+                if(typeof value === 'string'){
+                    select = document.getElementById('plugin_circuit_count');
+                    for (index = 0; index < select.children.length; index += 1) {
+                        child = select.children[index];
+                        if (child.value === value) {
+                            child.selected = 'true';
+                            return; 
+                        }
+                    }
+                }
+            }
+        }
+    }, 
     
     init: function () {
+        Options.bkg = chrome.extension.getBackgroundPage();
         Options.restore_options();
         document.querySelector('#save').addEventListener('click', Options.save_options);
     },
     
     save_options: function () {
-        var option_id, value, field, property;
+        var option_id, option, value, getter;
         for(option_id in Options.options){
-            field = document.getElementById(option_id);
-            property = Options.properties[option_id];
-            if(field){
-                value = field[property];
-                if(Options.debug){
-                    console.log('option_id: ' + option_id);
-                    console.log('value: ' + value);
-                    console.log('typeof value: ' + typeof(value));
-                }
-                localStorage[option_id] = value;
-            } 
+            option = Options.options[option_id];
+            getter = option.getter;
+            value = getter();
+            localStorage[option_id] = value;
+            if(Options.debug){
+                console.log('getter option_id: ' + option_id);
+                console.log('getter value: ' + value);
+                console.log('typeof value: ' + typeof(value));
+            }
         }
         Options.notify('Options Saved.');
     },
     
     
     
-    notify: function (msg)  {  
+    notify: function (msg)  {
+        if(Options.bkg){
+            Options.bkg.JumpBox.preferences_push();
+        }
         if(msg){
             var status = document.getElementById("status");
             status.innerHTML = msg;
@@ -44,31 +106,14 @@ Options = {
     },
     
     restore_options: function () {
-        var option_id, value, field, property, type;
+        var option_id, option, setter;
         for(option_id in Options.options){
-            property = Options.properties[option_id];
-            type = Options.types[option_id];
-            value = localStorage[option_id];
-            if(Options.debug){
-                console.log('option_id: ' + option_id);
-                console.log('value: ' + value);
-                console.log('typeof value: ' + typeof(value));
-            } 
-            if (typeof(value) === "string") {
-                field = document.getElementById(option_id);
-                if(field){ 
-                    if(type === 'string'){
-                        field[property] = value; 
-                    } else if(type === 'boolean'){
-                        field[property] = (value === 'true');
-                    } else {
-                        console.log('unknown type: ' + type);
-                    }
-                }
-            }
+            option = Options.options[option_id];
+            setter = option.setter;
+            setter();
         }
     }
-
+    
 };
 
 document.addEventListener('DOMContentLoaded', Options.init);

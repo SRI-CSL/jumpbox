@@ -49,7 +49,7 @@
 
 
 //Some of these are destined for the bit bucket, others for glory.
-var Controls, Debug, JumpBox, Circuitous, Translator, Headers, Errors;
+var Controls, Debug, JumpBox, Circuitous, Translator, Headers, Errors ;
 
 Controls = {
     running : true,
@@ -61,7 +61,7 @@ Controls = {
     start : function () {
         Controls.running = true;
         JumpBox.init();
-        Circuitous.jb_pull();
+        Circuitous.jb_pull(Circuitous.circuit_count++);
     },
 
     status : function () { return Controls.running; }
@@ -75,19 +75,23 @@ Debug = {
     log : function (msg) { if (Debug.debug) { console.log(msg); }  }
 };
 
+
+
 /* the stegotorus address is in the headers of the jb_pull_url response */
 JumpBox = {
-    jb_server    : 'http://127.0.0.1',
-    jb_port      : 6543,
-    jb_pull_path : '/pull/',
-    jb_push_path : '/push/',
-    jb_host      : '',
-    jb_pull_url  : '',
-    jb_push_url  : '',
-    jb_ext_id    : chrome.i18n.getMessage("@@extension_id"),
+    jb_server           : 'http://127.0.0.1',
+    jb_port             : 6543,
+    jb_pull_path        : '/pull/',
+    jb_push_path        : '/push/',
+    jb_preferences_path : '/preferences/',
+    jb_host             : '',
+    jb_pull_url         : '',
+    jb_push_url         : '',
+    jb_preferences_url  : '',
+    jb_ext_id           : chrome.i18n.getMessage("@@extension_id"),
 
     init : function () {
-        var port, debug_mode;
+        var port, debug_mode, circuit_count, cc = 1;
         port = localStorage.jumpbox_port;
         debug_mode = localStorage.debug_mode;
         if (port) {
@@ -97,25 +101,70 @@ JumpBox = {
             Debug.debug = (debug_mode === 'true');
         }
         console.log("Debug.debug: " + Debug.debug); 
+
+        circuit_count = localStorage.plugin_circuit_count;
+        if(typeof circuit_count === 'string'){
+            try {
+                cc = parseInt(circuit_count, 10);
+            } catch(e){ }
+            Circuitous.circuit_count = cc;
+        }
+
+        console.log("Circuitous.circuit_count: " + Circuitous.circuit_count); 
+
+
         JumpBox.jb_host = JumpBox.jb_server + ':' + JumpBox.jb_port;
         JumpBox.jb_pull_url = JumpBox.jb_host + JumpBox.jb_pull_path;
         JumpBox.jb_push_url = JumpBox.jb_host + JumpBox.jb_push_path;
+        JumpBox.jb_preferences_url = JumpBox.jb_host + JumpBox.jb_preferences_path;
 
         Debug.log('JumpBox::init pull: ' + JumpBox.jb_pull_url);
+
+        console.log('JumpBox.preferences_push()-ing');
+
+        try {
+            JumpBox.preferences_push();
+        }catch (e){
+            console.log(e);
+        }
+
+        console.log('JumpBox.preferences_push()-ed');
+
+    },
+
+    preferences_push: function () {
+        var jb_preferences_request = new XMLHttpRequest();
+        jb_preferences_request.onreadystatechange = function () { JumpBox.handle_preferences_response(jb_preferences_request); };
+        jb_preferences_request.open('POST', JumpBox.jb_preferences_url);
+        jb_preferences_request.send(JSON.stringify(localStorage));
+    },
+
+    handle_preferences_response: function (request) {
+        Debug.log('handle_preferences_response(state = ' + request.readyState + ')');
+        if (request.readyState === 4) {
+            if (request.status === 200) {
+                Debug.log('handle_preferences_response: ' + request.status);
+            } else {
+                if (request.status === 0) {  Debug.log('preferences_push request failed'); }
+            }
+        }
     }
 
 };
 
 Circuitous = {
-    jb_pull : function () {
-        Debug.log('jb_pull()');
+
+    circuit_count: 0,
+
+    jb_pull : function (circuit_id) {
+        Debug.log('jb_pull(' + circuit_id + ')');
         var jb_pull_request = new XMLHttpRequest();
-        jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request); };
-        jb_pull_request.open('GET', JumpBox.jb_pull_url);
+        jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request, circuit_id); };
+        jb_pull_request.open('GET', JumpBox.jb_pull_url + circuit_id + '/');
         jb_pull_request.send(null);
     },
 
-    handle_jb_pull_response : function (request) {
+    handle_jb_pull_response : function (request, circuit_id) {
         Debug.log('jb_pull_response(state = ' + request.readyState + ')');
         if (request.readyState === 4) {
             if (request.status === 200) {
@@ -124,7 +173,7 @@ Circuitous = {
                 Debug.log('handle_jb_pull_response: ' + request.status + ', sending ss_request');
 
                 //use the jb's response to build the server_push_request
-                ss_push_request.onreadystatechange = function () { Circuitous.handle_ss_push_response(ss_push_request); };
+                ss_push_request.onreadystatechange = function () { Circuitous.handle_ss_push_response(ss_push_request, circuit_id); };
                 ss_push_contents = Translator.jb_response2request(request, ss_push_request);
                 ss_push_request.send(ss_push_contents);
             } else {
@@ -133,20 +182,20 @@ Circuitous = {
         }
     },
 
-    handle_ss_push_response : function (request) {
+    handle_ss_push_response : function (request, circuit_id) {
         Debug.log('ss_push_response: state = ' + request.readyState);
         if (request.readyState === 4) {
             var jb_push_contents = null, jb_push_request = new XMLHttpRequest();
 
             // use the server's response in the request to build the jb_push_request, forwarding the error code too
-            jb_push_request.onreadystatechange = function () { Circuitous.handle_jb_push_response(jb_push_request); };
+            jb_push_request.onreadystatechange = function () { Circuitous.handle_jb_push_response(jb_push_request, circuit_id); };
             jb_push_contents = Translator.ss_response2request(request, jb_push_request);
             jb_push_request.seqno = request.seqno;
             jb_push_request.send(jb_push_contents);
         }
     },
 
-    handle_jb_push_response : function (request) {
+    handle_jb_push_response : function (request, circuit_id) {
         Debug.log('jb_push_response: state = ' + request.readyState);
         if (request.readyState === 4) {
             Debug.log('jb_push_response: status = ' + request.status);
@@ -158,7 +207,7 @@ Circuitous = {
 
 	    /* Continue running? */
             if (Controls.running) {
-                Circuitous.jb_pull();
+                Circuitous.jb_pull(circuit_id);
             }
         }
     }
@@ -336,8 +385,11 @@ chrome.webRequest.onBeforeSendHeaders.addListener(Headers.onBeforeSendHeaders, {
 chrome.webRequest.onHeadersReceived.addListener(Headers.onHeadersReceived, {urls: ["<all_urls>"]}, ["blocking", "responseHeaders"]);
 
 try {
+    var index;
     JumpBox.init();
-    Circuitous.jb_pull();
+    for(index = 0; index < Circuitous.circuit_count; index += 1){
+        Circuitous.jb_pull(index);
+    }
 } catch (e) {
     Debug.log('loop: ' + e);
 }

@@ -693,8 +693,8 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		HCL_ID " DJB API request: %s",
 		hcl->id, hcl->headers.uri);
 
-	/* Our API URIs */
-	if (strcasecmp(hcl->headers.uri, "/pull/") == 0) {
+	/* Our API URIs                    123456  */
+	if (strncasecmp(hcl->headers.uri, "/pull/", 6) == 0) {
 		return djb_pull(hcl);
 
 	} else if (strcasecmp(hcl->headers.uri, "/push/") == 0) {
@@ -712,6 +712,10 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/*					  123456789012 */
 	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", 12) == 0) {
 		rendezvous(hcl);
+		return (false);
+	/*					   123456789012 */
+	} else if (strncasecmp(hcl->headers.uri, "/preferences/", 12) == 0) {
+		preferences(hcl);
 		return (false);
 
 	} else if (strcasecmp(hcl->headers.uri, "/") == 0) {

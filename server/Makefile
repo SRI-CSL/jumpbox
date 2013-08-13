@@ -213,6 +213,7 @@ BINS		+=	djb$(EXT)
 DJB_OBJS	+=	djb.o					\
 			acs.o					\
 			rendezvous.o				\
+			preferences.o				\
 			$(LIBDEFIANTCLIENT)defiantclient.o	\
 			$(LIBDEFIANTCLIENT)defiantbf.o		\
 			$(LIBDEFIANTCLIENT)crc.o		\

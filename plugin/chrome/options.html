@@ -7,17 +7,31 @@
 <body>
   
   <table>
-    <tr>
-      <td>Rendezvous mod_freedom server:</td>
-      <td><input type="text" size="50" name="server_name" id="server_name"></td>
-    </tr>
+    <tr><td colspan="2"><b>Jumpbox preferences:</b></td></tr>
     <tr>
       <td>JumpBox port:</td>
       <td><input type="text" size="50" name="jumpbox_port" id="jumpbox_port"></td>
     </tr>
+    <tr><td colspan="2"><b>Rendezvous preferences:</b></td></tr>
     <tr>
-      <td>Debug mode:</td>
+      <td>Rendezvous mod_freedom server:</td>
+      <td><input type="text" size="50" name="server_name" id="server_name"></td>
+    </tr>
+    <tr><td colspan="2"><b>Chrome plugin preferences:</b></td></tr>
+    <tr>
+      <td>Plugin debug mode:</td>
       <td><input id="debug_mode" type="checkbox"></td>
+    </tr>
+    <tr>
+      <td>Plugin circuit count:</td>
+      <td>
+        <select id="plugin_circuit_count">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </td>
     </tr>
 
 
