@@ -981,10 +981,7 @@ djb_worker_thread(void UNUSED *arg) {
 		logline(log_DEBUG_, "waiting for proxy request");
 
 		/* Get a new proxy request */
-		thread_setstate(thread_state_io_next);
 		pr = (djb_req_t *)list_getnext(&lst_proxy_new);
-		thread_setstate(thread_state_running);
-
 		if (pr == NULL) {
 			if (thread_keep_running()) {
 				logline(log_ERR_,
@@ -999,9 +996,7 @@ djb_worker_thread(void UNUSED *arg) {
 			pr->hcl->id);
 
 		/* We got a request, get a puller for it */
-		thread_setstate(thread_state_io_next);
 		ar = (djb_req_t *)list_getnext(&lst_api_pull);
-		thread_setstate(thread_state_running);
 
 		if (ar == NULL) {
 			if (thread_keep_running()) {
