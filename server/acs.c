@@ -22,7 +22,7 @@ json_t *net = NULL;
  */
 void
 acs_set_net(json_t *net_) {
-	logline(log_DEBUG_, "");
+	logline(log_DEBUG_, "...");
 
 	/* Old NET? */
 	if (net != NULL) {
