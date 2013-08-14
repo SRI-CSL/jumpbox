@@ -297,10 +297,11 @@ install: all
 clean:
 	@echo "* Cleansing"
 	@rm -rf $(BINS) *.o *.so *.lo *.la *.slo *.loT *.d .libs/ ../tests/*.o ../tests/*.d rfc6234/*.o rfc6234/*.d
-	#ian add these while things are still moving a lot:
-	@echo "* Cleansing DEPENDENCIES TOO (temporary)"
-	@rm -rf $(OBJFUTIL)*.o $(LIBDEFIANTCLIENT)*.o
-
+	@echo "* Cleansing Dependencies (libfutil)"
+	@make -C $(LIBFUTIL) clean
+	@echo "* Cleansing Dependencies (libdefiantclient)"
+	@make -C $(LIBDEFIANTCLIENT) clean
+	@echo "* Cleansing complete"
 
 runtests:
 ifeq ($(HOSTCC),$(CC))
