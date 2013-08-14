@@ -2,13 +2,13 @@ var Popup;
 
 
 Popup = {
-
+    
     extension_id: chrome.i18n.getMessage("@@extension_id"),
 
     bkg: null,
 
     init: function () {
-        var logo, stop_start_button, rendezvous_button, acsdancer_button, preferences_button;
+        var logo, stop_start_button, rendezvous_button, acsdancer_button, preferences_button, launcher_button;
 
         Popup.bkg = chrome.extension.getBackgroundPage();
 
@@ -27,6 +27,9 @@ Popup = {
         
         preferences_button = document.querySelector('#preferences');
         preferences_button.addEventListener('click', Popup.preferences);
+
+        launcher_button = document.querySelector('#launcher');
+        launcher_button.addEventListener('click', Popup.launcher);
         
         if(Popup.bkg && Popup.bkg.Controls.status()){
             stop_start_button.innerHTML = 'Stop';
@@ -48,8 +51,7 @@ Popup = {
         }
     },
 
-    launch_just_one_tab: function (page) {
-        //try and keep their cardinality <= 1
+    close_all: function (page) {
         var index, tab_uri;
         tab_uri = 'chrome-extension://' + Popup.extension_id + '/' + page;
         chrome.tabs.getAllInWindow(null, function(tabs){
@@ -59,6 +61,11 @@ Popup = {
                     }
                 }
             });
+    }, 
+
+    launch_just_one_tab: function (page) {
+        //try and keep their cardinality <= 1
+        Popup.close_all(page);
         chrome.tabs.create({ url : page });
     },
 
@@ -73,6 +80,11 @@ Popup = {
     preferences: function () {
          Popup.launch_just_one_tab('options.html');
     },
+
+
+    launcher: function () {
+        Popup.launch_just_one_tab('launcher.html');
+    }
 
 };
 

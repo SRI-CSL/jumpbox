@@ -128,6 +128,7 @@ JumpBox = {
 
     },
 
+
     preferences_push: function () {
         var jb_preferences_request = new XMLHttpRequest();
         jb_preferences_request.onreadystatechange = function () { JumpBox.handle_preferences_response(jb_preferences_request); };
@@ -380,12 +381,16 @@ Errors = {
 chrome.webRequest.onBeforeSendHeaders.addListener(Headers.onBeforeSendHeaders, {urls: ["<all_urls>"]}, ["blocking", "requestHeaders"]);
 chrome.webRequest.onHeadersReceived.addListener(Headers.onHeadersReceived, {urls: ["<all_urls>"]}, ["blocking", "responseHeaders"]);
 
+
+JumpBox.init();
+
+/* comment this out if you want to start by reloading; and not use tabs 
 try {
     var index;
-    JumpBox.init();
     for(index = 0; index < Circuitous.circuit_count; index += 1){
         Circuitous.jb_pull(index);
     }
 } catch (e) {
     Debug.log('loop: ' + e);
 }
+*/

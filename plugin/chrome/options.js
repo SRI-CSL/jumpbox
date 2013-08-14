@@ -6,8 +6,7 @@ Options = {
 
     bkg: null,
 
-
-   options: { 
+    options: { 
         
         server_name: {
             getter: function () {       
@@ -96,7 +95,8 @@ Options = {
     
     notify: function (msg)  {
         if(Options.bkg){
-            Options.bkg.JumpBox.preferences_push();
+            //(re)-init
+            Options.bkg.JumpBox.init();
         }
         if(msg){
             var status = document.getElementById("status");
@@ -113,7 +113,7 @@ Options = {
             setter();
         }
     }
-    
+
 };
 
 document.addEventListener('DOMContentLoaded', Options.init);
