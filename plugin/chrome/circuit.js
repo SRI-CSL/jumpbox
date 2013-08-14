@@ -15,6 +15,8 @@ Circuit = {
 
     count: 0,
 
+    
+    bytes: 0,
 
     handler: function (msg, sender, response) {
         Circuit.id = msg;
@@ -41,6 +43,14 @@ Circuit = {
     },
 
 
+    addBytes: function (request){
+        var content_length = request.getResponseHeader('Content-Length');
+        if(typeof content_length === 'string'){
+            Circuit.bytes += parseInt(content_length, 10);
+            document.querySelector('#bytes_sent').textContent = Circuit.bytes;
+        }
+    }
+
 };
 
 
@@ -64,6 +74,8 @@ Circuitous = {
                 var ss_push_contents = null, ss_push_request = new XMLHttpRequest();
 
                 Circuit.log('handle_jb_pull_response: ' + request.status + ', sending ss_request');
+
+                Circuit.addBytes(request);
 
                 //use the jb's response to build the server_push_request
                 ss_push_request.onreadystatechange = function () { Circuitous.handle_ss_push_response(ss_push_request, circuit_id); };
