@@ -7,6 +7,8 @@ Circuit = {
 
     id: -1,
 
+    id_node: null,
+
     jb_pull_url: null,
 
     jb_push_url: null,
@@ -14,24 +16,23 @@ Circuit = {
     counter: null,
 
     count: 0,
-
     
     bytes: 0,
 
     handler: function (msg, sender, response) {
         Circuit.id = msg;
+        Circuit.init();
+    },
+    
+    init: function () {
         document.querySelector('#circuit_id').textContent = Circuit.id;
         Circuit.log('Circuit ' + Circuit.id + ' commencing');
-        Circuitous.jb_pull(Circuit.id);
-    },
-
-    init: function () {
         Circuit.bkg = chrome.extension.getBackgroundPage();
         Circuit.debug = Circuit.bkg.Debug.debug;
         Circuit.jb_pull_url = Circuit.bkg.JumpBox.jb_pull_url;
         Circuit.jb_push_url = Circuit.bkg.JumpBox.jb_push_url;
         Circuit.counter =  document.querySelector('#request_count');
-        chrome.runtime.onMessage.addListener(Circuit.handler); 
+        Circuitous.jb_pull(Circuit.id);
     },
 
     debug: false,
@@ -214,4 +215,4 @@ Translator = {
 };
 
 
-document.addEventListener('DOMContentLoaded', Circuit.init);
+document.addEventListener('DOMContentLoaded', function(){ chrome.runtime.onMessage.addListener(Circuit.handler); } );

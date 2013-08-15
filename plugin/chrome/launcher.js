@@ -21,10 +21,15 @@ Launcher = {
     },
     
     create_circuits: function () {
-        var index;
-        Launcher.close_all(Launcher.page);
-        for(index = 0; index < Launcher.bkg.Circuitous.circuit_count; index += 1){
-            chrome.tabs.create({ url : Launcher.page },  Launcher.circuit_created(index));
+        try {
+            var index, callback;
+            Launcher.close_all(Launcher.page);
+            for(index = 0; index < Launcher.bkg.Circuitous.circuit_count; index += 1){
+                callback =  Launcher.circuit_created(index);
+                chrome.tabs.create({ url : Launcher.page }, callback);
+            }
+        }catch(e){
+            console.log('create_circuits: ' + e);
         }
     },
 
