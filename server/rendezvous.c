@@ -210,7 +210,7 @@ static void image(httpsrv_client_t*  hcl) {
     httpsrv_readbody_free(hcl);
     if(retcode != DEFIANT_OK){
       logline(log_DEBUG_, "image: extract_n_save with password %s returned %d -- %s", password, retcode, defiant_strerror(retcode));
-      djb_error(hcl, 500, "Not implemented yet");
+      djb_error(hcl, 500, "Not implemented yet (extract_n_save failure, see log)");
     } else {
       int onion_sz = 0;
       onion = (onion_t)defiant_pwd_decrypt(password, (const uchar*)encrypted_onion, encrypted_onion_sz, &onion_sz); 
@@ -500,7 +500,7 @@ static void peel(httpsrv_client_t * hcl) {
 
 
 static void dance(httpsrv_client_t* hcl) {
-  djb_error(hcl, 500, "Not implemented yet");
+  djb_error(hcl, 500, "Dancing not implemented yet");
 }
 
 
