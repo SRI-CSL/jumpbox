@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -e
+
+# Create a user specific for jumpbox
+if ! getent passwd djb >/dev/null; then
+	adduser --quiet --system --no-create-home --home /var/run --shell /usr/sbin/nologin djb
+fi
+
+if [ -x /usr/sbin/invoke-rc.d ]; then
+	invoke-rc.d djb restart || true
+else
+	/etc/init.d/djb restart || true
+fi
+
+#DEBHELPER#

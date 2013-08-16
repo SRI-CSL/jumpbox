@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	make clean
+
+override_dh_auto_build:
+	make all
+
+override_dh_auto_install:
+	dh_installinit --no-start -r --name=djb -- defaults 91 09
+	mkdir -p debian/saferdefiance-jumpbox/usr/sbin/
+	cp server/djb debian/saferdefiance-jumpbox/usr/sbin/
+
+override_dh_auto_test:
+

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+#DEBHELPER#
+
+case $1 in
+	purge)
+		if which deluser >/dev/null 2>&1; then
+			deluser --quiet djb > /dev/null || true
+		fi
+		;;
+esac
+
