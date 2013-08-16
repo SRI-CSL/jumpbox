@@ -8,3 +8,9 @@ server/*.swp
 server/.libs
 server/djb
 
+# Debian 'make deb' files
+debian/files
+debian/saferdefiance-jumpbox.debhelper.log
+debian/saferdefiance-jumpbox.substvars
+debian/saferdefiance-jumpbox/
+

@@ -3,12 +3,12 @@ Maintainer: Jeroen Massar <massar@fsi.io>
 Section: web
 Priority: extra
 Standards-Version: 3.9.2
-Build-Depends: debhelper (>= 8.0.0~), libc6-dev, libc6-dev-i386 [amd64] | libc6-dev-amd64 [i386], libgmp-dev, libjansson, libpbc-dev, zlib1g-dev, libssl-dev
+Build-Depends: debhelper (>= 8.0.0~), libc6-dev, libc6-dev-i386 [amd64] | libc6-dev-amd64 [i386], libgmp-dev, libjansson-dev, libpbc-dev, zlib1g-dev, libssl-dev
 Homepage: http://www.safdef.isc.org
 
 Package: saferdefiance-jumpbox
 Architecture: any
-Depends: adduser, openssl, tor, libgmp10, libjansson, libpbc, zlib1g, ${shlibs:Depends}, ${misc:Depends}
+Depends: adduser, openssl, tor, libgmp10, libjansson4, libpbc, zlib1g, ${shlibs:Depends}, ${misc:Depends}
 Description: SAFER DEFIANCE APRAdb/DataBase
  SAFER DEFIANCE APRA DataBase server
 
