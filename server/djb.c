@@ -546,41 +546,49 @@ djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
 
 static void
 djb_status_threads_cb(	void		*cbdata,
+			uint64_t	tnum,
 			uint64_t	tid,
 			const char	*starttime,
 			uint64_t	runningsecs,
 			const char	*description,
 			bool		thisthread,
 			const char	*state,
+			const char	*message,
 			uint64_t	served);
 static void
 djb_status_threads_cb(  void		*cbdata,
+			uint64_t	tnum,
 			uint64_t	tid,
 			const char	*starttime,
 			uint64_t	runningsecs,
 			const char	*description,
 			bool		thisthread,
 			const char	*state,
+			const char	*message,
 			uint64_t	served)
 {
 	httpsrv_client_t *hcl = (httpsrv_client_t *)cbdata;
 
 	conn_printf(&hcl->conn,
 		"<tr>"
-		"<td>tr%" PRIu64 "</td>"
+		"<td>%" PRIu64 "</td>"
+		"<td>" THREAD_IDn "</td>"
 		"<td>%s</td>"
 		"<td>%" PRIu64 "</td>"
+		"<td>%s</td>"
 		"<td>%s</td>"
 		"<td>%s</td>"
 		"<td>%s</td>"
 		"<td>%" PRIu64 "</td>"
 		"</tr>\n",
+		tnum,
 		tid,
 		starttime,
 		runningsecs,
 		description,
 		yesno(thisthread),
 		state,
+		message,
 		served);
 }
 
@@ -597,12 +605,14 @@ djb_status_threads(httpsrv_client_t *hcl) {
 		"</p>\n"
 		"<table>\n"
 		"<tr>\n"
+		"<th>No</th>\n"
 		"<th>TID</th>\n"
 		"<th>Start Time</th>\n"
 		"<th>Running seconds</th>\n"
 		"<th>Description</th>\n"
 		"<th>This Thread</th>\n"
 		"<th>State</th>\n"
+		"<th>Message</th>\n"
 		"<th>Served</th>\n"
 		"</tr>\n");
 
@@ -987,6 +997,8 @@ djb_worker_thread(void UNUSED *arg) {
 	while (thread_keep_running()) {
 		logline(log_DEBUG_, "waiting for proxy request");
 
+		thread_setmessage("Waiting for Proxy Request");
+
 		/* Get a new proxy request */
 		pr = (djb_req_t *)list_getnext(&lst_proxy_new);
 		if (pr == NULL) {
@@ -1001,6 +1013,7 @@ djb_worker_thread(void UNUSED *arg) {
 
 		logline(log_DEBUG_, "got request " HCL_ID ", getting poller",
 			pr->hcl->id);
+		thread_setmessage("Got Request " HCL_ID, pr->hcl->id);
 
 		/* We got a request, get a puller for it */
 		ar = (djb_req_t *)list_getnext(&lst_api_pull);
@@ -1013,8 +1026,12 @@ djb_worker_thread(void UNUSED *arg) {
 			break;
 		}
 
+
 		logline(log_DEBUG_, "got request " HCL_ID " and poller "HCL_ID,
 			pr->hcl->id, ar->hcl->id);
+
+		thread_setmessage("Got Request " HCL_ID " to " HCL_ID,
+				  pr->hcl->id, ar->hcl->id);
 
 		djb_handle_forward(pr, ar);
 
