@@ -1,6 +1,20 @@
 /*jslint browser: true, devel: true,  unparam: true, sloppy: true, white: true*/
 var Circuit, Circuitous, Translator ;
 
+function getQueryParams(qs) {
+    qs = qs.split("+").join(" ");
+
+    var params = {}, tokens,
+        re = /[?&]?([^=]+)=([^&]*)/g;
+
+    while (tokens = re.exec(qs)) {
+        params[decodeURIComponent(tokens[1])]
+            = decodeURIComponent(tokens[2]);
+    }
+
+    return params;
+}
+
 Circuit = {
 
     bkg: null,
@@ -13,43 +27,50 @@ Circuit = {
 
     jb_push_url: null,
 
-    counter: null,
-
     count: 0,
-    
     bytes: 0,
 
-    handler: function (msg, sender, response) {
-        Circuit.id = msg;
-        Circuit.init();
-    },
-    
+    debug: true,
+
     init: function () {
         document.querySelector('#circuit_id').textContent = Circuit.id;
-        Circuit.log('Circuit ' + Circuit.id + ' commencing');
         Circuit.bkg = chrome.extension.getBackgroundPage();
         Circuit.debug = Circuit.bkg.Debug.debug;
+
+	/* Can only log after setting up the debugger above */
+        Circuit.log('Circuit ' + Circuit.id + ' commencing');
+
+	/* Set up the URLs */
         Circuit.jb_pull_url = Circuit.bkg.JumpBox.jb_pull_url;
         Circuit.jb_push_url = Circuit.bkg.JumpBox.jb_push_url;
-        Circuit.counter =  document.querySelector('#request_count');
+
+	/* Start pulling */
         Circuitous.jb_pull(Circuit.id);
     },
-
-    debug: false,
     
     log: function (msg) {
         if(Circuit.debug){
             Circuit.bkg.Debug.log(msg);
+
+	    var d = new Date();
+
+	    if (document.querySelector('#log').textContent.length > 5000)
+		document.querySelector('#log').textContent = "...\n";
+	    document.querySelector('#log').textContent += d + " " + msg + "\n";
         }
     },
 
-
     addBytes: function (request){
         var content_length = request.getResponseHeader('Content-Length');
-        if(typeof content_length === 'string'){
+        if (typeof content_length === 'string'){
             Circuit.bytes += parseInt(content_length, 10);
             document.querySelector('#bytes_sent').textContent = Circuit.bytes;
         }
+    },
+
+    addRequest: function (){
+        Circuit.count++;
+        document.querySelector('#request_count').textContent = Circuit.count;
     }
 
 };
@@ -57,9 +78,6 @@ Circuit = {
 
 
 Circuitous = {
-
-    circuit_count: 0,
-
     jb_pull : function (circuit_id) {
         Circuit.log('jb_pull(' + circuit_id + ')');
         var jb_pull_request = new XMLHttpRequest();
@@ -83,7 +101,10 @@ Circuitous = {
                 ss_push_contents = Translator.jb_response2request(request, ss_push_request);
                 ss_push_request.send(ss_push_contents);
             } else {
-                if (request.status === 0) { Circuit.log('jb_pull request failed'); }
+                if (request.status === 0) {
+			Circuit.log('jb_pull request failed');
+			window.setTimeout(jb_pull(circuit_id), 2);
+		}
             }
         }
     },
@@ -108,8 +129,9 @@ Circuitous = {
             if (request.status !== 200) {
                 Circuit.log('jb_push_response failed: ' + request.status);
             }
-            Circuit.count += 1;
-            Circuit.counter.textContent = Circuit.count;
+
+            Circuit.addRequest();
+
 	    /* Always continue running ... */
             Circuitous.jb_pull(circuit_id);
         }
@@ -214,5 +236,12 @@ Translator = {
     }
 };
 
+document.addEventListener('DOMContentLoaded',
+	function()
+	{
+		var query = getQueryParams(document.location.search);
+		Circuit.id = query.id;
+		Circuit.init();
+	}
+);
 
-document.addEventListener('DOMContentLoaded', function(){ chrome.runtime.onMessage.addListener(Circuit.handler); } );

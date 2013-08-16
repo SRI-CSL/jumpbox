@@ -23,6 +23,8 @@
     "background",
     "<all_urls>",         
     "webRequest",
-    "webRequestBlocking"
+    "webRequestBlocking",
+    "http://*/",
+    "https://*/"
   ]
 }

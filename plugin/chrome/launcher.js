@@ -11,22 +11,20 @@ Launcher = {
     page: 'circuit.html',
 
     init: function () {
+	debugger;
         Launcher.bkg = chrome.extension.getBackgroundPage();
         document.querySelector('#create_circuits').addEventListener('click', Launcher.create_circuits);
         document.querySelector('#shutdown_circuits').addEventListener('click', Launcher.shutdown_circuits);
     },
 
-    circuit_created: function (index) {
-        return function (tab) { chrome.tabs.sendMessage(tab.id, index); }
-    },
-    
     create_circuits: function () {
         try {
             var index, callback;
             Launcher.close_all(Launcher.page);
-            for(index = 0; index < Launcher.bkg.Circuitous.circuit_count; index += 1){
-                callback =  Launcher.circuit_created(index);
-                chrome.tabs.create({ url : Launcher.page }, callback);
+            for (index = 0; index < Launcher.bkg.Circuitous.circuit_count; index++){
+                chrome.tabs.create({ url : Launcher.page + "?id=" + (index+1)}, function(tab) {
+			chrome.tabs.executeScript(tab.id, {file: "circuit.js"});
+		});
             }
         }catch(e){
             console.log('create_circuits: ' + e);
@@ -42,7 +40,7 @@ Launcher = {
         tab_uri = 'chrome-extension://' + Launcher.extension_id + '/' + page;
         chrome.tabs.getAllInWindow(null, function(tabs){
                 for (var index = 0; index < tabs.length; index++) {
-                    if (tabs[index].url === tab_uri){
+                    if (tabs[index].url.substr(0,tab_uri.length) === tab_uri){
                         chrome.tabs.remove(tabs[index].id);
                     }
                 }
