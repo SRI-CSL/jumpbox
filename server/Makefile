@@ -88,7 +88,7 @@ CFLAGS	+= -I$(LIBFUTIL)/include/
 # Rendezvous: Location of defiantclient + dependencies
 LIBDEFIANTCLIENT:=../../rendezvous/client/src/
 CFLAGS	+= -I$(LIBDEFIANTCLIENT)
-LDFLAGS += -lcrypto -lpbc -lgmp  -lcurl -ljansson
+LDLIBS += -lcrypto -lpbc -lgmp -ljansson
 
 # Linux
 ifeq ($(OS_NAME),Linux)
