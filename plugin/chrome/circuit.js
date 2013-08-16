@@ -67,7 +67,7 @@ Circuit = {
     },
     
     parseQueryParams: function (qs) {
-        /* jslint does not like this */
+        /* jslint does not like this code one little bit */
         var params = {}, tokens, re = /[?&]?([^=]+)=([^&]*)/g;
         qs = qs.split("+").join(" ");
         while (tokens = re.exec(qs)) {
@@ -107,7 +107,9 @@ Circuitous = {
             } else {
                 if (request.status === 0) {
 			Circuit.log('jb_pull request failed');
-			window.setTimeout(Circuitous.jb_pull(circuit_id), 2);
+                        /* this seems like a recipe for spinning to me; especially if the djb crashes, we end up with an unhappy plugin.
+                           window.setTimeout(Circuitous.jb_pull(circuit_id), 2);
+                        */
 		}
             }
         }
