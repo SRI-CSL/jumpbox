@@ -514,6 +514,7 @@ djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
 				"<table>\n"
 				"<tr>\n"
 				"<th>ID</th>\n"
+				"<th>ReqID</th>\n"
 				"<th>Host</th>\n"
 				"<th>Request</th>\n"
 				"</tr>\n");
@@ -522,10 +523,12 @@ djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
 		conn_printf(&hcl->conn,
 			"<tr>"
 			"<td>" HCL_IDn "</td>"
+			"<td>%" PRIu64 "</td>"
 			"<td>%s</td>"
 			"<td>%s</td>"
 			"</tr>\n",
 			r->hcl->id,
+			r->hcl->reqid,
 			r->hcl->headers.hostname,
 			r->hcl->the_request);
 		cnt++;
