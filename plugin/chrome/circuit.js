@@ -1,19 +1,6 @@
 /*jslint browser: true, devel: true,  unparam: true, sloppy: true, white: true*/
 var Circuit, Circuitous, Translator ;
 
-function getQueryParams(qs) {
-    qs = qs.split("+").join(" ");
-
-    var params = {}, tokens,
-        re = /[?&]?([^=]+)=([^&]*)/g;
-
-    while (tokens = re.exec(qs)) {
-        params[decodeURIComponent(tokens[1])]
-            = decodeURIComponent(tokens[2]);
-    }
-
-    return params;
-}
 
 Circuit = {
 
@@ -28,11 +15,15 @@ Circuit = {
     jb_push_url: null,
 
     count: 0,
+
     bytes: 0,
 
     debug: true,
 
     init: function () {
+        var query = Circuit.parseQueryParams(document.location.search);
+        Circuit.id = query.id;
+        
         document.querySelector('#circuit_id').textContent = Circuit.id;
         Circuit.bkg = chrome.extension.getBackgroundPage();
         Circuit.debug = Circuit.bkg.Debug.debug;
@@ -49,13 +40,15 @@ Circuit = {
     },
     
     log: function (msg) {
+        var d;
         if(Circuit.debug){
             Circuit.bkg.Debug.log(msg);
 
-	    var d = new Date();
+	    d = new Date();
 
-	    if (document.querySelector('#log').textContent.length > 5000)
+	    if (document.querySelector('#log').textContent.length > 5000) {
 		document.querySelector('#log').textContent = "...\n";
+            }
 	    document.querySelector('#log').textContent += d + " " + msg + "\n";
         }
     },
@@ -69,10 +62,21 @@ Circuit = {
     },
 
     addRequest: function (){
-        Circuit.count++;
+        Circuit.count += 1;
         document.querySelector('#request_count').textContent = Circuit.count;
+    },
+    
+    parseQueryParams: function (qs) {
+        /* jslint does not like this */
+        var params = {}, tokens, re = /[?&]?([^=]+)=([^&]*)/g;
+        qs = qs.split("+").join(" ");
+        while (tokens = re.exec(qs)) {
+            params[decodeURIComponent(tokens[1])]
+                = decodeURIComponent(tokens[2]);
+        }
+        return params;
     }
-
+    
 };
 
 
@@ -103,7 +107,7 @@ Circuitous = {
             } else {
                 if (request.status === 0) {
 			Circuit.log('jb_pull request failed');
-			window.setTimeout(jb_pull(circuit_id), 2);
+			window.setTimeout(Circuitous.jb_pull(circuit_id), 2);
 		}
             }
         }
@@ -236,12 +240,5 @@ Translator = {
     }
 };
 
-document.addEventListener('DOMContentLoaded',
-	function()
-	{
-		var query = getQueryParams(document.location.search);
-		Circuit.id = query.id;
-		Circuit.init();
-	}
-);
+document.addEventListener('DOMContentLoaded', Circuit.init);
 

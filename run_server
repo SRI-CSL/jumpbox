@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export DJB_FORCED_HOSTNAME=127.0.0.1:8081
-export SAFDEF_LOG_LEVEL=warning;
+export SAFDEF_LOG_LEVEL=debug;
 # emerg alert crit err warning notice info debug
 
 

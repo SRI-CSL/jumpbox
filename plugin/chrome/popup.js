@@ -1,5 +1,6 @@
-var Popup;
+/*jslint browser: true, devel: true,  unparam: true, sloppy: true, white: true*/
 
+var Popup;
 
 Popup = {
     
@@ -8,16 +9,13 @@ Popup = {
     bkg: null,
 
     init: function () {
-        var logo, rendezvous_button, acsdancer_button, preferences_button, launcher_button; //stop_start_button, 
+        var logo, rendezvous_button, acsdancer_button, preferences_button, launcher_button, shutdowner_button; 
 
         Popup.bkg = chrome.extension.getBackgroundPage();
 
         logo = document.querySelector('#logo');
         logo.src = 'jumpBox.png';
         logo.setAttribute('alt', 'jumpBox');
-        
-        //stop_start_button = document.getElementById("stop_start");
-        //stop_start_button.addEventListener('click', Popup.on_off_toggle);
         
         rendezvous_button = document.querySelector('#rendezvous');
         rendezvous_button.addEventListener('click', Popup.rendezvous);
@@ -30,37 +28,37 @@ Popup = {
 
         launcher_button = document.querySelector('#launcher');
         launcher_button.addEventListener('click', Popup.launcher);
-        
-        /*
-          if(Popup.bkg && Popup.bkg.Controls.status()){
-          stop_start_button.innerHTML = 'Stop';
-          } else {
-          stop_start_button.innerHTML = 'Start';
-          }
-        */
-    },
 
-    /*
-    on_off_toggle:  function () {
-        var stop_start_button = document.getElementById("stop_start");
-        if(Popup.bkg !== null){ 
-            if(Popup.bkg.Controls.status()){
-                Popup.bkg.Controls.stop();  
-                stop_start_button.innerHTML = 'Start';
-            } else {
-                Popup.bkg.Controls.start();  
-                stop_start_button.innerHTML = 'Stop';
+        shutdowner_button = document.querySelector('#shutdowner');
+        shutdowner_button.addEventListener('click', Popup.shutdowner);
+        
+    },
+    
+    circuit_page: 'circuit.html',
+
+
+    shutdowner:  function () {
+        Popup.close_all(Popup.circuit_page);
+    },
+    
+    launcher: function () {
+        try {
+            var index;
+            Popup.shutdowner();
+            for (index = 0; index < Popup.bkg.Circuitous.circuit_count; index += 1){
+                chrome.tabs.create({ url : Popup.circuit_page + "?id=" + (index+1)});
             }
+        }catch(e){
+            console.log('launcher: ' + e);
         }
     },
-    */
 
     close_all: function (page) {
         var index, tab_uri;
         tab_uri = 'chrome-extension://' + Popup.extension_id + '/' + page;
         chrome.tabs.getAllInWindow(null, function(tabs){
-                for (var index = 0; index < tabs.length; index++) {
-                    if (tabs[index].url === tab_uri){
+                for (index = 0; index < tabs.length; index += 1) {
+                    if (tabs[index].url.substr(0,tab_uri.length) === tab_uri){
                         chrome.tabs.remove(tabs[index].id);
                     }
                 }
@@ -83,19 +81,10 @@ Popup = {
 
     preferences: function () {
          Popup.launch_just_one_tab('options.html');
-    },
-
-
-    launcher: function () {
-        Popup.launch_just_one_tab('launcher.html');
     }
-
+    
 };
 
 
-
-
-document.addEventListener('DOMContentLoaded', function () {
-        Popup.init();
-    });
+document.addEventListener('DOMContentLoaded', Popup.init );
 
