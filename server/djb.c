@@ -49,7 +49,7 @@ djb_html_css(httpsrv_client_t *hcl) {
 	/* HTML header */
 	conn_put(&hcl->conn,
 		"/* JumpBox CSS */\n"
-		"label\n"
+		"form label\n"
 		"{\n"
 		"	float		: left;\n"
 		"	width		: 120px;\n"
