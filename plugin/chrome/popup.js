@@ -9,7 +9,7 @@ Popup = {
     bkg: null,
 
     init: function () {
-        var logo, rendezvous_button, acsdancer_button, preferences_button, launcher_button, shutdowner_button; 
+        var logo, rendezvous_button, acs_button, preferences_button, launcher_button, shutdowner_button; 
 
         Popup.bkg = chrome.extension.getBackgroundPage();
 
@@ -20,8 +20,8 @@ Popup = {
         rendezvous_button = document.querySelector('#rendezvous');
         rendezvous_button.addEventListener('click', Popup.rendezvous);
         
-        acsdancer_button = document.querySelector('#acsdancer');
-        acsdancer_button.addEventListener('click', Popup.acsdancer);
+        acs_button = document.querySelector('#acs');
+        acs_button.addEventListener('click', Popup.acs);
         
         preferences_button = document.querySelector('#preferences');
         preferences_button.addEventListener('click', Popup.preferences);
@@ -45,7 +45,7 @@ Popup = {
         try {
             var index;
             Popup.shutdowner();
-            for (index = 0; index < Popup.bkg.Circuitous.circuit_count; index += 1){
+            for (index = 0; index < Popup.bkg.Circuitous.circuit_count; index++){
                 chrome.tabs.create({ url : Popup.circuit_page + "?id=" + (index+1)});
             }
         }catch(e){
@@ -57,7 +57,7 @@ Popup = {
         var index, tab_uri;
         tab_uri = 'chrome-extension://' + Popup.extension_id + '/' + page;
         chrome.tabs.getAllInWindow(null, function(tabs){
-                for (index = 0; index < tabs.length; index += 1) {
+                for (index = 0; index < tabs.length; index++) {
                     if (tabs[index].url.substr(0,tab_uri.length) === tab_uri){
                         chrome.tabs.remove(tabs[index].id);
                     }
@@ -75,8 +75,8 @@ Popup = {
         Popup.launch_just_one_tab('rendezvous.html');
     },
 
-    acsdancer:  function () {
-        Popup.launch_just_one_tab('acsdancer.html');
+    acs:  function () {
+        Popup.launch_just_one_tab('acs.html');
     },
 
     preferences: function () {

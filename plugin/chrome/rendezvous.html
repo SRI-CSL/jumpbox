@@ -1,92 +1,109 @@
 <!doctype html>
 <html>
-  <head>
-    <title>Rendezvous</title>
-    <script src="rendezvous.js"></script>
-    <style>
-      img {
-        margin: 5px;
-        border: 2px solid black;
-        vertical-align: middle;
-        width: 600px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Rendezvous to you too!</h1>
-    <div id="visible_region">
-      <h2><label id="status">Status:</label></h2>
-      <div id="onion_fetching_controls">
-        <table id="fetcher">
-          <tr>
-            <td><input type="text" size="50" name="mod_freedom_uri" id="mod_freedom_uri"></td><td><button id="mod_freedom" type="button">Go</button> SSL: <input id="ssl" type="checkbox"></td>
-          </tr>
-        </table> 
-      </div>
-      <div id="onion_image_div"></div>
-      <div id="onion_peeling_controls"></div>
-    </div>
-    
-    <!-- grab_bag: hidden source of DOM subtrees  STUFF BELOW IS NOT VISIBLE UNTIL MOVED UP ^ -->
+<head>
+<title>JumpBox :: Rendezvous</title>
+<link rel="stylesheet" type="text/css" href="http://localhost:6543/djb.css" />
+<script src="rendezvous.js"></script>
+<style>
+img
+{
+	margin		: 5px;
+        border		: 2px solid black;
+        vertical-align	: middle;
+        width		: 600px;
+}
+</style>
+</head>
+<body>
+	<div class="header">
+		SAFER DEFIANCE :: JumpBox :: Rendezvous
+	</div>
 
-    <div id="grab_bag" style="display: none;"> 
+	<h1>Rendezvous to you too!</h1>
 
-      <img id="onion_image" alt="" src="" />
+	<div id="visible_region">
+		<h2 id="status">Status:</h2>
 
-      <img id="captcha_image" alt="" src="" />
+		<div id="onion_fetching_controls">
+			<table id="fetcher">
+			<tr>
+				<td><input type="text" size="50" name="mod_freedom_uri" id="mod_freedom_uri"></td><td><button id="mod_freedom" type="button">Go</button> SSL: <input id="ssl" type="checkbox"></td>
+			</tr>
+			</table> 
+		</div>
 
-      <input type="text" size="50" name="captcha_answer" id="captcha_answer">
+		<div id="onion_image_div"></div>
+		<div id="onion_peeling_controls"></div>
+	</div>
 
-      <table id="captcha_peeler">
-        <tr><td><label id="captcha_peeling_intructions">Press OK to get your captcha puzzle</label></td></tr>
-        <tr><td><div id="captcha_image_div"></div></td></tr>
-        <tr>
-          <td><div id="captcha_answer_div"></div></td>
-        </tr>
-        <tr>
-          <td><button id="captcha_peeler_button" type="button">OK</button></td>
-        </tr>
-      </table> 
-      
-      <table id="signed_peeler">
-        <tr><td><label id="signed_peeling_intructions">Your onion is signed, press OK to verify the signature.</label></td></tr>
-        <tr>
-          <td><button id="signed_peeler_button" type="button">OK</button></td>
-        </tr>
-      </table> 
-      
-      <table id="base_peeler">
-        <tr><td><label id="base_peeling_intructions">Your NET (network entry ticket) is available. Press OK to fetch it</label></td></tr>
-        <tr>
-          <td><div id="net_textarea_div"> </div></td>
-        </tr>
-        <tr>
-          <td><button id="base_peeler_button" type="button">OK</button></td>
-        </tr>
-      </table> 
+	<!-- grab_bag: hidden source of DOM subtrees  STUFF BELOW IS NOT VISIBLE UNTIL MOVED UP ^ -->
 
-      <textarea id="net_textarea" rows="8" cols="50"></textarea>
-      
-      
-      <table id="pow_peeler">
-        <tr><td><label id="pow_peeling_intructions">Your onion is a proof of work onion, press OK to see its progress.</label></td></tr>
-        <tr>
-          <td>
-            <div id="pow_progress_bar_div">
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td><div id="pow_peeler_button_div"><button id="pow_peeler_button" type="button">OK</button></div></td>
-        </tr>
-      </table> 
-      
-      <div id="pow_container" style="width:100%; height:50px; border:1px solid black;">
-        <div id="pow_progress_bar" style="background-image:url(red.png); height:50px; width:0%;"> </div>
-      </div>
- 
-    </div> <!-- grab_bag -->
-  </body>
+	<div id="grab_bag" style="display: none;"> 
 
+	<img id="onion_image" alt="" src="" />
+
+	<img id="captcha_image" alt="" src="" />
+
+	<input type="text" size="50" name="captcha_answer" id="captcha_answer" />
+
+	<table id="captcha_peeler">
+	<tr>
+		<td><label id="captcha_peeling_intructions">Press OK to get your captcha puzzle</label></td>
+	</tr>
+	<tr>
+		<td><div id="captcha_image_div"></div></td>
+	</tr>
+	<tr>
+		<td><div id="captcha_answer_div"></div></td>
+	</tr>
+	<tr>
+			<td><button id="captcha_peeler_button" type="button">OK</button></td>
+	</tr>
+	</table> 
+
+	<table id="signed_peeler">
+	<tr>
+		<td><label id="signed_peeling_intructions">Your onion is signed, press OK to verify the signature.</label></td>
+	</tr>
+	<tr>
+		<td><button id="signed_peeler_button" type="button">OK</button></td>
+	</tr>
+	</table> 
+
+	<table id="base_peeler">
+	<tr>
+		<td><label id="base_peeling_intructions">Your NET (network entry ticket) is available. Press OK to fetch it</label></td>
+	</tr>
+	<tr>
+		<td><div id="net_textarea_div"> </div></td>
+	</tr>
+	<tr>
+		<td><button id="base_peeler_button" type="button">OK</button></td>
+	</tr>
+	</table> 
+
+	<textarea id="net_textarea" rows="8" cols="50"></textarea>
+
+	<table id="pow_peeler">
+		<tr>
+			<td><label id="pow_peeling_intructions">Your onion is a proof of work onion, press OK to see its progress.</label></td>
+		</tr>
+		<tr>
+			<td>
+			<div id="pow_progress_bar_div">
+			</div>
+			</td>
+		</tr>
+		<tr>
+			<td><div id="pow_peeler_button_div"><button id="pow_peeler_button" type="button">OK</button></div></td>
+		</tr>
+		</table> 
+
+		<div id="pow_container" style="width:100%; height:50px; border:1px solid black;">
+			<div id="pow_progress_bar" style="background-image:url(red.png); height:50px; width:0%;"> </div>
+		</div>
+
+	</div> <!-- grab_bag -->
+</body>
 </html>
 

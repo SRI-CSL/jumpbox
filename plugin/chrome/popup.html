@@ -1,53 +1,67 @@
 <!doctype html>
 <html>
-  <head>
-    <title>JumpBox's Popup</title>
-    <style>
-      body {
-        min-width: 357px;
-        overflow-x: hidden;
-      }
+<head>
+<title>JumpBox's Popup</title>
+<style>
+#container
+{
+	min-width	: 300px;
+	width		: 100%;
+}
 
-      img {
-        margin: 5px;
-        border: 2px solid black;
-        width: 75px;
-        height: 75px;
-      }
-    </style>
+#left
+{
+	float		: left;
+	width		: 100px;
+}
 
-    <!--
-      - JavaScript and HTML must be in separate files: see our Content Security
-      - Policy documentation[1] for details and explanation.
-      -
-      - [1]: http://developer.chrome.com/extensions/contentSecurityPolicy.html
-     -->
-    <script src="popup.js"></script>
-  </head>
-  <body>
-    <table>
-      <tr>
-        <td rowspan="4"><img id="logo" alt="" src="" /></td>
-        <td><button id="rendezvous" type="button">Rendezvous</button></td>
-      </tr>
-      <tr>
-        <td><button id="launcher" type="button">Launch Circuits</button></td>
-      </tr>
-      <tr>
-        <td><button id="shutdowner" type="button">Shutdown Circuits</button></td>
-      </tr>
-      <tr>
-        <td><button id="preferences"  type="button">Preferences</button></td>
-      </tr>
-      <tr>
-        <td><button id="acsdancer"   type="button">ACS Dancer</button></td>
-      </tr>
-      <!--
-      <tr>
-        <td><button id="stop_start" type="button">Stop</button></td>
-      </tr>
-     -->
-    </table> 
-  </body>
+#right
+{
+	float		: left;
+}
+
+ul
+{
+	-webkit-margin-before: 0;
+	-webkit-margin-after: 0;
+	-webkit-padding-start: 0;
+}
+
+li
+{
+	list-style	: none;
+}
+
+img
+{
+	margin		: 5px;
+	border		: 2px solid black;
+	width		: 75px;
+	height		: 75px;
+}
+</style>
+<script src="popup.js"></script>
+</head>
+<body>
+	<b>JumpBox Controls</b><br />
+
+	<div id="container">
+		<div id="left">
+			<img id="logo" alt="" src="" />
+		</div>
+
+		<div id="right">
+			<ul>
+			<li><button id="rendezvous"	type="button">Rendezvous</button></li>
+			<li><button id="acs"		type="button">ACS</button></li>
+			<li><button id="launcher"	type="button">Launch Circuits</button></li>
+			<li><button id="shutdowner" 	type="button">Shutdown Circuits</button></li>
+			<li><button id="preferences"	type="button">Preferences</button></li>
+			<!--
+			<li<button id="stop_start" type="button">Stop</button></li>
+			-->
+			</ul>
+		</div>
+	</div>
+</body>
 </html>
-
