@@ -14,9 +14,9 @@ Circuit = {
 
     jb_push_url: null,
 
-    count: 0,
-
-    bytes: 0,
+    cnt_requests: 0,
+    cnt_bytes: 0,
+    cnt_restarts: 0,
 
     debug: true,
 
@@ -56,14 +56,26 @@ Circuit = {
     addBytes: function (request){
         var content_length = request.getResponseHeader('Content-Length');
         if (typeof content_length === 'string'){
-            Circuit.bytes += parseInt(content_length, 10);
-            document.querySelector('#bytes_sent').textContent = Circuit.bytes;
+            Circuit.cnt_bytes += parseInt(content_length, 10);
+            document.querySelector('#bytes_sent').textContent = Circuit.cnt_bytes;
         }
     },
 
     addRequest: function (){
-        Circuit.count += 1;
-        document.querySelector('#request_count').textContent = Circuit.count;
+        Circuit.cnt_requests += 1;
+        document.querySelector('#request_count').textContent = Circuit.cnt_requests;
+    },
+
+    Restart: function (circuit_id){
+	var w;
+
+        Circuit.cnt_restarts += 1;
+        document.querySelector('#restart_count').textContent = Circuit.cnt_restarts;
+
+	w = 2000 + ((Circuit.cnt_restarts % 10) * 1000);
+
+	Circuit.log('Restarting connection, but first waiting ' + w + ' milliseconds');
+	window.setTimeout(function() { Circuitous.jb_pull(circuit_id); }, w);
     },
     
     parseQueryParams: function (qs) {
@@ -107,9 +119,7 @@ Circuitous = {
             } else {
                 if (request.status === 0) {
 			Circuit.log('jb_pull request failed');
-                        /* this seems like a recipe for spinning to me; especially if the djb crashes, we end up with an unhappy plugin.
-                           window.setTimeout(Circuitous.jb_pull(circuit_id), 2);
-                        */
+			Circuit.Restart(circuit_id);
 		}
             }
         }
