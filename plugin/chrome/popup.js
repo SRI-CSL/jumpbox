@@ -45,7 +45,7 @@ Popup = {
         try {
             var index;
             Popup.shutdowner();
-            for (index = 0; index < Popup.bkg.Circuitous.circuit_count; index++){
+            for (index = 0; index < Popup.bkg.JumpBox.circuit_count; index++){
                 chrome.tabs.create({ url : Popup.circuit_page + "?id=" + (index+1)});
             }
         }catch(e){

@@ -1,17 +1,16 @@
 /*jslint browser: true, devel: true,  unparam: true, sloppy: true, white: true*/
-var Circuit, Circuitous, Translator ;
 
+/* See background.js for a summary of how this works */
+
+var Circuit, Circuitous, Translator;
 
 Circuit = {
 
     bkg: null,
-
     id: -1,
-
     id_node: null,
 
     jb_pull_url: null,
-
     jb_push_url: null,
 
     cnt_requests: 0,
@@ -90,8 +89,6 @@ Circuit = {
     }
     
 };
-
-
 
 Circuitous = {
     jb_pull : function (circuit_id) {
