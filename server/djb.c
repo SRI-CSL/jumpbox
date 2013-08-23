@@ -22,7 +22,8 @@ hlist_t lst_proxy_body;
 hlist_t lst_api_pull;
 
 typedef struct {
-	char	httpcode[128];
+	char	httpcode[64];
+	char	httptext[(256-64-32)];
 	char	seqno[32];
 	char	setcookie[8192];
 	char	cookie[8192];
@@ -32,6 +33,7 @@ typedef struct {
 
 misc_map_t djb_headers[] = {
 	{ "DJB-HTTPCode",	DJBH(httpcode)	},
+	{ "DJB-HTTPText",	DJBH(httptext)	},
 	{ "DJB-SeqNo",		DJBH(seqno)	},
 
 	/* Server -> Client */
@@ -279,6 +281,12 @@ djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh) {
 		return NULL;
 	}
 
+	/* We require a DJB-HTTPText */
+	if (strlen(dh->httptext) == 0) {
+		djb_error(hcl, 504, "Missing DJB-HTTPText");
+		return NULL;
+	}
+
 	/* Convert the Request-ID */
 	if (sscanf(dh->seqno, "%09" PRIx64 "%09" PRIx64, &id, &reqid) != 2) {
 		djb_error(hcl, 504, "Missing or malformed DJB-SeqNo");
@@ -353,11 +361,8 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return (true);
 	}
 
-	/* Resume reading/writing from the sockets */
-	httpsrv_speak(pr->hcl);
-
 	/* We got an answer, send back what we have already */
-	djb_httpanswer(pr->hcl, atoi(dh->httpcode), "OK", NULL);
+	djb_httpanswer(pr->hcl, atoi(dh->httpcode), dh->httptext, NULL);
 
 	/* Server to Client */
 	if (strlen(dh->setcookie) > 0) {
@@ -890,10 +895,6 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	fassert(conn_is_valid(&pr->hcl->conn));
 	fassert(conn_is_valid(&ar->hcl->conn));
 
-	/* Resume reading from the sockets */
-	httpsrv_speak(pr->hcl);
-	httpsrv_speak(ar->hcl);
-
 	/* pr's headers */
 	dh = (djb_headers_t *)pr->hcl->user;
 
@@ -913,11 +914,17 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	conn_addheaderf(&ar->hcl->conn, "DJB-SeqNo: %09" PRIx64 "%09" PRIx64,
 			pr->hcl->id, pr->hcl->reqid);
 
+	assert(pr->hcl->method != HTTP_M_NONE);
+
 	/* Client to server */
 	if (strlen(dh->cookie) > 0) {
 		conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s",
 				dh->cookie);
 	}
+
+	/* Resume reading from the sockets */
+	httpsrv_speak(pr->hcl);
+	httpsrv_speak(ar->hcl);
 
 	if (pr->hcl->method != HTTP_M_POST) {
 		logline(log_DEBUG_,
@@ -1011,7 +1018,7 @@ djb_worker_thread(void UNUSED *arg) {
 
 		fassert(pr->hcl);
 
-		logline(log_DEBUG_, "got request " HCL_ID ", getting poller",
+		logline(log_DEBUG_, "got request " HCL_ID ", getting puller",
 			pr->hcl->id);
 		thread_setmessage("Got Request " HCL_ID, pr->hcl->id);
 
@@ -1027,7 +1034,7 @@ djb_worker_thread(void UNUSED *arg) {
 		}
 
 
-		logline(log_DEBUG_, "got request " HCL_ID " and poller "HCL_ID,
+		logline(log_DEBUG_, "got request " HCL_ID " and puller "HCL_ID,
 			pr->hcl->id, ar->hcl->id);
 
 		thread_setmessage("Got Request " HCL_ID " to " HCL_ID,
