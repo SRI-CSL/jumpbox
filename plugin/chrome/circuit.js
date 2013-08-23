@@ -229,6 +229,7 @@ Translator = {
         /* Pass on the SeqNo + HTTPCode (http status of the response) */
         request.setRequestHeader('DJB-SeqNo', response.djb_seqno);
         request.setRequestHeader('DJB-HTTPCode', response.status);
+        request.setRequestHeader('DJB-HTTPText', response.statusText);
 
         /*
          * Though we do need to preserve/transfer some headers (Content-Type, Set-Cookie)
