@@ -206,7 +206,7 @@ static void image(httpsrv_client_t*  hcl) {
   } else {
     size_t encrypted_onion_sz = 0;
     int retcode = DEFIANT_OK;
-    retcode = extract_n_save(password, hcl->readbody, hcl->readbodyoff,  &encrypted_onion, &encrypted_onion_sz, &image_path, &image_dir);
+    retcode = extract_n_save(password, hcl->readbody, hcl->readbody_off,  &encrypted_onion, &encrypted_onion_sz, &image_path, &image_dir);
     httpsrv_readbody_free(hcl);
     if(retcode != DEFIANT_OK){
       logline(log_DEBUG_, "image: extract_n_save with password %s returned %d -- %s", password, retcode, defiant_strerror(retcode));
