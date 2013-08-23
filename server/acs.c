@@ -100,7 +100,7 @@ acs_initial(httpsrv_client_t *hcl) {
 				"Could not parse NET (JSON load failed): "
 				"line %u, column %u: %s",
 				jerr.line, jerr.column, jerr.text);
-			dumppacket(LOG_ERR, (uint8_t *)hcl->readbody, hcl->readbodylen);
+			dumppacket(LOG_ERR, (uint8_t *)hcl->readbody, hcl->readbody_len);
 
 			httpsrv_readbody_free(hcl);
 			return (true);
