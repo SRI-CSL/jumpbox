@@ -38,6 +38,9 @@ CFLAGS += -DDEBUG
 # Do stack dumps?
 CFLAGS += -DDEBUG_STACKDUMPS
 
+# Rendezvous modules?
+#CFLAGS += -DDJB_RENDEZVOUS
+
 #########################################################
 export PROJECT_NAME
 export PROJECT_VERSION

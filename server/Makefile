@@ -85,10 +85,15 @@ OBJFUTIL:=$(LIBFUTIL)/src/
 
 CFLAGS	+= -I$(LIBFUTIL)/include/
 
+ifeq ($(shell echo $(CFLAGS) | grep -c "DJB_RENDEZVOUS"),1)
 # Rendezvous: Location of defiantclient + dependencies
 LIBDEFIANTCLIENT:=../../rendezvous/client/src/
 CFLAGS	+= -I$(LIBDEFIANTCLIENT)
-LDLIBS += -lcrypto -lpbc -lgmp -ljansson
+LDLIBS += -lcrypto -lpbc -lgmp
+endif
+
+# Used for both Rendezvous and ACS
+LDLIBS += -ljansson
 
 # Linux
 ifeq ($(OS_NAME),Linux)
@@ -212,16 +217,7 @@ RFC6234_OBJS	+=	$(OBJFUTIL)rfc6234/hmac.o	\
 BINS		+=	djb$(EXT)
 DJB_OBJS	+=	djb.o					\
 			acs.o					\
-			rendezvous.o				\
 			preferences.o				\
-			$(LIBDEFIANTCLIENT)defiantclient.o	\
-			$(LIBDEFIANTCLIENT)defiantbf.o		\
-			$(LIBDEFIANTCLIENT)crc.o		\
-			$(LIBDEFIANTCLIENT)utils.o		\
-			$(LIBDEFIANTCLIENT)onion.o		\
-			$(LIBDEFIANTCLIENT)outguess.o		\
-			$(LIBDEFIANTCLIENT)defianterrors.o	\
-			$(LIBDEFIANTCLIENT)defiantrequest.o	\
 			$(OBJFUTIL)httpsrv.o			\
 			$(OBJFUTIL)buf.o			\
 			$(OBJFUTIL)conn.o			\
@@ -230,6 +226,19 @@ DJB_OBJS	+=	djb.o					\
 			$(OBJFUTIL)rwl.o			\
 			$(OBJFUTIL)stack.o			\
 			$(OBJFUTIL)thread.o
+
+# Rendezvous support?
+ifeq ($(shell echo $(CFLAGS) | grep -c "DJB_RENDEZVOUS"),1)
+DJB_OBJS	+=	rendezvous.o				\
+			$(LIBDEFIANTCLIENT)defiantclient.o	\
+			$(LIBDEFIANTCLIENT)defiantbf.o		\
+			$(LIBDEFIANTCLIENT)crc.o		\
+			$(LIBDEFIANTCLIENT)utils.o		\
+			$(LIBDEFIANTCLIENT)onion.o		\
+			$(LIBDEFIANTCLIENT)outguess.o		\
+			$(LIBDEFIANTCLIENT)defianterrors.o	\
+			$(LIBDEFIANTCLIENT)defiantrequest.o
+endif
 
 # All the objects in this project nicely in alpha order
 OBJS	:= $(shell echo $(DJB_OBJS) | tr ' ' '\n' | sort | uniq | tr '\n' ' ')

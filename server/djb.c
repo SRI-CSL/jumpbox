@@ -350,6 +350,10 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
 	if (pr == NULL) {
 		/* Can happen if the request timed out etc */
+		logline(log_DEBUG_,
+			HCL_ID " request timed out",
+			hcl->id);
+		httpsrv_done(hcl);
 		return (true);
 	}
 
@@ -358,6 +362,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		logline(log_DEBUG_,
 			HCL_ID " " CONN_ID " closed",
 			hcl->id, conn_id(&pr->hcl->conn));
+		httpsrv_done(hcl);
 		return (true);
 	}
 
@@ -393,11 +398,11 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	 */
 	list_addtail_l(&lst_proxy_body, &pr->node);
 
-	/* Forward the body from hcl to pr */
-	httpsrv_forward(hcl, pr->hcl);
-
 	/* The Content-Length header is already included in all the headers */
 	conn_add_contentlen(&pr->hcl->conn, false);
+
+	/* Forward the body from hcl to pr */
+	httpsrv_forward(hcl, pr->hcl);
 
 	logline(log_DEBUG_,
 		"Forwarding body from " HCL_ID " to " HCL_ID,
@@ -729,7 +734,11 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/*					  123456789012 */
 	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", 12) == 0) {
+#ifdef DJB_RENDEZVOUS
 		rendezvous(hcl);
+#else
+		djb_error(hcl, 500, "Rendezvous module not enabled");
+#endif
 		return (false);
 	/*					   123456789012 */
 	} else if (strncasecmp(hcl->headers.uri, "/preferences/", 12) == 0) {
