@@ -127,21 +127,24 @@ Circuitous = {
         if (request.readyState === 4) {
             var jb_push_contents = null, jb_push_request = new XMLHttpRequest();
 
-            // use the server's response in the request to build the jb_push_request, forwarding the error code too
-            jb_push_request.onreadystatechange = function () { Circuitous.handle_jb_push_response(jb_push_request, circuit_id); };
-            jb_push_contents = Translator.ss_response2request(request, jb_push_request);
-            jb_push_request.seqno = request.seqno;
-            jb_push_request.send(jb_push_contents);
+            Circuit.log('ss_push_response status: ' + request.status + ' ' + request.statusText);
+
+            if (request.status != 0) {
+               // use the server's response in the request to build the jb_push_request, forwarding the error code too
+               jb_push_request.onreadystatechange = function () { Circuitous.handle_jb_push_response(jb_push_request, circuit_id); };
+               jb_push_contents = Translator.ss_response2request(request, jb_push_request);
+               jb_push_request.seqno = request.seqno;
+               jb_push_request.send(jb_push_contents);
+            } else {
+               // browser did not want to send the request, why?
+            }
         }
     },
 
     handle_jb_push_response : function (request, circuit_id) {
         Circuit.log('jb_push_response: state = ' + request.readyState);
         if (request.readyState === 4) {
-            Circuit.log('jb_push_response: status = ' + request.status);
-            if (request.status !== 200) {
-                Circuit.log('jb_push_response failed: ' + request.status);
-            }
+            Circuit.log('jb_push_response status: ' + request.status + ' ' + request.statusText);
 
             Circuit.addRequest();
 
