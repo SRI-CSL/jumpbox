@@ -23,8 +23,10 @@ SAFDEF_LOG_LEVEL defines the logging level (debug is very verbose).
 
 Testing JumpBox with StegoTorus can be achieved by the following steps.
 
-First you need to 'unpack and load' the JumpBox plugin by opening
+In Chrome/Chromium open the extensions page:
  chrome://extensions
+Then select 'unpack and load' and select the JumpBox plugin directory (plugin/chrome/)
+or if already correctly installed, hit "Reload" to update to the current version.
 
 Start DJB:
 {{{
@@ -33,12 +35,15 @@ export SAFDEF_LOG_LEVEL=debug
 server/djb run
 }}}
 
-That in combination with a Stegotorus client:
+In Chrome/Chromium configure the Plugin by clicking on the Jumpbox button and selecting
+"Preferences", fill in the rendezvous server and select the amount of circuits.
+
+Then start a Stegotorus client in persist JSON mode
 {{{
 ./stegotorus --log-min-severity=warn chop socks --trace-packets --persist-mode 127.0.0.1:1080 127.0.0.1:6543 json
 }}}
 
-That lets ST be a SOCKS server on 127.0.0.1:1080.
+That lets StegoTorus be a SOCKS server on 127.0.0.1:1080 while connecting to JumpBox at 6543.
 
 Then start the Stegotorus server:
 {{{
