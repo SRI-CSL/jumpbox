@@ -35,7 +35,7 @@ export SAFDEF_LOG_LEVEL=debug
 server/djb run
 }}}
 
-In Chrome/Chromium configure the Plugin by clicking on the Jumpbox button and selecting
+In Chrome/Chromium configure the Plugin by clicking on the JumpBox button and selecting
 "Preferences", fill in the rendezvous server and select the amount of circuits.
 
 Then start a Stegotorus client in persist JSON mode
