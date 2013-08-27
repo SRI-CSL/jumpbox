@@ -11,8 +11,11 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	dh_installinit --no-start -r --name=djb -- defaults 91 09
-	mkdir -p debian/saferdefiance-jumpbox/usr/sbin/
-	cp server/djb debian/saferdefiance-jumpbox/usr/sbin/
+	mkdir -p debian/saferdefiance-jumpbox-daemon/usr/sbin/
+	cp server/djb debian/saferdefiance-jumpbox-daemon/usr/sbin/
+
+	mkdir -p debian/saferdefiance-jumpbox-plugin/usr/lib/chromium-browser/plugins
+	cp -R plugin/chrome/ debian/saferdefiance-jumpbox-plugin/usr/lib/chromium-browser/plugins/saferdefiance-jumpbox-plugin/
 
 override_dh_auto_test:
 

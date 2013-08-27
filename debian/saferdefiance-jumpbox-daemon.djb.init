@@ -6,12 +6,12 @@
 # Required-Stop:	$remote_fs $syslog
 # Default-Start:	2 3 4 5
 # Default-Stop:		0 1 6
-# Short-Description:	SAFER DEFIANCE Jumpbox
+# Short-Description:	SAFER DEFIANCE JumpBox Daemon
 ### END INIT INFO
 
 set -e
 
-DAEMON_NAME="SAFER DEFIANCE Jumpbox"
+DAEMON_NAME="SAFER DEFIANCE JumpBox Daemon"
 DAEMON_SHORT=djb
 DAEMON_BIN=/usr/sbin/djb
 DAEMON_USER=djb
