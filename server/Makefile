@@ -308,9 +308,11 @@ clean:
 	@rm -rf $(BINS) *.o *.so *.lo *.la *.slo *.loT *.d .libs/ ../tests/*.o ../tests/*.d rfc6234/*.o rfc6234/*.d
 	@echo "* Cleansing Dependencies (libfutil)"
 	@make -C $(LIBFUTIL) clean
+ifeq ($(shell echo $(CFLAGS) | grep -c "DJB_RENDEZVOUS"),1)
 	@echo "* Cleansing Dependencies (libdefiantclient)"
 	@make -C $(LIBDEFIANTCLIENT) clean
 	@echo "* Cleansing complete"
+endif
 
 runtests:
 ifeq ($(HOSTCC),$(CC))
