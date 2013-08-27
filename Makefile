@@ -55,6 +55,8 @@ help:
 
 clean:
 	@$(MAKE) --no-print-directory -C server clean
+	@rm -rf debian/saferdefiance-jumpbox-chromium-plugin/ debian/saferdefiance-jumpbox-daemon/
+	@rm -f debian/*.debhelper.log debian/*.substvars debian/*.debhelper
 
 depend:
 	@$(MAKE) --no-print-directory -C server depend

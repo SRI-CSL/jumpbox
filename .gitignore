@@ -10,7 +10,12 @@ server/djb
 
 # Debian 'make deb' files
 debian/files
-debian/saferdefiance-jumpbox.debhelper.log
-debian/saferdefiance-jumpbox.substvars
-debian/saferdefiance-jumpbox/
+debian/saferdefiance-jumpbox-chromium-plugin.debhelper.log
+debian/saferdefiance-jumpbox-chromium-plugin.substvars
+debian/saferdefiance-jumpbox-chromium-plugin/
+debian/saferdefiance-jumpbox-daemon.debhelper.log
+debian/saferdefiance-jumpbox-daemon.postinst.debhelper
+debian/saferdefiance-jumpbox-daemon.postrm.debhelper
+debian/saferdefiance-jumpbox-daemon.substvars
+debian/saferdefiance-jumpbox-daemon/
 
