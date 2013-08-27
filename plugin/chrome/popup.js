@@ -14,8 +14,8 @@ Popup = {
         Popup.bkg = chrome.extension.getBackgroundPage();
 
         logo = document.querySelector('#logo');
-        logo.src = 'jumpBox.png';
-        logo.setAttribute('alt', 'jumpBox');
+        logo.src = 'jumpbox.png';
+        logo.setAttribute('alt', 'jumpbox');
         
         rendezvous_button = document.querySelector('#rendezvous');
         rendezvous_button.addEventListener('click', Popup.rendezvous);
