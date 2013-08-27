@@ -408,6 +408,8 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		"Forwarding body from " HCL_ID " to " HCL_ID,
 		pr->hcl->id, hcl->id);
 
+	assert(pr->hcl->method != HTTP_M_NONE);
+
 	/* No need to read from it further for the moment */
 	return (true);
 }
@@ -486,6 +488,10 @@ djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
 		djb_error(hcl, 500, "Out of memory");
 		return;
 	}
+
+	logline(log_DEBUG_,
+		HCL_ID " %p",
+		hcl->id, (void *)dh);
 
 	httpsrv_set_userdata(hcl, dh);
 }
@@ -869,10 +875,14 @@ void
 djb_done(httpsrv_client_t *hcl, void *user);
 void
 djb_done(httpsrv_client_t *hcl, void *user) {
-	djb_headers_t  *dh = (djb_headers_t *)user;
+	djb_headers_t  *dh;
 
-	logline(log_DEBUG_, HCL_ID, hcl->id);
+	logline(log_DEBUG_,
+		HCL_ID " %p",
+		hcl->id, user);
 
+	dh = (djb_headers_t *)user;
+	assert(dh != NULL);
 	memzero(dh, sizeof *dh);
 }
 
@@ -898,7 +908,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	fassert(ar->hcl);
 
 	logline(log_DEBUG_,
-		"got request " HCL_ID ", got puller " HCL_ID,
+		"request " HCL_ID ", puller " HCL_ID,
 		pr->hcl->id, ar->hcl->id);
 
 	fassert(conn_is_valid(&pr->hcl->conn));
@@ -1043,10 +1053,10 @@ djb_worker_thread(void UNUSED *arg) {
 		}
 
 
-		logline(log_DEBUG_, "got request " HCL_ID " and puller "HCL_ID,
+		logline(log_DEBUG_, "request " HCL_ID ", puller "HCL_ID,
 			pr->hcl->id, ar->hcl->id);
 
-		thread_setmessage("Got Request " HCL_ID " to " HCL_ID,
+		thread_setmessage("request " HCL_ID " puller " HCL_ID,
 				  pr->hcl->id, ar->hcl->id);
 
 		djb_handle_forward(pr, ar);
