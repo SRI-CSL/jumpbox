@@ -444,17 +444,11 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 		/* The forwarded request is done */
 		httpsrv_done(hcl);
 
-		/* The calling request is done too */
-		httpsrv_done(pr->hcl);
-
 		/* All done */
 		free(pr);
 	} else {
 		/* This was a proxy-POST, thus add it back to process queue */
 		logline(log_DEBUG_, "proxy-POST, adding back to queue");
-
-		/* Silence the proxy-POST for the time being */
-		/* httpsrv_silence(hcl); */
 
 		/* The forwarded request is done */
 		httpsrv_done(pr->hcl);
