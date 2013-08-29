@@ -122,8 +122,6 @@ void
 djb_html_top(httpsrv_client_t *hcl, void UNUSED *user);
 void
 djb_html_top(httpsrv_client_t *hcl, void UNUSED *user) {
-
-	/* HTML header */
 	conn_put(&hcl->conn,
 		"<!doctype html>\n"
 		"<html lang=\"en\">\n"
@@ -143,8 +141,6 @@ void
 djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user);
 void
 djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user) {
-
-	/* HTML header */
 	conn_put(&hcl->conn,
 		"<div class=\"footer\">\n"
 		"SAFER DEFIANCE :: Defiance JumpBox (djb) by "

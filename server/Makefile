@@ -82,7 +82,6 @@ CFLAGS  +=	-D_GNU_SOURCE
 # Location of libfutil
 LIBFUTIL:=../../libfutil
 OBJFUTIL:=$(LIBFUTIL)/src/
-
 CFLAGS	+= -I$(LIBFUTIL)/include/
 
 ifeq ($(shell echo $(CFLAGS) | grep -c "DJB_RENDEZVOUS"),1)
