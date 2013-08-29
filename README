@@ -47,11 +47,11 @@ That lets StegoTorus be a SOCKS server on 127.0.0.1:1080 while connecting to Jum
 
 Then start the Stegotorus server:
 {{{
-./stegotorus --log-min-severity=warn chop server --trace-packets --persist-mode 149.20.52.51:5251 127.0.0.1:8080 json
+./stegotorus --log-min-severity=warn chop server --trace-packets --persist-mode 64.62.249.222:443 127.0.0.1:8080 json
 }}}
 
 That lets ST accept HTP at 127.0.0.1:8080 (matching DJB_FORCED_HOSTNAME above) and makes
-it use 149.20.52.51:5251 as a Tor Bridge
+it use 64.62.249.222:443 as a Tor Bridge
 
 Configure the Tor client with:
 {{{
