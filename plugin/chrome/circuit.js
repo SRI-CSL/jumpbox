@@ -129,15 +129,11 @@ Circuitous = {
 
             Circuit.log('ss_push_response status: ' + request.status + ' ' + request.statusText);
 
-            if (request.status != 0) {
-               // use the server's response in the request to build the jb_push_request, forwarding the error code too
-               jb_push_request.onreadystatechange = function () { Circuitous.handle_jb_push_response(jb_push_request, circuit_id); };
-               jb_push_contents = Translator.ss_response2request(request, jb_push_request);
-               jb_push_request.seqno = request.seqno;
-               jb_push_request.send(jb_push_contents);
-            } else {
-               // browser did not want to send the request, why?
-            }
+            // use the server's response in the request to build the jb_push_request, forwarding the error code too
+            jb_push_request.onreadystatechange = function () { Circuitous.handle_jb_push_response(jb_push_request, circuit_id); };
+            jb_push_contents = Translator.ss_response2request(request, jb_push_request);
+            jb_push_request.seqno = request.seqno;
+            jb_push_request.send(jb_push_contents);
         }
     },
 
@@ -221,7 +217,7 @@ Translator = {
      * returns the content (i.e. the argument to send)  
      */
     ss_response2request : function (response, request) {
-        var djb_set_cookie, djb_content_type;
+        var djb_set_cookie, djb_content_type, httpcode, httptext;
 
         /*
          * The response should be converted into a POST
@@ -229,10 +225,21 @@ Translator = {
          */
         request.open('POST', Circuit.jb_push_url);
 
+	/* When it failed, report 555 back to jumpbox
+	 * this allows the client to do a new request
+	 */
+	if (response.status == 0) {
+	    httpcode = 555;
+	    httptext = "Request not made";
+	} else {
+	   httpcode = response.status;
+	   httptext = response.statusText;
+	}
+
         /* Pass on the SeqNo + HTTPCode (http status of the response) */
         request.setRequestHeader('DJB-SeqNo', response.djb_seqno);
-        request.setRequestHeader('DJB-HTTPCode', response.status);
-        request.setRequestHeader('DJB-HTTPText', response.statusText);
+        request.setRequestHeader('DJB-HTTPCode', httpcode);
+        request.setRequestHeader('DJB-HTTPText', httptext);
 
         /*
          * Though we do need to preserve/transfer some headers (Content-Type, Set-Cookie)
