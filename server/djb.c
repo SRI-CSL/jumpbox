@@ -376,11 +376,24 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	conn_addheaders(&pr->hcl->conn, buf_buffer(&hcl->the_headers));
 
 	if (hcl->headers.content_length == 0) {
+		/* Send back a 200 OK as we proxied it */
+		logline(log_DEBUG_, "API push done (no content)");
+
 		/* This request is done (after flushing) */
 		httpsrv_done(pr->hcl);
 
 		/* Release it */
 		free(pr);
+
+		/* HTTP okay */
+		djb_httpanswer(hcl, 200, "OK", "text/html");
+
+		/* A message as a body (Content-Length is arranged by conn) */
+		conn_printf(&hcl->conn, "Push Forward successful\r\n");
+
+		/* Done with this */
+		httpsrv_done(hcl);
+
 		return (false);
 	}
 
