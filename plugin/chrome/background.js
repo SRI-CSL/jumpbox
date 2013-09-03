@@ -92,7 +92,7 @@ JumpBox = {
             circuit_count = cc;
         }
 
-        console.log("circuit_count: " + circuit_count); 
+        Debug.log("circuit_count: " + JumpBox.circuit_count); 
 
         JumpBox.jb_host = JumpBox.jb_server + ':' + JumpBox.jb_port;
         JumpBox.jb_pull_url = JumpBox.jb_host + JumpBox.jb_pull_path;
