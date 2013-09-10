@@ -373,7 +373,9 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* Add all the headers we received */
 	/* XXX: We should scrub DJB-SeqNo */
+	buf_lock(&hcl->the_headers);
 	conn_addheaders(&pr->hcl->conn, buf_buffer(&hcl->the_headers));
+	buf_unlock(&hcl->the_headers);
 
 	if (hcl->headers.content_length == 0) {
 		/* Send back a 200 OK as we proxied it */
