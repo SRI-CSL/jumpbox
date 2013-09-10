@@ -144,7 +144,7 @@ acs_initial(httpsrv_client_t *hcl) {
 	 */
 	hcl->method = HTTP_M_GET;
 	memzero(hcl->the_request, sizeof hcl->the_request);
-	buf_empty(&hcl->the_headers);
+	buf_emptyL(&hcl->the_headers);
 	memzero(&hcl->headers, sizeof hcl->headers);
 	strcpy(hcl->headers.hostname, initial);
 	strcpy(hcl->headers.uri, "/");

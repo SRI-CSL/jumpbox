@@ -223,8 +223,11 @@ DJB_OBJS	+=	djb.o					\
 			$(OBJFUTIL)list.o			\
 			$(OBJFUTIL)misc.o			\
 			$(OBJFUTIL)rwl.o			\
-			$(OBJFUTIL)stack.o			\
 			$(OBJFUTIL)thread.o
+
+ifeq ($(shell echo $(CFLAGS) | grep -c "DEBUG_STACKDUMPS"),1)
+DJB_OBJS	+=	$(OBJFUTIL)stack.o
+endif
 
 # Rendezvous support?
 ifeq ($(shell echo $(CFLAGS) | grep -c "DJB_RENDEZVOUS"),1)
