@@ -34,13 +34,13 @@ Rendezvous = {
 
     onion: -1,
 
-    reset_url: 'http://127.0.0.1:8000/rendezvous/reset',
+    reset_url: null,
 
-    gen_request_url: 'http://127.0.0.1:8000/rendezvous/gen_request',
+    gen_request_url: null,
 
-    image_url: 'http://127.0.0.1:8000/rendezvous/image',
+    image_url: null,
 
-    peel_url: 'http://127.0.0.1:8000/rendezvous/peel',
+    peel_url: null,
 
     init: function () {
 
@@ -48,13 +48,13 @@ Rendezvous = {
 
         var server, djb;
 
-        djb = Rendezvous.bkg.JumpBox.jb_host;
-
         server = localStorage.server_name;
 
         if (server) {
             document.querySelector('#mod_freedom_uri').value = server;
         }
+
+        djb = Rendezvous.bkg.JumpBox.jb_host;
 
         if (djb) {
             Rendezvous.reset_url = djb + '/rendezvous/reset';
