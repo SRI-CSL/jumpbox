@@ -443,7 +443,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 	conn_add_contentlen(&pr->hcl->conn, true);
 
 	/* Was this a push? Then we answer that it is okay */
-	if (strcasecmp(hcl->headers.uri, "/push/") == 0) {
+	if (strncasecmp(hcl->headers.uri, "/push/", 6) == 0) {
 		/* Send back a 200 OK as we proxied it */
 		logline(log_DEBUG_, "API push, done with it");
 
@@ -725,7 +725,7 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	if (strncasecmp(hcl->headers.uri, "/pull/", 6) == 0) {
 		return djb_pull(hcl);
 
-	} else if (strcasecmp(hcl->headers.uri, "/push/") == 0) {
+	} else if (strncasecmp(hcl->headers.uri, "/push/", 6) == 0) {
 		return djb_push(hcl, dh);
 
 	} else if (strcasecmp(hcl->headers.uri, "/shutdown/") == 0) {
@@ -920,8 +920,19 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		"request " HCL_ID ", puller " HCL_ID,
 		pr->hcl->id, ar->hcl->id);
 
+	/* This has to be valid */
 	fassert(conn_is_valid(&pr->hcl->conn));
-	fassert(conn_is_valid(&ar->hcl->conn));
+
+	/* Connection might have closed by now */
+	if (!conn_is_valid(&ar->hcl->conn)) {
+		fassert(false);
+		/* This request is done */
+		httpsrv_done(ar->hcl);
+
+		/* Release it */
+		free(ar);
+		return;
+	}
 
 	/* pr's headers */
 	dh = (djb_headers_t *)pr->hcl->user;
