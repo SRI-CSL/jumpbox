@@ -315,9 +315,6 @@ djb_pull(httpsrv_client_t *hcl){
 	/* Fill in the details */
 	ar->hcl = hcl;
 
-	/* Stop reading from the socket for now */
-	httpsrv_silence(hcl);
-
 	/*
 	 * Add this request to the queue
 	 * The manager will divide the work
@@ -401,25 +398,18 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* Still need to forward the body as there is length */
 
-	/*
-	 * Put this on the proxy_body list
-	 * As we turned speaking on, this will cause
-	 * the rest of the connection to be read
-	 * and thus the body to be copied over
-	 */
+	/* Put this on the proxy_body list */
 	list_addtail_l(&lst_proxy_body, &pr->node);
 
 	/* The Content-Length header is already included in all the headers */
 	conn_add_contentlen(&pr->hcl->conn, false);
 
-	/* Forward the body from hcl to pr */
-	httpsrv_forward(hcl, pr->hcl);
-
 	logline(log_DEBUG_,
 		"Forwarding body from " HCL_ID " to " HCL_ID,
 		pr->hcl->id, hcl->id);
 
-	assert(pr->hcl->method != HTTP_M_NONE);
+	/* Forward the body from hcl to pr */
+	httpsrv_forward(hcl, pr->hcl);
 
 	/* No need to read from it further for the moment */
 	return (true);
@@ -427,9 +417,9 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 /* hcl == the client proxy request, pr->hcl = pull API request */
 void
-djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user);
+djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *user);
 void
-djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
+djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *user) {
 	djb_req_t *pr;
 
 	/* Find the request */
@@ -437,6 +427,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 
 	/* Should always be there */
 	fassert(pr);
+	fassert(pr->hcl == fhcl);
 
 	logline(log_DEBUG_,
 		"Done forwarding body from " HCL_ID " to " HCL_ID,
@@ -456,9 +447,6 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 		/* A message as a body (Content-Length is arranged by conn) */
 		conn_printf(&hcl->conn, "Push Body Forward successful\r\n");
 
-		/* The forwarded request is done */
-		httpsrv_done(hcl);
-
 		/* All done */
 		free(pr);
 	} else {
@@ -470,10 +458,10 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, void UNUSED *user) {
 
 		/* Done with this leg */
 		free(pr);
-
-		/* Served another one */
-		thread_serve();
 	}
+
+	/* Served another one */
+	thread_serve();
 
 	/* Done for this request is handled by caller: httpsrv_handle_http() */
 	logline(log_DEBUG_, "end");
@@ -809,8 +797,6 @@ bool
 djb_handle_proxy(httpsrv_client_t *hcl) {
 	static const char	*hostname = NULL;
 	static bool		got_hostname = false;
-	/* For now, silence a bit */
-	httpsrv_silence(hcl);
 
 	/* Only fetch this once, ever */
 	if (got_hostname == false) {
@@ -946,10 +932,6 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 				dh->cookie);
 	}
 
-	/* Resume reading from the sockets */
-	httpsrv_speak(pr->hcl);
-	httpsrv_speak(ar->hcl);
-
 	if (pr->hcl->method != HTTP_M_POST) {
 		logline(log_DEBUG_,
 			"req " HCL_ID " with puller " HCL_ID " is non-POST",
@@ -995,22 +977,19 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 			/* Served another one */
 			thread_serve();
 		} else {
-			/* Resume reading/writing from the sockets */
-			httpsrv_speak(pr->hcl);
-
 			/* Put this on the proxy_body list */
 			list_addtail_l(&lst_proxy_body, &ar->node);
 
 			/* Put this on the proxy_out list */
 			list_addtail_l(&lst_proxy_out, &pr->node);
 
-			/* Forward the body from pr->hcl to ar->hcl */
-			httpsrv_forward(pr->hcl, ar->hcl);
-
 			logline(log_DEBUG_,
 				"Forwarding POST body from "
 				HCL_ID " to " HCL_ID,
 				pr->hcl->id, ar->hcl->id);
+
+			/* Forward the body from pr->hcl to ar->hcl */
+			httpsrv_forward(pr->hcl, ar->hcl);
 		}
 	}
 
