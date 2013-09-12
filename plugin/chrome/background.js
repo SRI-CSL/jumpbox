@@ -89,7 +89,7 @@ JumpBox = {
             try {
                 cc = parseInt(ccs, 10);
             } catch(e){ }
-            circuit_count = cc;
+            JumpBox.circuit_count = cc;
         }
 
         Debug.log("circuit_count: " + JumpBox.circuit_count); 
