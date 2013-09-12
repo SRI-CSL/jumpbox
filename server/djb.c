@@ -788,10 +788,6 @@ djb_handle_proxy_post(httpsrv_client_t *hcl) {
 	/* Fill in the details */
 	pr->hcl = hcl;
 
-	logline(log_DEBUG_,
-		HCL_ID " Request added to proxy_new",
-		hcl->id);
-
 	/*
 	 * Add this request to the queue
 	 * The manager will divide the work
@@ -799,7 +795,6 @@ djb_handle_proxy_post(httpsrv_client_t *hcl) {
 	list_addtail_l(&lst_proxy_new, &pr->node);
 
 	return;
-
 }
 
 bool
