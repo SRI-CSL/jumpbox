@@ -45,7 +45,7 @@ Circuit = {
 
 	    d = new Date();
 
-	    if (document.querySelector('#log').textContent.length > 5000) {
+	    if (document.querySelector('#log').textContent.length > 25000) {  //5000) {
 		document.querySelector('#log').textContent = "...\n";
             }
 	    document.querySelector('#log').textContent += d + " " + msg + "\n";
@@ -173,6 +173,11 @@ Translator = {
         djb_seqno = response.getResponseHeader('DJB-SeqNo');
         djb_contents = null;
 
+
+        Circuit.log('djb_uri: ' + djb_uri);
+        Circuit.log('djb_seqno: ' + djb_seqno);
+        Circuit.log('Content-length: ' + response.getResponseHeader('Content-length'));
+
         if ((djb_method !== 'GET') && (djb_method !== 'POST')) {
             throw 'Bad value of DJB-Method: ' + djb_method;
         }
@@ -235,6 +240,9 @@ Translator = {
 	   httpcode = response.status;
 	   httptext = response.statusText;
 	}
+
+        Circuit.log('djb_seqno: ' + response.djb_seqno);
+        Circuit.log('Content-length: ' + response.getResponseHeader('Content-length'));
 
         /* Pass on the SeqNo + HTTPCode (http status of the response) */
         request.setRequestHeader('DJB-SeqNo', response.djb_seqno);
