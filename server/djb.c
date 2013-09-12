@@ -297,10 +297,10 @@ djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh) {
 	return (pr);
 }
 
-bool
-djb_pull(httpsrv_client_t *hcl);
-bool
-djb_pull(httpsrv_client_t *hcl){
+void
+djb_pull_post(httpsrv_client_t *hcl);
+void
+djb_pull_post(httpsrv_client_t *hcl) {
 	djb_req_t		*ar;
 
 	logline(log_DEBUG_, HCL_ID, hcl->id);
@@ -309,26 +309,32 @@ djb_pull(httpsrv_client_t *hcl){
 	ar = mcalloc(sizeof *ar, "djb_req_t *");
 	if (!ar) {
 		djb_error(hcl, 500, "Out of memory");
-		return (true);
+
+		/* XXX: All is lost here, maybe cleanup hcl? */
+		return;
 	}
 
 	/* Fill in the details */
 	ar->hcl = hcl;
 
+	list_addtail_l(&lst_api_pull, &ar->node);
+}
+
+bool
+djb_pull(httpsrv_client_t *hcl);
+bool
+djb_pull(httpsrv_client_t *hcl){
+	logline(log_DEBUG_, HCL_ID, hcl->id);
+
 	/*
-	 * Add this request to the queue
+	 * Add this request to the queue when the request is handled
 	 * The manager will divide the work
 	 */
-	list_addtail_l(&lst_api_pull, &ar->node);
-
-	logline(log_DEBUG_,
-		HCL_ID " Request added to api_pull",
-		hcl->id);
+	httpsrv_set_posthandle(hcl, djb_pull_post);
 
 	/* No need to read from it further for the moment */
 	return (true);
 }
-
 
 /* Push request, answer to a pull request */
 bool
@@ -762,19 +768,29 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	return (false);
 }
 
-bool
-djb_proxy_add(httpsrv_client_t *hcl) {
-	djb_req_t		*pr;
+void
+djb_handle_proxy_post(httpsrv_client_t *hcl);
+void
+djb_handle_proxy_post(httpsrv_client_t *hcl) {
+	djb_req_t *pr;
+
+	logline(log_DEBUG_, HCL_ID, hcl->id);
 
 	/* Proxy request - add it to the requester list */
 	pr = mcalloc(sizeof *pr, "djb_req_t *");
 	if (!pr) {
 		djb_error(hcl, 500, "Out of memory");
-		return (false);
+
+		/* XXX: All is lost here, maybe cleanup hcl? */
+		return;
 	}
 
 	/* Fill in the details */
 	pr->hcl = hcl;
+
+	logline(log_DEBUG_,
+		HCL_ID " Request added to proxy_new",
+		hcl->id);
 
 	/*
 	 * Add this request to the queue
@@ -782,13 +798,19 @@ djb_proxy_add(httpsrv_client_t *hcl) {
 	 */
 	list_addtail_l(&lst_proxy_new, &pr->node);
 
-	logline(log_DEBUG_,
-		HCL_ID " Request added to proxy_new",
-		hcl->id);
+	return;
 
-	/* No need to read more for now */
+}
+
+bool
+djb_proxy_add(httpsrv_client_t *hcl) {
+	/*
+	 * Add this request to the queue when the request is handled
+	 * The manager will divide the work
+	 */
+	httpsrv_set_posthandle(hcl, djb_handle_proxy_post);
+
 	return (true);
-
 }
 
 bool
@@ -825,6 +847,7 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 			hcl->headers.hostname);
 	}
 
+	/* Add it to the proxy queue */
 	return (djb_proxy_add(hcl));
 }
 
