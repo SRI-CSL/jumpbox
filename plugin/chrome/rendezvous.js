@@ -21,6 +21,9 @@ var Rendezvous, UI;
 
 
 Rendezvous = {
+
+    bkg: null,
+
     /* the wholey grey L */
     net: false,
 
@@ -40,18 +43,26 @@ Rendezvous = {
     peel_url: 'http://127.0.0.1:8000/rendezvous/peel',
 
     init: function () {
-        var server, port;
+
+        Rendezvous.bkg = chrome.extension.getBackgroundPage();
+
+        var server, djb;
+
+        djb = Rendezvous.bkg.JumpBox.jb_host;
+
         server = localStorage.server_name;
-        port = localStorage.jumpbox_port;
+
         if (server) {
             document.querySelector('#mod_freedom_uri').value = server;
         }
-        if (port) {
-            Rendezvous.reset_url = 'http://127.0.0.1:' + port + '/rendezvous/reset';
-            Rendezvous.gen_request_url = 'http://127.0.0.1:' + port + '/rendezvous/gen_request';
-            Rendezvous.image_url = 'http://127.0.0.1:' + port + '/rendezvous/image';
-            Rendezvous.peel_url = 'http://127.0.0.1:' + port + '/rendezvous/peel';
+
+        if (djb) {
+            Rendezvous.reset_url = djb + '/rendezvous/reset';
+            Rendezvous.gen_request_url = djb + '/rendezvous/gen_request';
+            Rendezvous.image_url = djb + '/rendezvous/image';
+            Rendezvous.peel_url = djb + '/rendezvous/peel';
         }
+
         document.querySelector('#mod_freedom').addEventListener('click', Rendezvous.send_url);
         Rendezvous.reset();
         UI.init();
