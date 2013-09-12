@@ -2,6 +2,11 @@
 
 /* See background.js for a summary of how this works */
 
+/* XXX: We both have a Circuit.id and a circuit_id as a parm, likely the
+ *      latter is not needed if the Circuit instance is per-tab
+ *	(which looks to be the case otherwise the cnt_* vars would not work)
+ */
+
 var Circuit, Circuitous, Translator;
 
 Circuit = {
@@ -92,10 +97,15 @@ Circuit = {
 
 Circuitous = {
     jb_pull : function (circuit_id) {
+	var d;
+        var jb_pull_request;
+
         Circuit.log('jb_pull(' + circuit_id + ')');
-        var jb_pull_request = new XMLHttpRequest();
+
+	d = new Date();
+	jb_pull_request = new XMLHttpRequest();
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request, circuit_id); };
-        jb_pull_request.open('GET', Circuit.jb_pull_url + circuit_id + '/');
+        jb_pull_request.open('GET', Circuit.jb_pull_url + circuit_id + '/' + Circuit.cnt_requests + '/' + d.getTime());
         jb_pull_request.send(null);
     },
 
@@ -131,7 +141,7 @@ Circuitous = {
 
             // use the server's response in the request to build the jb_push_request, forwarding the error code too
             jb_push_request.onreadystatechange = function () { Circuitous.handle_jb_push_response(jb_push_request, circuit_id); };
-            jb_push_contents = Translator.ss_response2request(request, jb_push_request);
+            jb_push_contents = Translator.ss_response2request(request, jb_push_request, circuit_id);
             jb_push_request.seqno = request.seqno;
             jb_push_request.send(jb_push_contents);
         }
@@ -216,14 +226,16 @@ Translator = {
      * prepares the request from the ss response to XHR 2.; 
      * returns the content (i.e. the argument to send)  
      */
-    ss_response2request : function (response, request) {
-        var djb_set_cookie, djb_content_type, httpcode, httptext;
+    ss_response2request : function (response, request, circuit_id) {
+        var djb_set_cookie, djb_content_type, httpcode, httptext, d;
+
+	d = new Date();
 
         /*
          * The response should be converted into a POST
          * no DJB headers will be in the response
          */
-        request.open('POST', Circuit.jb_push_url);
+        request.open('POST', Circuit.jb_push_url + circuit_id + '/' + Circuit.cnt_requests + '/' + d.getTime());
 
 	/* When it failed, report 555 back to jumpbox
 	 * this allows the client to do a new request
