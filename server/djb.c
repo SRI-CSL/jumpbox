@@ -302,8 +302,9 @@ djb_pull_post(httpsrv_client_t *hcl);
 void
 djb_pull_post(httpsrv_client_t *hcl) {
 	djb_req_t		*ar;
+	uint64_t		id = hcl->id;
 
-	logline(log_DEBUG_, HCL_ID, hcl->id);
+	logline(log_DEBUG_, HCL_ID, id);
 
 	/* Proxy request - add it to the requester list */
 	ar = mcalloc(sizeof *ar, "djb_req_t *");
@@ -318,18 +319,21 @@ djb_pull_post(httpsrv_client_t *hcl) {
 	ar->hcl = hcl;
 
 	list_addtail_l(&lst_api_pull, &ar->node);
+
+	logline(log_DEBUG_, HCL_ID " done", id);
 }
 
 bool
 djb_pull(httpsrv_client_t *hcl);
 bool
 djb_pull(httpsrv_client_t *hcl){
-	logline(log_DEBUG_, HCL_ID, hcl->id);
+	logline(log_DEBUG_, HCL_ID " keephandling=yes", hcl->id);
 
 	/*
 	 * Add this request to the queue when the request is handled
 	 * The manager will divide the work
 	 */
+	hcl->keephandling = true;
 	httpsrv_set_posthandle(hcl, djb_pull_post);
 
 	/* No need to read from it further for the moment */
@@ -355,6 +359,10 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		httpsrv_done(hcl);
 		return (true);
 	}
+
+	logline(log_DEBUG_,
+		HCL_ID " -> " HCL_ID,
+		hcl->id, pr->hcl->id);
 
 	/* Connections might close before the answer is returned */
 	if (!conn_is_valid(&pr->hcl->conn)) {
@@ -436,8 +444,11 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 	fassert(pr->hcl == fhcl);
 
 	logline(log_DEBUG_,
-		"Done forwarding body from " HCL_ID " to " HCL_ID,
-		hcl->id, pr->hcl->id);
+		"Done forwarding body from "
+		HCL_ID " (keephandling=%s) to "
+		HCL_ID " (keephandling=%s)",
+		hcl->id, yesno(hcl->keephandling),
+		pr->hcl->id, yesno(pr->hcl->keephandling));
 
 	/* Send a content-length again if there is one */
 	conn_add_contentlen(&pr->hcl->conn, true);
@@ -458,9 +469,6 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 	} else {
 		/* This was a proxy-POST, thus add it back to process queue */
 		logline(log_DEBUG_, "proxy-POST, adding back to queue");
-
-		/* The forwarded request is done */
-		httpsrv_done(pr->hcl);
 
 		/* Done with this leg */
 		free(pr);
@@ -772,9 +780,10 @@ void
 djb_handle_proxy_post(httpsrv_client_t *hcl);
 void
 djb_handle_proxy_post(httpsrv_client_t *hcl) {
-	djb_req_t *pr;
+	djb_req_t	*pr;
+	uint64_t	id = hcl->id;
 
-	logline(log_DEBUG_, HCL_ID, hcl->id);
+	logline(log_DEBUG_, HCL_ID, id);
 
 	/* Proxy request - add it to the requester list */
 	pr = mcalloc(sizeof *pr, "djb_req_t *");
@@ -794,15 +803,20 @@ djb_handle_proxy_post(httpsrv_client_t *hcl) {
 	 */
 	list_addtail_l(&lst_proxy_new, &pr->node);
 
+	logline(log_DEBUG_, HCL_ID " done", id);
+
 	return;
 }
 
 bool
 djb_proxy_add(httpsrv_client_t *hcl) {
+	logline(log_DEBUG_, HCL_ID " keephandling=yes", hcl->id);
+
 	/*
 	 * Add this request to the queue when the request is handled
 	 * The manager will divide the work
 	 */
+	hcl->keephandling = true;
 	httpsrv_set_posthandle(hcl, djb_handle_proxy_post);
 
 	return (true);
@@ -979,6 +993,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		free(ar);
 
 		/* Put this on the proxy_out list now it is being handled */
+		connset_handling_setup(&pr->hcl->conn);
 		list_addtail_l(&lst_proxy_out, &pr->node);
 
 		/* Served another one */
@@ -1014,8 +1029,9 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 
 			logline(log_DEBUG_,
 				"Forwarding POST body from "
-				HCL_ID " to " HCL_ID,
-				pr->hcl->id, ar->hcl->id);
+				HCL_ID " (keephandling=%s) to " HCL_ID " (keephandling=%s)",
+				pr->hcl->id, yesno(pr->hcl->keephandling),
+				ar->hcl->id, yesno(ar->hcl->keephandling));
 
 			/* Forward the body from pr->hcl to ar->hcl */
 			httpsrv_forward(pr->hcl, ar->hcl);
