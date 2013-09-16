@@ -15,9 +15,6 @@ hlist_t lst_proxy_new;
 /* Outstanding queries (answer to a 'pull', awaiting 'push') */
 hlist_t lst_proxy_out;
 
-/* Requiring transfering of body ('push') */
-hlist_t lst_proxy_body;
-
 /* Requests that want a 'pull', waiting for a 'proxy_new' entry */
 hlist_t lst_api_pull;
 
@@ -155,6 +152,12 @@ djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user) {
 void
 djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const char *ctype) {
 	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", code, msg);
+
+	if (code != 200) {
+		logline(log_ERR_,
+			HCL_ID " " CONN_ID " HTTP Error %u %s",
+			hcl->id, conn_id(&hcl->conn), code, msg);
+	}
 
 	if (ctype != NULL) {
 		conn_addheaderf(&hcl->conn, "Content-Type: %s", ctype);
@@ -412,9 +415,6 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* Still need to forward the body as there is length */
 
-	/* Put this on the proxy_body list */
-	list_addtail_l(&lst_proxy_body, &pr->node);
-
 	/* The Content-Length header is already included in all the headers */
 	conn_add_contentlen(&pr->hcl->conn, false);
 
@@ -425,6 +425,9 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/* Forward the body from hcl to pr */
 	httpsrv_forward(hcl, pr->hcl);
 
+	/* Free it up, not tracked anymore */
+	free(pr);
+
 	/* No need to read from it further for the moment */
 	return (true);
 }
@@ -434,24 +437,16 @@ void
 djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *user);
 void
 djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *user) {
-	djb_req_t *pr;
-
-	/* Find the request */
-	pr = djb_find_hcl(&lst_proxy_body, hcl->bodyfwd);
-
-	/* Should always be there */
-	fassert(pr);
-	fassert(pr->hcl == fhcl);
 
 	logline(log_DEBUG_,
 		"Done forwarding body from "
 		HCL_ID " (keephandling=%s) to "
 		HCL_ID " (keephandling=%s)",
 		hcl->id, yesno(hcl->keephandling),
-		pr->hcl->id, yesno(pr->hcl->keephandling));
+		fhcl->id, yesno(fhcl->keephandling));
 
 	/* Send a content-length again if there is one */
-	conn_add_contentlen(&pr->hcl->conn, true);
+	conn_add_contentlen(&fhcl->conn, true);
 
 	/* Was this a push? Then we answer that it is okay */
 	if (strncasecmp(hcl->headers.uri, "/push/", 6) == 0) {
@@ -463,15 +458,9 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 
 		/* A message as a body (Content-Length is arranged by conn) */
 		conn_printf(&hcl->conn, "Push Body Forward successful\r\n");
-
-		/* All done */
-		free(pr);
 	} else {
 		/* This was a proxy-POST, thus add it back to process queue */
 		logline(log_DEBUG_, "proxy-POST, adding back to queue");
-
-		/* Done with this leg */
-		free(pr);
 	}
 
 	/* Served another one */
@@ -701,10 +690,6 @@ djb_status(httpsrv_client_t *hcl) {
 			"Proxy Out",
 			"Outstanding queries "
 			"(answer to pull, waiting for a push)");
-
-	djb_status_list(hcl, &lst_proxy_body,
-			"Proxy Body",
-			"Requiring transfering of body (push)");
 
 	djb_status_list(hcl, &lst_api_pull,
 			"API Pull",
@@ -942,9 +927,6 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		fassert(false);
 		/* This request is done */
 		httpsrv_done(ar->hcl);
-
-		/* Release it */
-		free(ar);
 		return;
 	}
 
@@ -989,15 +971,9 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		/* This request is done */
 		httpsrv_done(ar->hcl);
 
-		/* Release it */
-		free(ar);
-
 		/* Put this on the proxy_out list now it is being handled */
 		connset_handling_setup(&pr->hcl->conn);
 		list_addtail_l(&lst_proxy_out, &pr->node);
-
-		/* Served another one */
-		thread_serve();
 	} else {
 		/* POST request */
 		logline(log_DEBUG_,
@@ -1014,16 +990,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		if (pr->hcl->headers.content_length == 0) {
 			/* This request is done (after flushing) */
 			httpsrv_done(ar->hcl);
-
-			/* Release it */
-			free(ar);
-
-			/* Served another one */
-			thread_serve();
 		} else {
-			/* Put this on the proxy_body list */
-			list_addtail_l(&lst_proxy_body, &ar->node);
-
 			/* Put this on the proxy_out list */
 			list_addtail_l(&lst_proxy_out, &pr->node);
 
@@ -1089,6 +1056,12 @@ djb_worker_thread(void UNUSED *arg) {
 				  pr->hcl->id, ar->hcl->id);
 
 		djb_handle_forward(pr, ar);
+
+		/* Release it */
+		free(ar);
+
+		/* Served another one */
+		thread_serve();
 
 		logline(log_DEBUG_, "end");
 	}
@@ -1191,7 +1164,6 @@ main(int argc, const char *argv[]) {
 
 	list_init(&lst_proxy_new);
 	list_init(&lst_proxy_out);
-	list_init(&lst_proxy_body);
 	list_init(&lst_api_pull);
 
 	if (argc < 2) {

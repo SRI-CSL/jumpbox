@@ -80,9 +80,9 @@ CFLAGS	+=	-pedantic
 CFLAGS  +=	-D_GNU_SOURCE
 
 # Location of libfutil
-LIBFUTIL:=../../libfutil
-OBJFUTIL:=$(LIBFUTIL)/src/
-CFLAGS	+= -I$(LIBFUTIL)/include/
+LIBFUTIL:=../../libfutil/
+OBJFUTIL:=$(LIBFUTIL)src/
+CFLAGS	+= -I$(LIBFUTIL)include/
 
 ifeq ($(shell echo $(CFLAGS) | grep -c "DJB_RENDEZVOUS"),1)
 # Rendezvous: Location of defiantclient + dependencies
@@ -318,7 +318,8 @@ endif
 
 runtests:
 ifeq ($(HOSTCC),$(CC))
-	@echo "* No tests available"
+	@echo "* (No automated jumpbox tests are present)"
+	@$(MAKE) --no-print-directory -C $(LIBFUTIL) tests
 else
 	@echo "* Can't run tests as we did not compile natively"
 endif
