@@ -26,9 +26,12 @@ endif
 
 # Try to determine cpu model based on compiler or uname
 ifeq ($(OS_PROC),)
+$(warning ONE: $(OS_PROC))
+ifeq ($(OS_PROC),)
 OS_PROC=$(shell $(CC) -v 2>&1 |grep Target | cut -f2 -d' ' | cut -f1 -d-)
 ifeq ($(OS_PROC),)
 OS_PROC=$(shell uname -m)
+endif
 endif
 else
 CFLAGS+=-march=$(OS_PROC)
