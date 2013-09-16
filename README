@@ -4,6 +4,13 @@ Welcome to JumpBox
 
 == Installation Notes ==
 
+=== libfutil / rendezvous ==
+
+This code requires libfutil and optionally (but default on) also rendezvous.
+
+These code libraries have to be placed in ../libfutil and ../rendezvous respectively.
+(thus a 'for i in jumpbox rendezvous libfutil; do git clone https://git.safdef.org/git/$i; done' does the trick)
+
 === Mac OSX ===
 
 For Rendezvous one needs the "pbc" library from Stanford's Crypto department:
@@ -11,7 +18,6 @@ For Rendezvous one needs the "pbc" library from Stanford's Crypto department:
 
 Fortunately, this is available in Homebrew:
  brew install pbc
-
 
 == Environment Variables ==
 
