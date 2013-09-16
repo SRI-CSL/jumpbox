@@ -24,10 +24,18 @@ endif
 endif
 endif
 
+# Try to determine cpu model based on compiler or uname
+ifeq ($(OS_PROC),)
+OS_PROC=$(shell $(CC) -v 2>&1 |grep Target | cut -f2 -d' ' | cut -f1 -d-)
 ifeq ($(OS_PROC),)
 OS_PROC=$(shell uname -m)
+endif
 else
 CFLAGS+=-march=$(OS_PROC)
+endif
+
+ifeq ($(OS_PROC),)
+$(error "Could not determine processor model of this machine")
 endif
 
 ifeq ($(OS_BITS),)
@@ -256,7 +264,7 @@ endif
 	@echo "Version   : $(PROJECT_VERSION)"
 	@echo "Build Time: $(PROJECT_BUILDTIME)"
 	@echo "Git Hash  : $(BUILD_GIT)"
-	@echo "Target OS : $(OS_NAME) $(OS_BITS)-bits"
+	@echo "Target OS : $(OS_NAME) $(OS_BITS)-bits ($(OS_PROC))"
 	@echo "Compiler  : $(CC) ($(CC_TYPE) $(CC_VERSION))"
 #	@echo "CFLAGS    : $(CFLAGS)"
 
