@@ -145,6 +145,9 @@ CC_TYPE=gcc
 
 ifeq ($(CC_VERSION),)
 ifeq ($(OS_NAME),Darwin)
+# OSX 10.6 Snow Leopard
+# gcc version 4.2.1 (Apple Inc. build 5666) (dot 3)
+#
 # OSX 10.7 Lion (Xcode 3.1)
 # Apple clang version 3.1 (tags/Apple/clang-318.0.58) (based on LLVM 3.1svn)
 #
@@ -178,20 +181,6 @@ LDLAGS+=-m64
 else
 $(error Unknown number of bits: $(OS_BITS))
 endif
-endif
-
-
-
-# Force architecture for gcc on OS X Snow Leopard 
-ifeq ($(OS_NAME)-$(CC_TYPE),Darwin-gcc)
-#RENDEZVOUS: ian has to comment this out to compile on his laptop:
-#ifeq ($(OS_BITS),32)
-#CFLAGS+=-arch i386
-#LDFLAGS+=-arch i386
-#else
-CFLAGS+=-arch x86_64
-LDFLAGS+=-arch x86_64
-#endif
 endif
 
 BUILD_GIT:=$(shell git log --pretty=format:'%H' -n 1)
