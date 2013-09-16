@@ -103,8 +103,9 @@ JumpBox = {
 
         try {
             /* Jeroen, something fishy happens djb side:
-               JumpBox.preferences_push();
             */
+            JumpBox.preferences_push();
+
         }catch (e){
             console.log(e);
         }

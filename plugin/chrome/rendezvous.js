@@ -42,6 +42,8 @@ Rendezvous = {
 
     peel_url: null,
 
+    acs_url: null,
+
     init: function () {
 
         Rendezvous.bkg = chrome.extension.getBackgroundPage();
@@ -61,6 +63,7 @@ Rendezvous = {
             Rendezvous.gen_request_url = djb + '/rendezvous/gen_request';
             Rendezvous.image_url = djb + '/rendezvous/image';
             Rendezvous.peel_url = djb + '/rendezvous/peel';
+            Rendezvous.acs_url = djb + '/acs/initial/';
         }
 
         document.querySelector('#mod_freedom').addEventListener('click', Rendezvous.send_url);
@@ -70,10 +73,28 @@ Rendezvous = {
 
     dance: function () {
         if (typeof Rendezvous.net === 'string'){
-            console.log("Here is your net: " + Rendezvous.net)
+            console.log("Sending your net: " + Rendezvous.net)
+            var acs_request = new XMLHttpRequest();
+            acs_request.onreadystatechange = function () { Rendezvous.dance_response(acs_request); };
+            acs_request.open('POST', Rendezvous.acs_url);
+            ////the webRequest API should ignore
+            //acs_request.setRequestHeader('DJB_REQUEST', 'true');
+            acs_request.send(Rendezvous.net);
+        } else {
+            console.log("Net is not a string: " + Rendezvous.net)
         }
     },
 
+    dance_response:  function (request) {
+        if (request.readyState === 4) {
+            if (request.status === 200) {
+                Rendezvous.set_status('dance: net sent OK');
+            } else {
+                //not sure why this would happen unless the jumpbox crashed
+                Rendezvous.set_status('dance: net sent **NOT** OK');
+            }
+        }
+    },    
 
     reset:  function () {
         var reset_request = new XMLHttpRequest();

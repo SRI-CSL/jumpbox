@@ -68,21 +68,21 @@ acs_initial(httpsrv_client_t *hcl) {
 	json_t		*initial_j, *root;
 	const char	*initial;
 
-	logline(log_DEBUG_, "..");
+	logline(log_INFO_, "..");
 
 	/* POST? Then read in the NET from the HTTP request */
 	if (hcl->method == HTTP_M_POST) {
-		logline(log_DEBUG_, "POST, checking for body");
+		logline(log_INFO_, "POST, checking for body");
 
 		/* No BODY yet, then we have to start reading */
 		if (hcl->readbody == NULL) {
-			logline(log_DEBUG_, "POST allocating memory for body");
+			logline(log_INFO_, "POST allocating memory for body");
 
 			if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
 				acs_result_e(hcl, "Out of Memory");
 				return (true);
 			} else {
-				logline(log_DEBUG_, "POST let it be read");
+				logline(log_INFO_, "POST let it be read");
 				/* Let httpsrv read it in */
 			}
 
@@ -90,13 +90,13 @@ acs_initial(httpsrv_client_t *hcl) {
 			return (false);
 		}
 
-		logline(log_DEBUG_, "Got a POST body, set the NET");
+		logline(log_INFO_, "Got a POST body, set the NET");
 
 		/* We should have a body, try to convert it into JSON */
 		root = json_loads(hcl->readbody, 0, &jerr);
 		if (root == NULL) {
 			/* Failure */
-			logline(log_DEBUG_,
+			logline(log_INFO_,
 				"Could not parse NET (JSON load failed): "
 				"line %u, column %u: %s",
 				jerr.line, jerr.column, jerr.text);
@@ -136,7 +136,7 @@ acs_initial(httpsrv_client_t *hcl) {
 
 	initial = json_string_value(initial_j);
 
-	logline(log_DEBUG_, "Initial Gateway: %s", initial);
+	logline(log_INFO_, "Initial Gateway: %s", initial);
 
 	/*
 	 * We ask the plugin to contact the Initial gateway
