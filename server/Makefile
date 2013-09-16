@@ -247,6 +247,7 @@ OBJS	:= $(shell echo $(DJB_OBJS) | tr ' ' '\n' | sort | uniq | tr '\n' ' ')
 
 export CFLAGS
 export LDFLAGS
+export LDLIBS
 
 ifeq ($(OS_NAME),Windows)
 $(CC):
