@@ -184,9 +184,9 @@ Translator = {
         djb_contents = null;
 
 
-        Circuit.log('djb_uri: ' + djb_uri);
-        Circuit.log('djb_seqno: ' + djb_seqno);
-        Circuit.log('Content-length: ' + response.getResponseHeader('Content-length'));
+        Circuit.log('DJB-URI: ' + djb_uri);
+        Circuit.log('DJB_SeqNo: ' + djb_seqno);
+        Circuit.log('Content-Length: ' + response.getResponseHeader('Content-Length'));
 
         if ((djb_method !== 'GET') && (djb_method !== 'POST')) {
             throw 'Bad value of DJB-Method: ' + djb_method;
@@ -253,8 +253,8 @@ Translator = {
 	   httptext = response.statusText;
 	}
 
-        Circuit.log('djb_seqno: ' + response.djb_seqno);
-        Circuit.log('Content-length: ' + response.getResponseHeader('Content-length'));
+        Circuit.log('DJB_SeqNo: ' + response.djb_seqno);
+        Circuit.log('Content-Length: ' + response.getResponseHeader('Content-Length'));
 
         /* Pass on the SeqNo + HTTPCode (http status of the response) */
         request.setRequestHeader('DJB-SeqNo', response.djb_seqno);
