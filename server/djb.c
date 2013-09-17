@@ -45,6 +45,9 @@ void
 djb_html_css(httpsrv_client_t *hcl);
 void
 djb_html_css(httpsrv_client_t *hcl) {
+	/* Can Cache This */
+	httpsrv_expire(hcl, HTTPSRV_EXPIRE_LONG);
+
 	/* HTML header */
 	conn_put(&hcl->conn,
 		"/* JumpBox CSS */\n"
@@ -172,6 +175,7 @@ djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const 
 void
 djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
 	djb_httpanswer(hcl, code, msg, "text/html");
+	httpsrv_expire(hcl, HTTPSRV_EXPIRE_NONE);
 
 	djb_html_top(hcl, NULL);
 	conn_printf(&hcl->conn,
@@ -188,6 +192,7 @@ djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
 void
 djb_result(httpsrv_client_t *hcl, const char *msg) {
 	djb_httpanswer(hcl, 200, "OK", "application/json");
+	httpsrv_expire(hcl, HTTPSRV_EXPIRE_NONE);
 
 	conn_put(&hcl->conn, msg);
 
