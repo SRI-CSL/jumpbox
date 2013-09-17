@@ -968,12 +968,15 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		/* Empty-ish body (Content-Length is arranged by conn) */
 		conn_printf(&ar->hcl->conn, "Non-POST JumpBox response\r\n");
 
+		/* Put this on the proxy_out list */
+		list_addtail_l(&lst_proxy_out, &pr->node);
+
 		/* This request is done */
 		httpsrv_done(ar->hcl);
 
-		/* Put this on the proxy_out list now it is being handled */
-		connset_handling_setup(&pr->hcl->conn);
-		list_addtail_l(&lst_proxy_out, &pr->node);
+		/* Done handling this connection */
+		connset_handling_done(&ar->hcl->conn, false);
+
 	} else {
 		/* POST request */
 		logline(log_DEBUG_,
@@ -988,8 +991,14 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 
 		/* Is there no body, then nothing further to do */
 		if (pr->hcl->headers.content_length == 0) {
+			/* Put this on the proxy_out list */
+			list_addtail_l(&lst_proxy_out, &pr->node);
+
 			/* This request is done (after flushing) */
 			httpsrv_done(ar->hcl);
+
+			/* Done handling this connection */
+			connset_handling_done(&ar->hcl->conn, false);
 		} else {
 			/* Put this on the proxy_out list */
 			list_addtail_l(&lst_proxy_out, &pr->node);
