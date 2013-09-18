@@ -16,6 +16,7 @@ DAEMON_SHORT=djb
 DAEMON_BIN=/usr/sbin/djb
 DAEMON_OPTS="daemonize /var/log/djb.log"
 DAEMON_USER=djb
+DEFAULTSFILE=/etc/default/${DAEMON_SHORT}
 
 # Just exit when the binary does not exist
 test -x ${DAEMON_BIN} || exit 0
@@ -24,8 +25,18 @@ test -x ${DAEMON_BIN} || exit 0
 
 export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 
+# Include defaults if available
+if [ -f ${DEFAULTSFILE} ] ; then
+        . ${DEFAULTSFILE}
+fi
+
 case "$1" in
   start)
+	if [ "${RUN_DAEMON}" != "yes" ]; then
+	    echo "Not starting ${DESC} (Disabled in ${DEFAULTSFILE})."
+	    exit 0
+	fi
+
 	log_daemon_msg "Starting ${DAEMON_NAME}" ${DAEMON_SHORT}
 	if start-stop-daemon --start --quiet --oknodo --pidfile /var/run/${DAEMON_SHORT}.pid -c ${DAEMON_USER} --exec ${DAEMON_BIN} ${DAEMON_OPTS}; then
 	    log_end_msg 0

@@ -1,0 +1,20 @@
+# Defaults for Defiance JumpBox (djb) initscript
+# sourced by /etc/init.d/djb
+#
+# This is a bash shell fragment
+#
+
+# Start the daemon
+RUN_DAEMON="yes"
+
+# Configure the logging level
+#
+# export SAFDEF_LOG_LEVEL=debug
+# export SAFDEF_LOG_LEVEL=notice
+
+# Force the hostname of DJB for proxying
+# to a certain host/port
+# This setting is typically set by ACS/Rendezvous
+#
+# export DJB_FORCED_HOSTNAME=
+
