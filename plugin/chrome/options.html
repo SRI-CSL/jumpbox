@@ -15,25 +15,25 @@
 		<th colspan="2">JumpBox preferences:</th>
 	</tr>
 	<tr>
-		<th>JumpBox port:</th>
+		<th>port:</th>
 		<td><input type="text" size="50" name="jumpbox_port" id="jumpbox_port"></td>
 	</tr>
 	<tr>
 		<th colspan="2">Rendezvous preferences:</th>
 	</tr>
 	<tr>
-		<th>Rendezvous mod_freedom server:</th>
+		<th>mod_freedom server:</th>
 		<td><input type="text" size="50" name="server_name" id="server_name"></td>
 	</tr>
 	<tr>
 		<th colspan="2">Chrome plugin preferences:</th>
 	</tr>
 	<tr>
-		<th>Plugin debug mode:</th>
+		<th>debug mode:</th>
 		<td><input id="debug_mode" type="checkbox"></td>
 	</tr>
 	<tr>
-		<th>Plugin circuit count:</th>
+		<th>circuit count:</th>
 		<td>
 			<select id="plugin_circuit_count">
 				<option value="1">1</option>
@@ -42,6 +42,39 @@
 				<option value="4">4</option>
 			</select>
 		</td>
+	</tr>
+	<tr>
+		<th colspan="2">Stegotorus preferences:</th>
+	</tr>
+	<tr>
+		<th>logging level:</th>
+		<td>
+		  <select id="stegotorus_log_level">
+		    <option value="error">error</option>
+		    <option value="warn">warn</option>
+		    <option value="debug">debug</option>
+		  </select>
+		</td>
+	</tr>
+	<tr>
+		<th>circuit count:</th>
+		<td>
+		  <select id="stegotorus_circuit_count">
+		    <option value="1">1</option>
+		    <option value="2">2</option>
+		    <option value="3">3</option>
+		    <option value="4">4</option>
+		  </select>
+		</td>
+	</tr>
+	<tr>
+	  <th>steg module:</th>
+	  <td>
+	    <select id="stegotorus_steg_module">
+	      <option value="json">json</option>
+	      <option value="http">http</option>
+	    </select>
+	  </td>
 	</tr>
 	</table>
 
