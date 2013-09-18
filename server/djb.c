@@ -1137,7 +1137,7 @@ djb_run(void) {
 	}
 
 	/* Just sleep over here */
-	while (thread_keep_running()) {
+	while (ret == 0 && thread_keep_running()) {
 		thread_sleep(5000);
 	}
 
