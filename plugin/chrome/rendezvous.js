@@ -333,12 +333,14 @@ UI = {
         }
     },
 
+    progress_bar: new Progress.bar({ id: "progress5", autoRemove: false, backgroundSpeed: -5, type: "charge", showPercentage: true }),
+
+
     pow_commenced: false,
     
     pow_commence: function () {
         var pow_div = document.querySelector('#pow_progress_bar_div');
-        var pow  = document.querySelector('#pow_container');
-        pow_div.appendChild(pow);
+        UI.progress_bar.renderTo(pow_div);
         UI.peel_away();
     },
     
@@ -347,11 +349,11 @@ UI = {
         if (typeof robj.info === 'number') {
             if(!UI.pow_commenced){
                 UI.pow_commenced = true;
-                document.querySelector('#base_peeler_button').removeEventListener('click', UI.pow_commence);
+                document.querySelector('#pow_peeler_button').removeEventListener('click', UI.pow_commence);
                 document.querySelector('#pow_peeler_button').addEventListener('click', UI.peel_away);
             }
-            document.querySelector('#pow_progress_bar').setAttribute('style', "background-image:url(red.png); height:50px; width:" + robj.info + "%; ");
             if (robj.info < 100) {
+                UI.progress_bar.update(robj.info);
                 document.querySelector('#pow_peeler_button').disabled = true;
                 setTimeout(UI.peel_away, 50);
             } else {
