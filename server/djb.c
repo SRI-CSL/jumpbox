@@ -1161,7 +1161,9 @@ usage(const char *progname) {
 	fprintf(stderr, "Usage: %s [<command>]\n", progname);
 	fprintf(stderr, "\n");
 	fprintf(stderr, "run        = run the server\n");
-	fprintf(stderr, "daemonize [<pidfilename>] [<logfilename>]\n");
+	fprintf(stderr, "daemonize [<pidfilename>|''] "
+				  "[<logfilename>|''] "
+				  "[<username>]\n");
 	fprintf(stderr, "           = daemonize the server into\n");
 	fprintf(stderr, "             the background\n");
 }
@@ -1184,16 +1186,22 @@ main(int argc, const char *argv[]) {
 		usage(argv[0]);
 		ret = -1;
 	} else if (strcasecmp(argv[1], "daemonize") == 0 &&
-			(argc >= 2 || argc <= 4)) {
-		if (argc == 4) {
-			if (!log_set(argv[3]))
+			(argc >= 2 || argc <= 5)) {
+
+		/* Setup the log (before setuid) */
+		if (argc >= 4 && strlen(argv[3]) > 0) {
+			if (!log_set(argv[3])) {
 				ret = -1;
+			}
 		}
 
 		if (ret != -1) {
-			ret = thread_daemonize(argc >= 1 ? argv[2] : NULL);
-			if (ret > 0)
+			ret = thread_daemonize(
+					argc >= 1 ? argv[2] : NULL,
+					argc >= 3 ? argv[4] : NULL);
+			if (ret > 0) {
 				ret = djb_run();
+			}
 		}
 	} else if (strcasecmp(argv[1], "run") == 0 && argc == 2) {
 		ret = djb_run();
