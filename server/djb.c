@@ -1155,9 +1155,9 @@ djb_run(void) {
 }
 
 static void
-usage(const char *progname);
+djb_usage(const char *progname);
 static void
-usage(const char *progname) {
+djb_usage(const char *progname) {
 	fprintf(stderr, "Usage: %s [<command>]\n", progname);
 	fprintf(stderr, "\n");
 	fprintf(stderr, "run        = run the server\n");
@@ -1183,7 +1183,7 @@ main(int argc, const char *argv[]) {
 	list_init(&lst_api_pull);
 
 	if (argc < 2) {
-		usage(argv[0]);
+		djb_usage(argv[0]);
 		ret = -1;
 	} else if (strcasecmp(argv[1], "daemonize") == 0 &&
 			(argc >= 2 || argc <= 5)) {
@@ -1206,7 +1206,7 @@ main(int argc, const char *argv[]) {
 	} else if (strcasecmp(argv[1], "run") == 0 && argc == 2) {
 		ret = djb_run();
 	} else {
-		usage(argv[0]);
+		djb_usage(argv[0]);
 		ret = -1;
 	}
 
