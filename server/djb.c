@@ -1191,7 +1191,7 @@ main(int argc, const char *argv[]) {
 		}
 
 		if (ret != -1) {
-			ret = futil_daemonize(argc >= 1 ? argv[2] : NULL);
+			ret = thread_daemonize(argc >= 1 ? argv[2] : NULL);
 			if (ret > 0)
 				ret = djb_run();
 		}
