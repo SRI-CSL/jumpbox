@@ -15,7 +15,10 @@ DAEMON_NAME="SAFER DEFIANCE JumpBox Daemon"
 DAEMON_SHORT=djb
 DAEMON_BIN=/usr/sbin/${DAEMON_SHORT}
 DAEMON_USER=${DAEMON_SHORT}
-DAEMON_OPTS="daemonize /var/run/${DAEMON_SHORT}.pid /var/run/${DAEMON_SHORT}.log"
+DAEMON_GROUP=${DAEMON_SHORT}
+DAEMON_PIDDIR=/var/run/${DAEMON_SHORT}/
+DAEMON_PID=${DAEMON_PIDDIR}/${DAEMON_SHORT}.pid
+DAEMON_OPTS="daemonize ${DAEMON_PID} /var/run/${DAEMON_SHORT}.log ${DAEMON_USER}"
 DEFAULTSFILE=/etc/default/${DAEMON_SHORT}
 
 # Just exit when the binary does not exist
@@ -30,6 +33,18 @@ if [ -f ${DEFAULTSFILE} ] ; then
         . ${DEFAULTSFILE}
 fi
 
+check_piddir() {
+	if test ! -d ${DAEMON_PIDDIR}; then
+		mkdir -m 02750 "${DAEMON_PIDDIR}"
+		chown ${DAEMON_USER}:${DAEMON_GROUP} "${DAEMON_PIDDIR}"
+	fi
+
+	if test ! -x ${DAEMON_PIDDIR}; then
+		echo "Cannot access ${DAEMON_PIDDIR} directory, are you root?" >&2
+		exit 1
+	fi
+}
+
 case "$1" in
   start)
 	if [ "${RUN_DAEMON}" != "yes" ]; then
@@ -37,16 +52,20 @@ case "$1" in
 	    exit 0
 	fi
 
+	check_piddir
+
 	log_daemon_msg "Starting ${DAEMON_NAME}" ${DAEMON_SHORT}
-	if start-stop-daemon --start --quiet --oknodo --pidfile /var/run/${DAEMON_SHORT}.pid -c ${DAEMON_USER} --exec ${DAEMON_BIN} ${DAEMON_OPTS}; then
+	if start-stop-daemon --start --quiet --oknodo --pidfile ${DAEMON_PID} --exec ${DAEMON_BIN} -- ${DAEMON_OPTS}; then
 	    log_end_msg 0
 	else
 	    log_end_msg 1
 	fi
 	;;
   stop)
+	check_piddir
+
 	log_daemon_msg "Stopping ${DAEMON_NAME}" "${DAEMON_SHORT}"
-	if start-stop-daemon --stop --quiet --oknodo --pidfile /var/run/${DAEMON_SHORT}.pid; then
+	if start-stop-daemon --stop --quiet --oknodo --pidfile ${DAEMON_PID}; then
 	    log_end_msg 0
 	else
 	    log_end_msg 1
@@ -56,7 +75,7 @@ case "$1" in
   restart)
 	log_daemon_msg "Restarting ${DAEMON_NAME}" "${DAEMON_SHORT}"
 	start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile /var/run/${DAEMON_SHORT}.pid
-	if start-stop-daemon --start --quiet --oknodo --pidfile /var/run/${DAEMON_SHORT}.pid -c ${DAEMON_USER} --exec ${DAEMON_BIN} ${DAEMON_OPTS}; then
+	if start-stop-daemon --start --quiet --oknodo --pidfile ${DAEMON_PID} --exec ${DAEMON_BIN} -- ${DAEMON_OPTS}; then
 	    log_end_msg 0
 	else
 	    log_end_msg 1
@@ -64,7 +83,7 @@ case "$1" in
 	;;
 
   status)
-	status_of_proc -p /var/run/${DAEMON_SHORT}.pid ${DAEMON_BIN} ${DAEMON_SHORT} && exit 0 || exit $?
+	status_of_proc -p ${DAEMON_PID} ${DAEMON_BIN} ${DAEMON_SHORT} && exit 0 || exit $?
 	;;
 
   *)
