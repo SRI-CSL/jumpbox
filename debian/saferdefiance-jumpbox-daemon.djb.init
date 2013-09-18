@@ -13,9 +13,9 @@ set -e
 
 DAEMON_NAME="SAFER DEFIANCE JumpBox Daemon"
 DAEMON_SHORT=djb
-DAEMON_BIN=/usr/sbin/djb
-DAEMON_OPTS="daemonize /var/log/djb.log"
-DAEMON_USER=djb
+DAEMON_BIN=/usr/sbin/${DAEMON_SHORT}
+DAEMON_USER=${DAEMON_SHORT}
+DAEMON_OPTS="daemonize /var/run/${DAEMON_SHORT}.pid /var/run/${DAEMON_SHORT}.log"
 DEFAULTSFILE=/etc/default/${DAEMON_SHORT}
 
 # Just exit when the binary does not exist
