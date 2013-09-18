@@ -70,7 +70,7 @@ else
 endif
 
 # Standard Warnings
-CFLAGS	+=	-Wall
+CFLAGS	+=	-Wall -Wextra
 CFLAGS	+=	-Werror
 
 # Extended warnings
