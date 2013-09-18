@@ -17,7 +17,7 @@ static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
 
 static onion_t current_onion = NULL;
 static size_t current_onion_size = 0;
-//reset will unlink these 
+//reset will unlink these
 static char* current_image_path = NULL;
 static char* current_image_dir = NULL;
 //captcha goes in the same directory
@@ -49,13 +49,13 @@ void onion_reset(void){
     free_onion(current_onion);
     current_onion = NULL;
     current_onion_size = 0;
-  } 
+  }
 }
 
 static void pow_reset(void);
 void pow_reset(void){
   logline(log_DEBUG_, "pow_reset");
-  if(pow_thread_started){ 
+  if(pow_thread_started){
     pow_thread_quit = 1;
     onion_t inner = pow_inner_onion;
     if(inner != NULL){
@@ -83,7 +83,7 @@ void captcha_reset(void){
 static void image_reset(void);
 void image_reset(void){
   logline(log_DEBUG_, "image_reset");
-  
+
   if(current_image_path != NULL){
     if(unlink(current_image_path) == -1){
       logline(log_DEBUG_, "unlink(%s) failed: %s", current_image_path, strerror(errno));
@@ -102,7 +102,7 @@ static void reset(httpsrv_client_t* hcl) {
   onion_reset();
   captcha_reset();
   image_reset();
-  pow_reset(); 
+  pow_reset();
   djb_result(hcl, "Reset OK");
 }
 
@@ -213,7 +213,7 @@ static void image(httpsrv_client_t*  hcl) {
       djb_error(hcl, 500, "Not implemented yet (extract_n_save failure, see log)");
     } else {
       int onion_sz = 0;
-      onion = (onion_t)defiant_pwd_decrypt(password, (const uchar*)encrypted_onion, encrypted_onion_sz, &onion_sz); 
+      onion = (onion_t)defiant_pwd_decrypt(password, (const uchar*)encrypted_onion, encrypted_onion_sz, &onion_sz);
       if(onion == NULL){
         logline(log_DEBUG_, "image: Decrypting onion failed: No onion");
       } else if (onion_sz < (int)sizeof(onion_header_t)) {
@@ -223,7 +223,7 @@ static void image(httpsrv_client_t*  hcl) {
       } else if (onion_sz != (int)ONION_SIZE(onion)) {
         logline(log_DEBUG_, "image: Decrypting onion failed: onion_sz (%u) does nat match real onion sizeu(%d)", onion_sz, (int)ONION_SIZE(onion));
       } else {
-        response = make_image_response(image_path, ONION_TYPE(onion)); 
+        response = make_image_response(image_path, ONION_TYPE(onion));
         if(response != NULL){
           logline(log_DEBUG_, "image: response %s", response);
           current_onion = (onion_t)onion;
@@ -246,11 +246,10 @@ static void image(httpsrv_client_t*  hcl) {
     }
     free(onion);
     djb_error(hcl, 500, "server error");
-  } 
+  }
   //rain or shine these can get tossed
   free(response);
   free(encrypted_onion);
-  
 }
 
 static char *make_peel_response(const char* info, const char* status){
@@ -388,14 +387,13 @@ static char *peel_captcha(json_t *root) {
   if(captcha_image_path == NULL){
     if(current_image_dir == NULL){
       /* shouldn't get here */
-      
     } else {
       /* need to make it */
       int retcode = DEFIANT_DATA;
       char path[KBYTE];
       snprintf(path, sizeof path, "%s" PATH_SEPARATOR "captcha.png", current_image_dir);
-      retcode = bytes2file(path, ONION_PUZZLE_SIZE(current_onion), ONION_PUZZLE(current_onion)); 
-      if(retcode != DEFIANT_OK){ 
+      retcode = bytes2file(path, ONION_PUZZLE_SIZE(current_onion), ONION_PUZZLE(current_onion));
+      if(retcode != DEFIANT_OK){
         logline(log_DEBUG_, "image: captcha writing failed %s", defiant_strerror(retcode));
       } else {
         captcha_image_path = strdup(path);
@@ -466,7 +464,7 @@ static void peel(httpsrv_client_t * hcl) {
     } else {
       int otype = ONION_TYPE(current_onion);
       switch(otype){
-      case BASE: { 
+      case BASE: {
         response =  peel_base();
         break;
       }
@@ -496,7 +494,7 @@ static void peel(httpsrv_client_t * hcl) {
     json_decref(root);
   }
 }
-   
+
 
 
 static void dance(httpsrv_client_t* hcl) {
@@ -507,9 +505,9 @@ static void dance(httpsrv_client_t* hcl) {
 void rendezvous(httpsrv_client_t *hcl) {
   size_t prefix = strlen("/rendezvous/");
   char* query = &(hcl->headers.uri[prefix]);
-  
+
   logline(log_DEBUG_, "rendezvous: query = %s", query);
-  
+
   if (strcasecmp(query, "reset") == 0) {
 
     reset(hcl);
@@ -527,7 +525,7 @@ void rendezvous(httpsrv_client_t *hcl) {
     peel(hcl);
 
   } else if (strcasecmp(query, "dance") == 0) {
-    
+
     dance(hcl);
 
   } else {
