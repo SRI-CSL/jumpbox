@@ -18,7 +18,7 @@ DAEMON_USER=${DAEMON_SHORT}
 DAEMON_GROUP=nogroup
 DAEMON_PIDDIR=/var/run/${DAEMON_SHORT}/
 DAEMON_PID=${DAEMON_PIDDIR}${DAEMON_SHORT}.pid
-DAEMON_OPTS="daemonize ${DAEMON_PID} /var/run/${DAEMON_SHORT}.log ${DAEMON_USER}"
+DAEMON_OPTS="daemonize ${DAEMON_PID} /var/log/${DAEMON_SHORT}.log ${DAEMON_USER}"
 DEFAULTSFILE=/etc/default/${DAEMON_SHORT}
 
 # Just exit when the binary does not exist
