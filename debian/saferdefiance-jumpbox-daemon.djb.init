@@ -73,8 +73,16 @@ case "$1" in
 	;;
 
   restart)
+	check_piddir
+
 	log_daemon_msg "Restarting ${DAEMON_NAME}" "${DAEMON_SHORT}"
 	start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile ${DAEMON_PID}
+
+	if [ "${RUN_DAEMON}" != "yes" ]; then
+	    echo "Not starting ${DESC} (Disabled in ${DEFAULTSFILE})."
+	    exit 0
+	fi
+
 	if start-stop-daemon --start --quiet --oknodo --pidfile ${DAEMON_PID} --exec ${DAEMON_BIN} -- ${DAEMON_OPTS}; then
 	    log_end_msg 0
 	else
