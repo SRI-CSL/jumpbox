@@ -733,19 +733,19 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/*					  12345 */
 	} else if (strncasecmp(hcl->headers.uri, "/acs/", 5) == 0) {
-		return acs(hcl);
+		return (acs_handle(hcl));
 
 	/*					  123456789012 */
 	} else if (strncasecmp(hcl->headers.uri, "/rendezvous/", 12) == 0) {
 #ifdef DJB_RENDEZVOUS
-		rendezvous(hcl);
+		rdv_handle(hcl);
 #else
 		djb_error(hcl, 500, "Rendezvous module not enabled");
 #endif
 		return (false);
 	/*					   123456789012 */
 	} else if (strncasecmp(hcl->headers.uri, "/preferences/", 12) == 0) {
-		preferences(hcl);
+		prf_handle(hcl);
 		return (false);
 
 	} else if (strcasecmp(hcl->headers.uri, "/") == 0) {

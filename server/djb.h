@@ -21,13 +21,13 @@ void djb_result(httpsrv_client_t *hcl, const char *msg);
 bool djb_proxy_add(httpsrv_client_t *hcl);
 
 /* ACS API */
-bool acs(httpsrv_client_t *hcl);
+bool acs_handle(httpsrv_client_t *hcl);
 void acs_set_net(json_t *net_);
 
 /* Rendezvous API */
-void rendezvous(httpsrv_client_t *hcl);
+void rdv_handle(httpsrv_client_t *hcl);
 
 /* Preferences API */
-void preferences(httpsrv_client_t *hcl);
+void prf_handle(httpsrv_client_t *hcl);
 
 #endif /* SHARED_H */
