@@ -19,6 +19,7 @@
 
 
   "permissions": [
+    "browsingData",  
     "tabs",
     "background",
     "<all_urls>",         

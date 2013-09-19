@@ -28,6 +28,11 @@ Options = {
             setter: function () { return Options.select_setter('plugin_circuit_count'); }
         },
 
+        stegotorus_executable: {
+            getter: function () { return Options.text_getter('stegotorus_executable'); },
+            setter: function () { return Options.text_setter('stegotorus_executable'); }
+        },
+
         stegotorus_log_level: {
             getter: function () { return Options.select_getter('stegotorus_log_level'); },
             setter: function () { return Options.select_setter('stegotorus_log_level'); }
@@ -41,8 +46,15 @@ Options = {
         stegotorus_steg_module: {
             getter: function () { return Options.select_getter('stegotorus_steg_module'); },
             setter: function () { return Options.select_setter('stegotorus_steg_module'); }
+        },
+        stegotorus_trace_packets: {
+            getter: function () { return Options.checkbox_getter('stegotorus_trace_packets'); },
+            setter: function () { return Options.checkbox_setter('stegotorus_trace_packets'); }
+        },
+        shared_secret: {
+            getter: function () { return Options.text_getter('shared_secret'); },
+            setter: function () { return Options.text_setter('shared_secret'); }
         }
-
     }, 
     
     text_getter: function(name){
@@ -71,14 +83,14 @@ Options = {
     select_getter: function(name){
         var select = document.getElementById(name);
         var value = select.children[select.selectedIndex].value;
-        console.log('select_getter: ' + name + ' = ' +  value);
+        //console.log('select_getter: ' + name + ' = ' +  value);
         return value;
     },
 
     select_setter: function(name){
         var value, select, index, child;
         value = localStorage[name];
-        console.log('select_setter: ' + name + ' = ' + value);
+        //console.log('select_setter: ' + name + ' = ' + value);
         if(typeof value === 'string'){
             select = document.getElementById(name);
             for (index = 0; index < select.children.length; index += 1) {

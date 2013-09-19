@@ -6,80 +6,92 @@
 <script src="options.js"></script>
 </head>
 <body>
-	<div class="header">
-		SAFER DEFIANCE :: JumpBox :: Options
-	</div>
+  <div class="header">
+    SAFER DEFIANCE :: JumpBox :: Options
+  </div>
   
-	<table>
-	<tr>
-		<th colspan="2">JumpBox preferences:</th>
-	</tr>
-	<tr>
-		<th>port:</th>
-		<td><input type="text" size="50" name="jumpbox_port" id="jumpbox_port"></td>
-	</tr>
-	<tr>
-		<th colspan="2">Rendezvous preferences:</th>
-	</tr>
-	<tr>
-		<th>mod_freedom server:</th>
-		<td><input type="text" size="50" name="server_name" id="server_name"></td>
-	</tr>
-	<tr>
-		<th colspan="2">Chrome plugin preferences:</th>
-	</tr>
-	<tr>
-		<th>debug mode:</th>
-		<td><input id="debug_mode" type="checkbox"></td>
-	</tr>
-	<tr>
-		<th>circuit count:</th>
-		<td>
-			<select id="plugin_circuit_count">
-				<option value="1">1</option>
-				<option value="2">2</option>
-				<option value="3">3</option>
-				<option value="4">4</option>
-			</select>
-		</td>
-	</tr>
-	<tr>
-		<th colspan="2">Stegotorus preferences:</th>
-	</tr>
-	<tr>
-		<th>logging level:</th>
-		<td>
-		  <select id="stegotorus_log_level">
-		    <option value="error">error</option>
-		    <option value="warn">warn</option>
-		    <option value="debug">debug</option>
-		  </select>
-		</td>
-	</tr>
-	<tr>
-		<th>circuit count:</th>
-		<td>
-		  <select id="stegotorus_circuit_count">
-		    <option value="1">1</option>
-		    <option value="2">2</option>
-		    <option value="3">3</option>
-		    <option value="4">4</option>
-		  </select>
-		</td>
-	</tr>
-	<tr>
-	  <th>steg module:</th>
-	  <td>
-	    <select id="stegotorus_steg_module">
-	      <option value="json">json</option>
-	      <option value="http">http</option>
-	    </select>
-	  </td>
-	</tr>
-	</table>
-
-	<br />
-	<div id="status"></div>
-	<button id="save">Save</button>
+  <table>
+    <tr>
+      <th colspan="2">JumpBox preferences:</th>
+    </tr>
+    <tr>
+      <th>port:</th>
+      <td><input type="text" size="50" name="jumpbox_port" id="jumpbox_port"></td>
+    </tr>
+    <tr>
+      <th colspan="2">Rendezvous preferences:</th>
+    </tr>
+    <tr>
+      <th>mod_freedom server:</th>
+      <td><input type="text" size="50" name="server_name" id="server_name"></td>
+    </tr>
+    <tr>
+      <th colspan="2">Chrome plugin preferences:</th>
+    </tr>
+    <tr>
+      <th>debug mode:</th>
+      <td><input id="debug_mode" type="checkbox"></td>
+    </tr>
+    <tr>
+      <th>circuit count:</th>
+      <td>
+	<select id="plugin_circuit_count">
+	  <option value="1">1</option>
+	  <option value="2">2</option>
+	  <option value="3">3</option>
+	  <option value="4">4</option>
+	</select>
+      </td>
+    </tr>
+    <tr>
+      <th colspan="2">Stegotorus preferences:</th>
+    </tr>
+    <tr>
+      <th>Stegotorus exe:</th>
+      <td><input type="text" size="50" name="stegotorus_executable" id="stegotorus_executable"></td>
+    </tr>
+    <tr>
+      <th>logging level:</th>
+      <td>
+	<select id="stegotorus_log_level">
+	  <option value="error">error</option>
+	  <option value="warn">warn</option>
+	  <option value="debug">debug</option>
+	</select>
+      </td>
+    </tr>
+    <tr>
+      <th>circuit count:</th>
+      <td>
+	<select id="stegotorus_circuit_count">
+	  <option value="1">1</option>
+	  <option value="2">2</option>
+	  <option value="3">3</option>
+	  <option value="4">4</option>
+	</select>
+      </td>
+    </tr>
+    <tr>
+      <th>steg module:</th>
+      <td>
+	<select id="stegotorus_steg_module">
+	  <option value="json">json</option>
+	  <option value="http">http</option>
+	</select>
+      </td>
+    </tr>
+    <tr>
+      <th>trace packets:</th>
+      <td><input id="stegotorus_trace_packets" type="checkbox"></td>
+    </tr>
+    <tr>
+      <th>shared secret:</th>
+      <td><input type="text" size="50" name="shared_secret" id="shared_secret"></td>
+    </tr>
+  </table>
+  
+  <br />
+  <div id="status"></div>
+  <button id="save">Save</button>
 </body>
 </html>

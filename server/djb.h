@@ -29,4 +29,23 @@ void rdv_handle(httpsrv_client_t *hcl);
 /* Preferences API */
 void prf_handle(httpsrv_client_t *hcl);
 
+/* set the address from the dance; address is copied */
+void prf_set_stegotorus_server(char *address, int port);
+
+/* get the stegotorus argc & argv for a call to exevp from the preferences.
+   this will return 0 and NULL if prf_set_stegotorus_server has not been called first.
+   Usage:
+   
+   int argc;
+   char** argv = NULL;
+
+   argc = prf_get_argv(&argv);
+
+   if(argc > 0){
+   ...
+   }
+
+*/
+int prf_get_argv(char*** argvp);
+
 #endif /* SHARED_H */
