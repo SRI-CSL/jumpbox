@@ -1069,7 +1069,7 @@ djb_run(void) {
 		/* Launch a few worker threads */
 		for (i = 0; i < DJB_WORKERS; i++) {
 			if (!thread_add("DJBWorker", &djb_worker_thread, NULL)) {
-				logline(log_CRIT_, "could not create thread");
+				logline(log_ERR_, "could not create thread");
 				ret = -1;
 				break;
 			}
@@ -1085,14 +1085,14 @@ djb_run(void) {
 				  djb_bodyfwd_done,
 				  djb_done,
 				  djb_close)) {
-			logline(log_CRIT_, "Could not initialize HTTP server");
+			logline(log_ERR_, "Could not initialize HTTP server");
 			ret = -1;
 			break;
 		}
 
 		/* Fire up an HTTP server */
 		if (!httpsrv_start(hs, DJB_HOST, DJB_PORT, DJB_WORKERS)) {
-			logline(log_CRIT_, "HTTP Server failed");
+			logline(log_ERR_, "HTTP Server failed");
 			ret = -1;
 			break;
 		}
