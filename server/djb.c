@@ -153,49 +153,17 @@ djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user) {
 }
 
 void
-djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const char *ctype) {
-	conn_addheaderf(&hcl->conn, "HTTP/1.1 %u %s", code, msg);
-
-	if (code != 200) {
-		logline(log_ERR_,
-			HCL_ID " " CONN_ID " HTTP Error %u %s",
-			hcl->id, conn_id(&hcl->conn), code, msg);
-	}
-
-	if (ctype != NULL) {
-		conn_addheaderf(&hcl->conn, "Content-Type: %s", ctype);
-	}
-
-#if 0
-	/* Note it is us, very helpful while debugging pcap traces */
-	conn_addheaderf(&hcl->conn, "X-JumpBox: Yes");
-#endif
-}
-
-void
 djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
-	djb_httpanswer(hcl, code, msg, "text/html");
-	httpsrv_expire(hcl, HTTPSRV_EXPIRE_NONE);
-
-	djb_html_top(hcl, NULL);
-	conn_printf(&hcl->conn,
-		    "<h1>Error %u</h1>\n"
-		    "<p>\n"
-		    "%s\n"
-		    "</p>\n",
-		    code, msg);
-	djb_html_tail(hcl, NULL);
-
+	httpsrv_error(hcl, code, msg);
+	httpsrv_expire(hcl, HTTPSRV_EXPIRE_FORCE);
 	httpsrv_done(hcl);
 }
 
 void
 djb_result(httpsrv_client_t *hcl, const char *msg) {
-	djb_httpanswer(hcl, 200, "OK", "application/json");
-	httpsrv_expire(hcl, HTTPSRV_EXPIRE_NONE);
-
+	httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_JSON);
+	httpsrv_expire(hcl, HTTPSRV_EXPIRE_FORCE);
 	conn_put(&hcl->conn, msg);
-
 	httpsrv_done(hcl);
 }
 
@@ -382,7 +350,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	}
 
 	/* We got an answer, send back what we have already */
-	djb_httpanswer(pr->hcl, atoi(dh->httpcode), dh->httptext, NULL);
+	httpsrv_answer(pr->hcl, atoi(dh->httpcode), dh->httptext, NULL);
 
 	/* Server to Client */
 	if (strlen(dh->setcookie) > 0) {
@@ -407,7 +375,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		free(pr);
 
 		/* HTTP okay */
-		djb_httpanswer(hcl, 200, "OK", "text/html");
+		httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
 
 		/* A message as a body (Content-Length is arranged by conn) */
 		conn_printf(&hcl->conn, "Push Forward successful\r\n");
@@ -459,7 +427,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 		logline(log_DEBUG_, "API push, done with it");
 
 		/* HTTP okay */
-		djb_httpanswer(hcl, 200, "OK", "text/html");
+		httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
 
 		/* A message as a body (Content-Length is arranged by conn) */
 		conn_printf(&hcl->conn, "Push Body Forward successful\r\n");
@@ -679,7 +647,7 @@ void
 djb_status(httpsrv_client_t *hcl);
 void
 djb_status(httpsrv_client_t *hcl) {
-	djb_httpanswer(hcl, 200, "OK", "text/html");
+	httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
 
 	/* Body is just JumpBox (Content-Length is arranged by conn) */
 	djb_html_top(hcl, NULL);
@@ -753,7 +721,7 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return (false);
 
 	} else if (strcasecmp(hcl->headers.uri, "/djb.css") == 0) {
-		djb_httpanswer(hcl, 200, "OK", "text/css");
+		httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_CSS);
 
 		djb_html_css(hcl);
 
@@ -939,7 +907,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	dh = (djb_headers_t *)pr->hcl->user;
 
 	/* HTTP okay */
-	djb_httpanswer(ar->hcl, 200, "OK", NULL);
+	httpsrv_answer(ar->hcl, HTTPSRV_HTTP_OK, NULL);
 
 	/* DJB headers */
 	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s",

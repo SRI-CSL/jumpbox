@@ -14,7 +14,6 @@
 #include <jansson.h>
 
 /* DJB provided functions */
-void djb_httpanswer(httpsrv_client_t *hcl, unsigned int code, const char *msg, const char *ctype);
 void djb_error(httpsrv_client_t *hcl, unsigned int errcode, const char *msg);
 void djb_result(httpsrv_client_t *hcl, const char *msg);
 
