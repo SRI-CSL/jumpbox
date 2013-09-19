@@ -1,7 +1,7 @@
 #include "djb.h"
 
 /* The NET as provided by Rendezvous */
-json_t *net = NULL;
+static json_t *l_net = NULL;
 
 /*
  * An example NET:
@@ -21,25 +21,25 @@ json_t *net = NULL;
  * - ACS-part of the plugin (though acs_dance_initial())
  */
 void
-acs_set_net(json_t *net_) {
+acs_set_net(json_t *net) {
 	logline(log_DEBUG_, "...");
 
 	/* Old NET? */
-	if (net != NULL) {
+	if (l_net != NULL) {
 		/* Dereference */
-		json_decref(net);
-		net = NULL;
+		json_decref(l_net);
+		l_net = NULL;
 	}
 
 	/* The new NET */
-	assert(net_);
-	net = net_;
+	assert(net);
+	l_net = net;
 	json_incref(net);
 }
 
-void
+static void
 acs_result(httpsrv_client_t *hcl, const char *status, const char *msg);
-void
+static void
 acs_result(httpsrv_client_t *hcl, const char *status, const char *msg) {
 	char t[512];
 
@@ -53,16 +53,16 @@ acs_result(httpsrv_client_t *hcl, const char *status, const char *msg) {
 	djb_result(hcl, t);
 }
 
-void
+static void
 acs_result_e(httpsrv_client_t *hcl, const char *msg);
-void
+static void
 acs_result_e(httpsrv_client_t *hcl, const char *msg) {
 	acs_result(hcl, "error", msg);
 }
 
-bool
+static bool
 acs_initial(httpsrv_client_t *hcl);
-bool
+static bool
 acs_initial(httpsrv_client_t *hcl) {
 	json_error_t	jerr;
 	json_t		*initial_j, *root;
@@ -100,9 +100,13 @@ acs_initial(httpsrv_client_t *hcl) {
 				"Could not parse NET (JSON load failed): "
 				"line %u, column %u: %s",
 				jerr.line, jerr.column, jerr.text);
-			dumppacket(LOG_ERR, (uint8_t *)hcl->readbody, hcl->readbody_len);
+
+			dumppacket(LOG_ERR,
+				   (uint8_t *)hcl->readbody,
+				   hcl->readbody_len);
 
 			httpsrv_readbody_free(hcl);
+
 			return (true);
 		}
 
@@ -121,13 +125,13 @@ acs_initial(httpsrv_client_t *hcl) {
 	}
 
 	/* No NET yet? */
-	if (net == NULL) {
+	if (l_net == NULL) {
 		acs_result_e(hcl, "No NET was provided");
 		return (true);
 	}
 
 	/* Get the Initial Gateway from the NET */
-	initial_j = json_object_get(net, "initial");
+	initial_j = json_object_get(l_net, "initial");
 
 	if (!json_is_string(initial_j)) {
 		acs_result_e(hcl, "No initial gateway in NET");
@@ -156,16 +160,17 @@ acs_initial(httpsrv_client_t *hcl) {
 	return (true);
 }
 
-bool
+static bool
 acs_redirect(httpsrv_client_t *hcl);
-bool
+static bool
 acs_redirect(httpsrv_client_t *hcl) {
 	djb_error(hcl, 500, "Not implemented");
+
 	return (true);
 }
 
 bool
-acs(httpsrv_client_t *hcl) {
+acs_handle(httpsrv_client_t *hcl) {
 	const char *uri = &hcl->headers.uri[4];
 
 	if (strcasecmp(uri, "/initial/") == 0) {
@@ -177,6 +182,7 @@ acs(httpsrv_client_t *hcl) {
 
 	/* Not a valid API request */
 	djb_error(hcl, 404, "No such DJB API request (ACS)");
+
 	return (true);
 }
 
