@@ -369,7 +369,7 @@ UI = {
         /* better handle incorrect answers too */
         if ((typeof robj.info === 'string') && (robj.info !== "")){
             /* display the image and prompt for an answer */
-            UI.display_captcha(robj.info);
+            UI.display_captcha(Rendezvous.bkg.JumpBox.jb_host + robj.info);
         } else {
             /* just get ready to ask for it */
             document.querySelector('#captcha_peeler_button').addEventListener('click', UI.peel_away);
