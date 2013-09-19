@@ -245,7 +245,7 @@ rdv_make_image_response(char *path, int onion_type) {
 
 	while (1) {
 		chars = snprintf(response, response_size,
-				"{ \"image\": \"file://%s\", \"onion_type\": %u}",
+				"{ \"image\": \"/rendezvous/file%s\", \"onion_type\": %u}",
 				path, onion_type);
 
 		if (response_size != 0 && chars > response_size) {
@@ -590,7 +590,7 @@ rdv_peel_captcha_no_image_path(void) {
 		l_captcha_image_path);
 
 	snprintf(path, sizeof path,
-		"file://%s",
+		"/rendezvous/file%s",
 		l_captcha_image_path);
 
 	return (rdv_make_peel_response(path, "Here is your captcha image!"));
@@ -748,6 +748,26 @@ rdv_dance(httpsrv_client_t* hcl) {
 	djb_error(hcl, 500, "Dancing not implemented yet");
 }
 
+static void
+rdv_file(httpsrv_client_t* hcl, const char *file);
+static void
+rdv_file(httpsrv_client_t* hcl, const char *file) {
+	/* Only serve random outguess_embed files */
+	logline(log_DEBUG_, "file = %s", file);
+
+	/*                     1234567890123456789 */
+	if (strncmp(file, "/tmp/outguess_embed", 19) == 0) {
+		httpsrv_sendfile(hcl, file);
+		httpsrv_expire(hcl, HTTPSRV_EXPIRE_SHORT);
+
+		/* XXX: As it has been fetched, we could delete it */
+	} else {
+		djb_error(hcl, HTTPSRV_HTTP_FORBIDDEN);
+	}
+
+	httpsrv_done(hcl);
+}
+
 /* Called from djb */
 void
 rdv_handle(httpsrv_client_t *hcl) {
@@ -772,6 +792,9 @@ rdv_handle(httpsrv_client_t *hcl) {
 
 	} else if (strcasecmp(query, "dance") == 0) {
 		rdv_dance(hcl);
+
+	} else if (strncasecmp(query, "file/", 5) == 0) {
+		rdv_file(hcl, &query[4]);
 
 	} else {
 		djb_error(hcl, 500, "No such DJB API request (Rendezvous)");

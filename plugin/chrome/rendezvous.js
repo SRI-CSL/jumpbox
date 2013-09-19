@@ -270,7 +270,7 @@ UI = {
     prepare_for_peeling: function (robj) {
         if (typeof robj.image === 'string') {
             /* display the stegged onion */
-            UI.display_image(robj.image);
+            UI.display_image(Rendezvous.bkg.JumpBox.jb_host + robj.image);
         }
         if (typeof robj.onion_type === 'number') {
             console.log("ONION_TYPE: " + robj.onion_type);
