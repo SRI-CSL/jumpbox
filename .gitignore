@@ -1,12 +1,12 @@
 # Temporary files
-server/*.o
-server/*.d
-server/*.lo
-server/*.la
-server/*.slo
-server/*.swp
-server/.libs
-server/djb
+*.o
+*.d
+*.lo
+*.la
+*.slo
+*.swp
+/server/.libs
+/server/djb
 
 # Debian 'make deb' files
 debian/files
