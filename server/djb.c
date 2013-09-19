@@ -942,11 +942,9 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	djb_httpanswer(ar->hcl, 200, "OK", NULL);
 
 	/* DJB headers */
-	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s%s%s",
+	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s",
 			pr->hcl->headers.hostname,
-			pr->hcl->headers.uri,
-			(strlen(pr->hcl->headers.args) > 0) ? "?" : "",
-			pr->hcl->headers.args);
+			pr->hcl->headers.rawuri);
 
 	conn_addheaderf(&ar->hcl->conn, "DJB-Method: %s",
 			httpsrv_methodname(pr->hcl->method));
@@ -1061,7 +1059,6 @@ djb_worker_thread(void UNUSED *arg) {
 			}
 			break;
 		}
-
 
 		logline(log_DEBUG_, "request " HCL_ID ", puller "HCL_ID,
 			pr->hcl->id, ar->hcl->id);
