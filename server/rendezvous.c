@@ -13,27 +13,27 @@
 
 #define KBYTE 1024
 
-static char password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
+static char l_password[DEFIANT_REQ_REP_PASSWORD_LENGTH + 1];
 
-static onion_t	current_onion = NULL;
-static uint64_t current_onion_size = 0;
+static onion_t	l_current_onion = NULL;
+static uint64_t l_current_onion_size = 0;
 /* reset will unlink these */
-static char	*current_image_path = NULL;
-static char	*current_image_dir = NULL;
+static char	*l_current_image_path = NULL;
+static char	*l_current_image_dir = NULL;
 /* captcha goes in the same directory */
-static char	*captcha_image_path = NULL;
+static char	*l_captcha_image_path = NULL;
 
 /* pow thread */
-static int pow_thread_started = 0;
-static int pow_thread_finished = 0;
-static int pow_thread_quit = 0;
-static onion_t pow_inner_onion = NULL;
-static volatile long pow_thread_progress = 0;
+static int	l_pow_thread_started = 0;
+static int	l_pow_thread_finished = 0;
+static int	l_pow_thread_quit = 0;
+static onion_t	l_pow_inner_onion = NULL;
+static volatile long l_pow_thread_progress = 0;
 
 static char *
-randompath(void);
+rdv_randompath(void);
 static char *
-randompath(void) {
+rdv_randompath(void) {
 	char		*retval = (char *)calloc(1024, sizeof(char));
 	uint64_t	r = generate_random_number();
 
@@ -43,114 +43,118 @@ randompath(void) {
 }
 
 static void
-onion_reset(void);
+rdv_onion_reset(void);
 static void
-onion_reset(void) {
-	logline(log_DEBUG_, "onion_reset");
-	memset(password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
+rdv_onion_reset(void) {
+	logline(log_DEBUG_, "...");
 
-	if (current_onion != NULL ){
-		free_onion(current_onion);
-		current_onion = NULL;
-		current_onion_size = 0;
+	memset(l_password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
+
+	if (l_current_onion != NULL ){
+		free_onion(l_current_onion);
+		l_current_onion = NULL;
+		l_current_onion_size = 0;
 	}
 }
 
 static void
-pow_reset(void);
+rdv_pow_reset(void);
 static void
-pow_reset(void) {
-	logline(log_DEBUG_, "pow_reset");
+rdv_pow_reset(void) {
+	logline(log_DEBUG_, "...");
 
-	if (pow_thread_started) {
+	if (l_pow_thread_started) {
 		onion_t inner;
 
-		pow_thread_quit = 1;
-		inner = pow_inner_onion;
+		l_pow_thread_quit = 1;
+		inner = l_pow_inner_onion;
 
 		if (inner != NULL) {
-			pow_inner_onion = NULL;
+			l_pow_inner_onion = NULL;
 			free_onion(inner);
 		}
 
-		pow_thread_started = 0;
-		pow_thread_finished = 0;
-		pow_thread_progress = 0;
+		l_pow_thread_started = 0;
+		l_pow_thread_finished = 0;
+		l_pow_thread_progress = 0;
 	}
 }
 
 static void
-captcha_reset(void);
+rdv_captcha_reset(void);
 static void
-captcha_reset(void) {
-	logline(log_DEBUG_, "captcha_reset");
+rdv_captcha_reset(void) {
+	logline(log_DEBUG_, "...");
 
-	if (captcha_image_path != NULL) {
-		if (unlink(captcha_image_path) == -1) {
+	if (l_captcha_image_path != NULL) {
+		if (unlink(l_captcha_image_path) == -1) {
 			logline(log_DEBUG_,
 				"unlink(%s) failed: %s",
-				captcha_image_path, strerror(errno));
+				l_captcha_image_path, strerror(errno));
 		}
 
-		free(captcha_image_path);
-		captcha_image_path = NULL;
+		free(l_captcha_image_path);
+		l_captcha_image_path = NULL;
 	}
 }
 
 static void
-image_reset(void);
+rdv_image_reset(void);
 static void
-image_reset(void) {
-	logline(log_DEBUG_, "image_reset");
+rdv_image_reset(void) {
+	logline(log_DEBUG_, "...");
 
-	if (current_image_path != NULL) {
-		if (unlink(current_image_path) == -1){
+	if (l_current_image_path != NULL) {
+		if (unlink(l_current_image_path) == -1){
 			logline(log_WARNING_,
 				"unlink(%s) failed: %s",
-				current_image_path, strerror(errno));
+				l_current_image_path, strerror(errno));
 		};
 
-		if (rmdir(current_image_dir) == -1){
+		if (rmdir(l_current_image_dir) == -1){
 			logline(log_WARNING_,
 				"rmdir(%s) failed: %s",
-				current_image_dir, strerror(errno));
+				l_current_image_dir, strerror(errno));
 		};
 
-		free(current_image_path);
-		free(current_image_dir);
-		current_image_path = NULL;
-		current_image_dir = NULL;
+		free(l_current_image_path);
+		free(l_current_image_dir);
+		l_current_image_path = NULL;
+		l_current_image_dir = NULL;
 	}
 }
 
 static void
-reset(httpsrv_client_t* hcl);
+rdv_reset(httpsrv_client_t* hcl);
 static void
-reset(httpsrv_client_t* hcl) {
-	onion_reset();
-	captcha_reset();
-	image_reset();
-	pow_reset();
+rdv_reset(httpsrv_client_t* hcl) {
+	rdv_onion_reset();
+	rdv_captcha_reset();
+	rdv_image_reset();
+	rdv_pow_reset();
 
 	djb_result(hcl, "Reset OK");
 }
 
 static void
-gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure);
+rdv_gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure);
 static void
-gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure) {
+rdv_gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure) {
 	char		*path = NULL, *request = NULL;
 	bf_params_t	*params =  NULL;
 
 	int defcode = bf_char64_to_params(defiant_params_P, defiant_params_Ppub, &params);
 	if (defcode == DEFIANT_OK) {
-		randomPasswordEx(password, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1, 0);
-		path = randompath();
+		randomPasswordEx(l_password,
+				 DEFIANT_REQ_REP_PASSWORD_LENGTH + 1, 0);
+		path = rdv_randompath();
 
 		if (secure) {
-			defcode = generate_defiant_ssl_request_url(params, password, server, path, &request);
+			defcode = generate_defiant_ssl_request_url(
+				  params, l_password, server, path, &request);
 		} else {
-			defcode = generate_defiant_request_url(params, password, server, path, &request);
+			defcode = generate_defiant_request_url(
+				  params, l_password, server, path, &request);
 		}
 	}
 
@@ -158,9 +162,9 @@ gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure) {
 		djb_result(hcl, request);
 
 		logline(log_DEBUG_,
-			"gen_request: secure=%s, password = %s, request = %s",
-			secure ? "yes" : "no",
-			password, request);
+			"secure=%s, password=%s, request=%s",
+			yesno(secure),
+			l_password, request);
 	} else {
 		djb_error(hcl, 500, defiant_strerror(defcode));
 	}
@@ -177,9 +181,9 @@ gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure) {
 }
 
 static void
-gen_request(httpsrv_client_t* hcl);
+rdv_gen_request(httpsrv_client_t* hcl);
 static void
-gen_request(httpsrv_client_t* hcl) {
+rdv_gen_request(httpsrv_client_t* hcl) {
 	json_error_t	error;
 	json_t		*root;
 	char		*server = NULL;
@@ -195,7 +199,7 @@ gen_request(httpsrv_client_t* hcl) {
 		return;
 	}
 
-	logline(log_DEBUG_, "%s", hcl->readbody);
+	logline(log_DEBUG_, "data: %s", hcl->readbody);
 
 	root = json_loads(hcl->readbody, 0, &error);
 	httpsrv_readbody_free(hcl);
@@ -217,13 +221,13 @@ gen_request(httpsrv_client_t* hcl) {
 	}
 
 	if (server != NULL) {
-		gen_request_aux(hcl, server, secure);
+		rdv_gen_request_aux(hcl, server, secure);
 	} else {
 		djb_error(hcl, 500, "POST data conundrum");
 
 		if (root == NULL) {
 			logline(log_DEBUG_,
-				"data = %s error: line: %u msg: %s",
+				"data: %s, error: line: %u, msg: %s",
 				hcl->readbody, error.line, error.text);
 		}
 	}
@@ -232,9 +236,9 @@ gen_request(httpsrv_client_t* hcl) {
 }
 
 static char *
-make_image_response(char *path, int onion_type);
+rdv_make_image_response(char *path, int onion_type);
 static char *
-make_image_response(char *path, int onion_type) {
+rdv_make_image_response(char *path, int onion_type) {
 	char	*retval = NULL;
 	char	*response = NULL;
 	int	chars = 0, response_size = 0;
@@ -260,9 +264,9 @@ make_image_response(char *path, int onion_type) {
 
 
 static void
-image(httpsrv_client_t*  hcl);
+rdv_image(httpsrv_client_t*  hcl);
 static void
-image(httpsrv_client_t*  hcl) {
+rdv_image(httpsrv_client_t*  hcl) {
 	char	*response = NULL,
 		*image_path = NULL,
 		*image_dir = NULL,
@@ -276,13 +280,13 @@ image(httpsrv_client_t*  hcl) {
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
 		if(httpsrv_readbody_alloc(hcl, 0, 0) < 0){
-			logline(log_DEBUG_, "httpsrv_readbody_alloc( failed");
+			logline(log_DEBUG_, "httpsrv_readbody_alloc() failed");
 		}
 
 		return;
 	}
 
-	retcode = extract_n_save(password, hcl->readbody, hcl->readbody_off,
+	retcode = extract_n_save(l_password, hcl->readbody, hcl->readbody_off,
 				 &encrypted_onion, &encrypted_onion_sz,
 				 &image_path, &image_dir);
 
@@ -290,15 +294,15 @@ image(httpsrv_client_t*  hcl) {
 
 	if (retcode != DEFIANT_OK){
 		logline(log_DEBUG_,
-			"extract_n_save() with password %s returned %d -- %s",
-			password, retcode, defiant_strerror(retcode));
+			"extract_n_save() with password=%s returned %d -- %s",
+			l_password, retcode, defiant_strerror(retcode));
 
 		djb_error(hcl, 500,
 			 "extract_n_save() failure, see log)");
 
 	} else {
 		int onion_sz = 0;
-		onion = (onion_t)defiant_pwd_decrypt(password,
+		onion = (onion_t)defiant_pwd_decrypt(l_password,
 				(const uchar *)encrypted_onion,
 				encrypted_onion_sz, &onion_sz);
 
@@ -321,17 +325,23 @@ image(httpsrv_client_t*  hcl) {
 				"does nat match real onion sizeu(%d)",
 				onion_sz, (int)ONION_SIZE(onion));
 		} else {
-			response = make_image_response(image_path, ONION_TYPE(onion));
+			response = rdv_make_image_response(image_path,
+				    ONION_TYPE(onion));
+
 			if (response != NULL) {
 				logline(log_DEBUG_, "response %s", response);
 
-				current_onion = (onion_t)onion;
-				current_onion_size = onion_sz;
-				current_image_path = image_path;
-				current_image_dir = image_dir;
+				l_current_onion = (onion_t)onion;
+				l_current_onion_size = onion_sz;
+				l_current_image_path = image_path;
+				l_current_image_dir = image_dir;
+
 				logline(log_DEBUG_,
-					"onion_sz %" PRIu64 " -- onion_type: %u",
-					current_onion_size, ONION_TYPE(current_onion));
+					"onion_sz %" PRIu64 " -- "
+					"onion_type: %u",
+					l_current_onion_size,
+					ONION_TYPE(l_current_onion));
+
 				djb_result(hcl, response);
 			}
 		}
@@ -359,10 +369,10 @@ image(httpsrv_client_t*  hcl) {
 }
 
 static char *
-make_peel_response(const char* info, const char* status);
+rdv_make_peel_response(const char* info, const char* status);
 static char *
-make_peel_response(const char* info, const char* status) {
-	int	onion_type = ONION_TYPE(current_onion);
+rdv_make_peel_response(const char* info, const char* status) {
+	int	onion_type = ONION_TYPE(l_current_onion);
 	char	*retval = NULL;
 	char	*response = NULL;
 	int	chars = 0, response_size = 0;
@@ -387,10 +397,10 @@ make_peel_response(const char* info, const char* status) {
 }
 
 static char *
-make_pow_response(unsigned int percent, const char *status);
+rdv_make_pow_response(unsigned int percent, const char *status);
 static char *
-make_pow_response(unsigned int percent, const char *status) {
-	int	onion_type = ONION_TYPE(current_onion);
+rdv_make_pow_response(unsigned int percent, const char *status) {
+	int	onion_type = ONION_TYPE(l_current_onion);
 	char	*retval = NULL;
 	char	*response = NULL;
 	int	chars = 0, response_size = 0;
@@ -415,20 +425,22 @@ make_pow_response(unsigned int percent, const char *status) {
 }
 
 static char *
-peel_base(void);
+rdv_peel_base(void);
 static char *
-peel_base(void) {
+rdv_peel_base(void) {
 	char		*response = NULL;
-	char		*nep = (char*)ONION_DATA(current_onion);
+	const char	*nep;
 	json_error_t	error;
 	json_t		*root, *resp;
 
-	logline(log_DEBUG_, "peel_base: %s", nep);
+	nep = (char*)ONION_DATA(l_current_onion);
+
+	logline(log_DEBUG_, "nep = %s", nep);
 
 	root = json_loads(nep, 0, &error);
 	if (root != NULL) {
 		resp = json_pack("{s:i, s:s, s:o}",
-				 "onion_type", ONION_TYPE(current_onion),
+				 "onion_type", ONION_TYPE(l_current_onion),
 				 "status", "Here is your NET!",
 				 "info", root);
 
@@ -438,9 +450,9 @@ peel_base(void) {
 		acs_set_net(root);
 	} else {
 		logline(log_DEBUG_,
-			"peel_base: data = %s error: line: %d msg: %s",
+			"data = %s error: line: %d msg: %s",
 			 nep, error.line, error.text);
-		response = make_peel_response(
+		response = rdv_make_peel_response(
 			"Sorry your nep did not parse as JSON", "");
 	}
 
@@ -453,39 +465,41 @@ peel_base(void) {
 /* we are currently forcing passwords to start with "aaa" */
 static const long maxAttempts = 1 * 1 * 1 * 26 * 26 * 26 * 26 * 26;
 
-void *pow_worker(void *arg);
-void *pow_worker(void *arg) {
-	size_t	puzzle_size = ONION_PUZZLE_SIZE(current_onion);
-	char	*hash = ONION_PUZZLE(current_onion);
+static void *
+rdv_pow_worker(void UNUSED *arg);
+static void *
+rdv_pow_worker(void UNUSED *arg) {
+	size_t	puzzle_size = ONION_PUZZLE_SIZE(l_current_onion);
+	char	*hash = ONION_PUZZLE(l_current_onion);
 	int	hash_len = SHA_DIGEST_LENGTH;
 	char	*secret = hash + SHA_DIGEST_LENGTH;
 	int	secret_len = puzzle_size - SHA_DIGEST_LENGTH;
-	char	*data = ONION_DATA(current_onion);
-	size_t	data_len = ONION_DATA_SIZE(current_onion);
+	char	*data = ONION_DATA(l_current_onion);
+	size_t	data_len = ONION_DATA_SIZE(l_current_onion);
 
-	pow_inner_onion = defiant_pow_aux((uchar*)hash, hash_len,
-					  (uchar*)secret, secret_len,
-					  (uchar*)data, data_len,
-					   &pow_thread_progress);
+	l_pow_inner_onion = defiant_pow_aux((uchar*)hash, hash_len,
+					   (uchar*)secret, secret_len,
+					   (uchar*)data, data_len,
+					   &l_pow_thread_progress);
 
 	logline(log_DEBUG_,
 		"pow_inner_onion = %p : %s %s",
-		pow_inner_onion, (char *)pow_inner_onion,
-		(char *)ONION_DATA(pow_inner_onion));
+		l_pow_inner_onion, (char *)l_pow_inner_onion,
+		(char *)ONION_DATA(l_pow_inner_onion));
 
-	pow_thread_progress = maxAttempts;
-	pow_thread_finished = 1;
+	l_pow_thread_progress = maxAttempts;
+	l_pow_thread_finished = 1;
 
-	return (arg);
+	return (NULL);
 }
 
 
-unsigned int
-attempts2percent(void);
-unsigned int
-attempts2percent(void) {
+static unsigned int
+rdv_attempts2percent(void);
+static unsigned int
+rdv_attempts2percent(void) {
 	unsigned int	retval = 0;
-	unsigned long	current = pow_thread_progress;
+	unsigned long	current = l_pow_thread_progress;
 
 	retval = ((current * 100) / maxAttempts);
 
@@ -496,20 +510,20 @@ attempts2percent(void) {
 }
 
 static char *
-peel_pow(void);
+rdv_peel_pow(void);
 static char *
-peel_pow(void) {
+rdv_peel_pow(void) {
 	char		*response = NULL;
-	unsigned int	pc = attempts2percent();
+	unsigned int	pc = rdv_attempts2percent();
 
-	if (pow_thread_started == 0) {
+	if (l_pow_thread_started == 0) {
 		/* Start the POW thread */
-		if (thread_add("RendezvousPOW", pow_worker, NULL)) {
-			pow_thread_started = 1;
-			response = make_pow_response(pc,
+		if (thread_add("RendezvousPOW", rdv_pow_worker, NULL)) {
+			l_pow_thread_started = 1;
+			response = rdv_make_pow_response(pc,
 				"OK the Proof-Of-Work has commenced");
 		} else {
-			response = make_peel_response("",
+			response = rdv_make_peel_response("",
 				"Creating the Proof-Of-Work failed :-(");
 		}
 
@@ -518,24 +532,25 @@ peel_pow(void) {
 		 * Monitor the progress of the thread;
 		 * or do the current <--> inner switch
 		 */
-		if (pow_thread_finished == 0) {
-			response = make_pow_response(pc, "Working away...");
+		if (l_pow_thread_finished == 0) {
+			response = rdv_make_pow_response(pc,
+				   "Working away...");
 		} else {
-			if (pow_inner_onion == NULL){
-				response = make_peel_response("",
+			if (l_pow_inner_onion == NULL){
+				response = rdv_make_peel_response("",
 					"Proof of work FAILED?!?");
 			} else {
-				onion_t old_onion = current_onion;
+				onion_t old_onion = l_current_onion;
 
-				current_onion = pow_inner_onion;
+				l_current_onion = l_pow_inner_onion;
 				free_onion(old_onion);
 
-				response = make_pow_response(100,
+				response = rdv_make_pow_response(100,
 					"Your Proof-Of-Work has "
 					"finished successfully!");
 
-				pow_inner_onion = NULL;
-				pow_reset();
+				l_pow_inner_onion = NULL;
+				rdv_pow_reset();
 			}
 		}
 	}
@@ -544,47 +559,47 @@ peel_pow(void) {
 }
 
 static char *
-peel_captcha_no_image_path(void);
+rdv_peel_captcha_no_image_path(void);
 static char *
-peel_captcha_no_image_path(void) {
+rdv_peel_captcha_no_image_path(void) {
 	/* need to make it */
 	int retcode = DEFIANT_DATA;
 	char path[KBYTE];
 
-	fassert(current_image_dir != NULL);
+	fassert(l_current_image_dir != NULL);
 
 	snprintf(path, sizeof path,
 		 "%s" PATH_SEPARATOR "captcha.png",
-		current_image_dir);
+		l_current_image_dir);
 
 	retcode = bytes2file(path,
-			     ONION_PUZZLE_SIZE(current_onion),
-			     ONION_PUZZLE(current_onion));
+			     ONION_PUZZLE_SIZE(l_current_onion),
+			     ONION_PUZZLE(l_current_onion));
 
 	if (retcode != DEFIANT_OK) {
 		logline(log_DEBUG_,
-			"captcha writing failed %s",
-			defiant_strerror(retcode));
+			"Could not store captcha to %s: %s",
+			path, defiant_strerror(retcode));
 		return (NULL);
 	}
 
-	captcha_image_path = strdup(path);
+	l_captcha_image_path = strdup(path);
 
 	logline(log_DEBUG_,
-		"captcha image = %s",
-		captcha_image_path);
+		"Captcha image = %s",
+		l_captcha_image_path);
 
 	snprintf(path, sizeof path,
 		"file://%s",
-		captcha_image_path);
+		l_captcha_image_path);
 
-	return (make_peel_response(path, "Here is your captcha image!"));
+	return (rdv_make_peel_response(path, "Here is your captcha image!"));
 }
 
 static char *
-peel_captcha_with_image_path(json_t *root);
+rdv_peel_captcha_with_image_path(json_t *root);
 static char *
-peel_captcha_with_image_path(json_t *root) {
+rdv_peel_captcha_with_image_path(json_t *root) {
 	json_t		*answer_val;
 	const char	*r;
 
@@ -598,13 +613,13 @@ peel_captcha_with_image_path(json_t *root) {
 
 		answer = (char *)json_string_value(answer_val);
 
-		defcode = peel_captcha_onion(answer, current_onion,
+		defcode = peel_captcha_onion(answer, l_current_onion,
 					     &inner_onion);
 
 		if (defcode == DEFIANT_OK){
-			free(current_onion);
+			free(l_current_onion);
 
-			current_onion = inner_onion;
+			l_current_onion = inner_onion;
 
 			r = "Excellent, you solved the captcha";
 		} else {
@@ -614,35 +629,35 @@ peel_captcha_with_image_path(json_t *root) {
 		r = "Answer wasn't of the right type";
 	}
 
-	return (make_peel_response("", r));
+	return (rdv_make_peel_response("", r));
 }
 
 static char *
-peel_captcha(json_t *root);
+rdv_peel_captcha(json_t *root);
 static char *
-peel_captcha(json_t *root) {
-	return (captcha_image_path == NULL ?
-		peel_captcha_no_image_path() :
-		peel_captcha_with_image_path(root));
+rdv_peel_captcha(json_t *root) {
+	return (l_captcha_image_path == NULL ?
+		rdv_peel_captcha_no_image_path() :
+		rdv_peel_captcha_with_image_path(root));
 }
 
 static char *
-peel_signed(void);
+rdv_peel_signed(void);
 static char *
-peel_signed(void) {
+rdv_peel_signed(void) {
 	int 		errcode;
 	const char	*r;
 
-	errcode = verify_onion(current_onion);
+	errcode = verify_onion(l_current_onion);
 
 	if (errcode == DEFIANT_OK){
 		onion_t inner_onion = NULL;
-		errcode = peel_signed_onion(current_onion, &inner_onion);
+		errcode = peel_signed_onion(l_current_onion, &inner_onion);
 
 		if (errcode == DEFIANT_OK){
-			free_onion(current_onion);
-			current_onion = inner_onion;
-			current_onion_size = ONION_SIZE(inner_onion);
+			free_onion(l_current_onion);
+			l_current_onion = inner_onion;
+			l_current_onion_size = ONION_SIZE(inner_onion);
 			r = "The server returned an onion whose "
 			    "signature we VERIFIED!";
 		} else {
@@ -653,13 +668,13 @@ peel_signed(void) {
 		    "we COULD NOT verify -- try again?";
 	}
 
-	return (make_peel_response("", r));
+	return (rdv_make_peel_response("", r));
 }
 
 static void
-peel(httpsrv_client_t *hcl);
+rdv_peel(httpsrv_client_t *hcl);
 static void
-peel(httpsrv_client_t *hcl) {
+rdv_peel(httpsrv_client_t *hcl) {
 	char		*response = NULL;
 	json_error_t	error;
 	json_t		*root;
@@ -668,7 +683,7 @@ peel(httpsrv_client_t *hcl) {
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0){
-			logline(log_DEBUG_, "peel: httpsrv_readbody_alloc( failed");
+			logline(log_DEBUG_, "httpsrv_readbody_alloc() failed");
 		}
 		return;
 	}
@@ -683,27 +698,27 @@ peel(httpsrv_client_t *hcl) {
 			error.line, error.text);
 		djb_error(hcl, 500, "Bad JSON");
 
-	} else if ((current_onion == NULL) || !ONION_IS_ONION(current_onion)) {
+	} else if ((l_current_onion == NULL) || !ONION_IS_ONION(l_current_onion)) {
 		djb_error(hcl, 500, "Bad onion");
 
 	} else {
-		otype = ONION_TYPE(current_onion);
+		otype = ONION_TYPE(l_current_onion);
 
 		switch(otype){
 		case BASE:
-			response = peel_base();
+			response = rdv_peel_base();
 			break;
 
 		case POW:
-			response = peel_pow();
+			response = rdv_peel_pow();
 			break;
 
 		case CAPTCHA:
-			response = peel_captcha(root);
+			response = rdv_peel_captcha(root);
 			break;
 
 		case SIGNED:
-			response = peel_signed();
+			response = rdv_peel_signed();
 			break;
 
 		case COLLECTION:
@@ -719,8 +734,7 @@ peel(httpsrv_client_t *hcl) {
 			response = NULL;
 
 		} else {
-			djb_error(hcl, 500,
-				  "make_peel_response failed");
+			djb_error(hcl, 500, "Peeling failed");
 		}
 	}
 
@@ -728,15 +742,15 @@ peel(httpsrv_client_t *hcl) {
 }
 
 static void
-dance(httpsrv_client_t* hcl);
+rdv_dance(httpsrv_client_t* hcl);
 static void
-dance(httpsrv_client_t* hcl) {
+rdv_dance(httpsrv_client_t* hcl) {
 	djb_error(hcl, 500, "Dancing not implemented yet");
 }
 
 /* Called from djb */
 void
-rendezvous(httpsrv_client_t *hcl) {
+rdv_handle(httpsrv_client_t *hcl) {
 	const char	*query;
 
 	/* Skip '/rendezvous/' (12) */
@@ -745,19 +759,19 @@ rendezvous(httpsrv_client_t *hcl) {
 	logline(log_DEBUG_, "query = %s", query);
 
 	if (strcasecmp(query, "reset") == 0) {
-		reset(hcl);
+		rdv_reset(hcl);
 
 	} else if (strcasecmp(query, "gen_request") == 0) {
-		gen_request(hcl);
+		rdv_gen_request(hcl);
 
 	} else if (strcasecmp(query, "image") == 0) {
-		image(hcl);
+		rdv_image(hcl);
 
 	} else if (strcasecmp(query, "peel") == 0) {
-		peel(hcl);
+		rdv_peel(hcl);
 
 	} else if (strcasecmp(query, "dance") == 0) {
-		dance(hcl);
+		rdv_dance(hcl);
 
 	} else {
 		djb_error(hcl, 500, "No such DJB API request (Rendezvous)");
