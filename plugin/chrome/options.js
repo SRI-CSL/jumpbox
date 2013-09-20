@@ -54,6 +54,10 @@ Options = {
         shared_secret: {
             getter: function () { return Options.text_getter('shared_secret'); },
             setter: function () { return Options.text_setter('shared_secret'); }
+        },
+        traces_directory: {
+            getter: function () { return Options.text_getter('traces_directory'); },
+            setter: function () { return Options.text_setter('traces_directory'); }
         }
     }, 
     
