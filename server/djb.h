@@ -33,7 +33,9 @@ void prf_handle(httpsrv_client_t *hcl);
 void prf_set_stegotorus_server(char *address, int port);
 
 /* get the stegotorus argc & argv for a call to exevp from the preferences.
-   this will return 0 and NULL if prf_set_stegotorus_server has not been called first.
+   Linda points out the we also need to provide the location of the traces
+   directory.
+
    Usage:
    
    int argc;
@@ -47,5 +49,7 @@ void prf_set_stegotorus_server(char *address, int port);
 
 */
 int prf_get_argv(char*** argvp);
+char* prf_get_traces_dir(void);
+
 
 #endif /* SHARED_H */

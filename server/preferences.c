@@ -4,29 +4,36 @@
 static int prf_parse_preferences(void);
 static void dump_preferences(void);
 
-static char* stegotorus_server_address = NULL;
-static int  stegotorus_server_port = -1;
 static char* current_preferences = NULL;
 
-enum { PRF_CC = 0, PRF_EXE, PRF_LL, PRF_SM, PRF_TP, PRF_SHS };
+enum { PRF_CC = 0, PRF_EXE, PRF_LL, PRF_SM, PRF_TP, PRF_SHS, PRF_TD, PRF_PA, PRF_JA};
 
 /* quick and dirty - sorry */
-static int number_of_keys = 7;
-/* keep these both the same length (number_of_keys) */
+static int number_of_keys = 9;
+
+/* keep these ALL the same length (number_of_keys) */
 static char* keys[] =   { (char *)"stegotorus_circuit_count", 
                           (char *)"stegotorus_executable", 
                           (char *)"stegotorus_log_level", 
                           (char *)"stegotorus_steg_module", 
                           (char *)"stegotorus_trace_packets", 
                           (char *)"shared_secret", 
+                          (char *)"traces_directory", 
+                          (char *)"proxy_address", 
+                          (char *)"djb_address", 
                           NULL};
-static char* values[] = { NULL,  NULL,  NULL,  NULL,   NULL,  NULL,  NULL};
+
+static char* values[] = { NULL,  NULL,  NULL,  NULL,   NULL,  NULL,  NULL,   NULL,  NULL,  NULL};
+
 static char* defaults[] =   { (char *)"1", 
                               (char *)"stegotorus", 
                               (char *)"warn", 
                               (char *)"json", 
                               (char *)"false", 
                               (char *)NULL, 
+                              (char *)"/usr/share/stegotorus", 
+                              (char *)"127.0.0.1:1080",     //do we need to burden the user with these (yet)?
+                              (char *)"127.0.0.1:6543",     //do we need to burden the user with these (yet)?
                               NULL};
 
 
@@ -40,15 +47,8 @@ char* getvalue(int i){
   }
 }
 
-
-
-void 
-prf_set_stegotorus_server(char *address, int port){
-  if(stegotorus_server_address != NULL){
-    free(stegotorus_server_address);
-  }
-  stegotorus_server_address = (address == NULL ? NULL : strdup(address));
-  stegotorus_server_port = port;
+char* prf_get_traces_dir(void){
+  return getvalue(PRF_TD);
 }
 
 
@@ -72,12 +72,12 @@ prf_handle(httpsrv_client_t *hcl) {
         int argc = 0;
         char**argv = NULL;
         dump_preferences();
-        prf_set_stegotorus_server((char*)"127.0.0.1", 1080);
         argc = prf_get_argv(&argv);
         logline(log_WARNING_, "argc = %d", argc);
         for(i = 0; i < argc; i++){
           fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
         }
+        logline(log_WARNING_, "traces directory = %s", prf_get_traces_dir());
       }
     } else {
       logline(log_WARNING_, "prf_parse_preferences() = %d", retcode);
@@ -139,49 +139,42 @@ ${HOME}/Repositories/isc/stegotorus/stegotorus --log-min-severity=warn chop sock
 
 int prf_get_argv(char*** argvp){
   if(argvp != NULL){
-    if((stegotorus_server_address == NULL) || (stegotorus_server_port == -1)){
-      *argvp = NULL;
-      return 0;
-    } else {
-      char** argv = NULL;
-      char *shared_secret = getvalue(PRF_SHS);
-      int trace_packets = (strcmp(getvalue(PRF_TP), "true") == 0);
-      int circuits = atoi(getvalue(PRF_CC));
-      int argc = 7 + (2 * circuits);
-      int i;
-      if(shared_secret != NULL){ argc++; }
-      if(trace_packets){ argc++; } 
-      argv = (char **)calloc(argc, sizeof(char *));
-      if(argv != NULL){
-        char scratch[156];
-        int vslot = 0;
-        argv[vslot++] = strdup(getvalue(PRF_EXE));
-        memset(scratch, 0, 156);
-        snprintf(scratch, 156, "--log-min-severity=%s", getvalue(PRF_LL));
-        argv[vslot++] = strdup(scratch);
-        argv[vslot++] = strdup("chop");
-        argv[vslot++] = strdup("socks");
-        argv[vslot++] = strdup("--persist-mode");
-        if(trace_packets){ 
-          argv[vslot++] = strdup("--trace-packets");
-        }
-        if(shared_secret != NULL && (strcmp(shared_secret, "") != 0)){
-          memset(scratch, 0, 156);
-          snprintf(scratch, 156, "--shared-secret=%s", getvalue(PRF_SHS));
-          argv[vslot++] = strdup(scratch);
-        }
-        memset(scratch, 0, 156);
-        snprintf(scratch, 156, "%s:%d", stegotorus_server_address, stegotorus_server_port);
-        argv[vslot++] = strdup(scratch);
-        for(i = 0; i < circuits; i++){
-          argv[vslot++] = strdup("127.0.0.1:6543");  //should get this from somewhere?!?
-          argv[vslot++] = strdup(getvalue(PRF_SM));
-        }
-        argv[vslot++] = NULL;
+    char** argv = NULL;
+    char *shared_secret = getvalue(PRF_SHS);
+    int trace_packets = (strcmp(getvalue(PRF_TP), "true") == 0);
+    int circuits = atoi(getvalue(PRF_CC));
+    int argc = 7 + (2 * circuits);
+    int i;
+    if(shared_secret != NULL){ argc++; }
+    if(trace_packets){ argc++; } 
+    argv = (char **)calloc(argc, sizeof(char *));
+    if(argv != NULL){
+      char scratch[156];
+      int vslot = 0;
+      argv[vslot++] = strdup(getvalue(PRF_EXE));
+      memset(scratch, 0, 156);
+      snprintf(scratch, 156, "--log-min-severity=%s", getvalue(PRF_LL));
+      argv[vslot++] = strdup(scratch);
+      argv[vslot++] = strdup("chop");
+      argv[vslot++] = strdup("socks");
+      argv[vslot++] = strdup("--persist-mode");
+      if(trace_packets){ 
+        argv[vslot++] = strdup("--trace-packets");
       }
-      *argvp = argv;
-      return argc;
+      if(shared_secret != NULL && (strcmp(shared_secret, "") != 0)){
+        memset(scratch, 0, 156);
+        snprintf(scratch, 156, "--shared-secret=%s", getvalue(PRF_SHS));
+        argv[vslot++] = strdup(scratch);
+      }
+      argv[vslot++] = strdup(getvalue(PRF_PA));
+      for(i = 0; i < circuits; i++){
+        argv[vslot++] = strdup(getvalue(PRF_JA));  
+        argv[vslot++] = strdup(getvalue(PRF_SM));
+      }
+      argv[vslot++] = NULL;
     }
+    *argvp = argv;
+    return argc;
   } else {
     return -1;
   }
