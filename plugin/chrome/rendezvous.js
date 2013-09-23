@@ -133,7 +133,7 @@ Rendezvous = {
 
     set_status: function (msg) {
         if (msg) {
-            document.querySelector('#status').innerHTML = 'Status: ' + msg;
+            document.querySelector('#status').innerHTML = msg;
         }
     },
 

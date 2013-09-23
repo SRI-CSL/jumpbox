@@ -3,10 +3,8 @@
 <head>
 <title>JumpBox :: Rendezvous</title>
 <link rel="stylesheet" type="text/css" href="http://localhost:6543/djb.css" />
-
 <link rel="stylesheet" type="text/css" href="progress.css" />
 <script type="text/javascript" src="progress.js"></script>
-
 <script src="rendezvous.js"></script>
 <style>
 img
@@ -26,12 +24,16 @@ img
 	<h1>Rendezvous to you too!</h1>
 
 	<div id="visible_region">
-		<h2 id="status">Status:</h2>
+		<div class="status">
+			<div class="statuslabel">Status:</div>
+			<div class="statustext" id="status">initializing...</div>
+		</div>
 
 		<div id="onion_fetching_controls">
 			<table id="fetcher">
 			<tr>
-				<td><input type="text" size="50" name="mod_freedom_uri" id="mod_freedom_uri"></td><td><button id="mod_freedom" type="button">Go</button> SSL: <input id="ssl" type="checkbox"></td>
+				<td><input type="text" size="50" name="mod_freedom_uri" id="mod_freedom_uri"></td>
+				<td><button id="mod_freedom" type="button">Go</button> SSL: <input id="ssl" type="checkbox"></td>
 			</tr>
 			</table> 
 		</div>
@@ -89,18 +91,17 @@ img
 	<textarea id="net_textarea" rows="8" cols="50"></textarea>
 
 	<table id="pow_peeler">
-	  <tr>
-	    <td><label id="pow_peeling_intructions">Your onion is a proof of work onion, press OK to see its progress.</label></td>
-	  </tr>
-	  <tr>
-	    <td>
-	      <div id="pow_progress_bar_div"></div>
-	    </td>
-	  </tr>
-	  <tr>
-	    <td><div id="pow_peeler_button_div"><button id="pow_peeler_button" type="button">OK</button></div></td>
-	  </tr>
+	<tr>
+		<td><label id="pow_peeling_intructions">Your onion is a proof of work onion, press OK to see its progress.</label></td>
+	</tr>
+	<tr>
+		<td><div id="pow_progress_bar_div"></div></td>
+	</tr>
+	<tr>
+		<td><div id="pow_peeler_button_div"><button id="pow_peeler_button" type="button">OK</button></div></td>
+	</tr>
 	</table> 
+
 	</div> <!-- grab_bag -->
 </body>
 </html>

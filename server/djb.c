@@ -115,7 +115,27 @@ djb_html_css(httpsrv_client_t *hcl) {
 		".right\n"
 		"{\n"
 		"	text-align	: right\n"
-		"}\n");
+		"}\n"
+		"\n"
+		"div.status\n"
+		"{\n"
+		"	overflow	: hidden;\n"
+		"	background-color: #eeeeee;\n"
+		"}\n"
+		"\n"
+		"div.status div.statuslabel\n"
+		"{\n"
+		"	float		: left;\n"
+		"	font-weight	: bold;\n"
+		"	padding-right	: 0.5em;\n"
+		"}\n"
+		"\n"
+		"div.status div.statustext\n"
+		"{\n"
+		"	float		: left;\n"
+		"}\n"
+		"\n"
+		);
 }
 
 void
