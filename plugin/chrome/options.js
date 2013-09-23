@@ -9,40 +9,56 @@ Options = {
     options: { 
         
         server_name: {
-            getter: function () { return Options.text_getter('server_name'); },
-            setter: function () { return Options.text_setter('server_name'); }
+            getter: function (option_id) { return Options.text_getter(option_id); },
+            setter: function (option_id) { return Options.text_setter(option_id); }
         },
         
         jumpbox_port: {
-            getter: function () { return Options.text_getter('jumpbox_port'); },
-            setter: function () { return Options.text_setter('jumpbox_port'); }
+            getter: function (option_id) { return Options.text_getter(option_id); },
+            setter: function (option_id) { return Options.text_setter(option_id); }
         },
 
         debug_mode: {
-            getter: function () { return Options.checkbox_getter('debug_mode'); },
-            setter: function () { return Options.checkbox_setter('debug_mode'); }
+            getter: function (option_id) { return Options.checkbox_getter(option_id); },
+            setter: function (option_id) { return Options.checkbox_setter(option_id); }
         },
 
         plugin_circuit_count: {
-            getter: function () { return Options.select_getter('plugin_circuit_count'); },
-            setter: function () { return Options.select_setter('plugin_circuit_count'); }
+            getter: function (option_id) { return Options.select_getter(option_id); },
+            setter: function (option_id) { return Options.select_setter(option_id); }
+        },
+
+        stegotorus_executable: {
+            getter: function (option_id) { return Options.text_getter(option_id); },
+            setter: function (option_id) { return Options.text_setter(option_id); }
         },
 
         stegotorus_log_level: {
-            getter: function () { return Options.select_getter('stegotorus_log_level'); },
-            setter: function () { return Options.select_setter('stegotorus_log_level'); }
+            getter: function (option_id) { return Options.select_getter(option_id); },
+            setter: function (option_id) { return Options.select_setter(option_id); }
         },
 
         stegotorus_circuit_count: {
-            getter: function () { return Options.select_getter('stegotorus_circuit_count'); },
-            setter: function () { return Options.select_setter('stegotorus_circuit_count'); }
+            getter: function (option_id) { return Options.select_getter(option_id); },
+            setter: function (option_id) { return Options.select_setter(option_id); }
         },
 
         stegotorus_steg_module: {
-            getter: function () { return Options.select_getter('stegotorus_steg_module'); },
-            setter: function () { return Options.select_setter('stegotorus_steg_module'); }
+            getter: function (option_id) { return Options.select_getter(option_id); },
+            setter: function (option_id) { return Options.select_setter(option_id); }
+        },
+        stegotorus_trace_packets: {
+            getter: function (option_id) { return Options.checkbox_getter(option_id); },
+            setter: function (option_id) { return Options.checkbox_setter(option_id); }
+        },
+        shared_secret: {
+            getter: function (option_id) { return Options.text_getter(option_id); },
+            setter: function (option_id) { return Options.text_setter(option_id); }
+        },
+        traces_directory: {
+            getter: function (option_id) { return Options.text_getter(option_id); },
+            setter: function (option_id) { return Options.text_setter(option_id); }
         }
-
     }, 
     
     text_getter: function(name){
@@ -71,14 +87,14 @@ Options = {
     select_getter: function(name){
         var select = document.getElementById(name);
         var value = select.children[select.selectedIndex].value;
-        console.log('select_getter: ' + name + ' = ' +  value);
+        //console.log('select_getter: ' + name + ' = ' +  value);
         return value;
     },
 
     select_setter: function(name){
         var value, select, index, child;
         value = localStorage[name];
-        console.log('select_setter: ' + name + ' = ' + value);
+        //console.log('select_setter: ' + name + ' = ' + value);
         if(typeof value === 'string'){
             select = document.getElementById(name);
             for (index = 0; index < select.children.length; index += 1) {
@@ -102,7 +118,7 @@ Options = {
         for(option_id in Options.options){
             option = Options.options[option_id];
             getter = option.getter;
-            value = getter();
+            value = getter(option_id);
             localStorage[option_id] = value;
             if(Options.debug){
                 console.log('getter option_id: ' + option_id);
@@ -132,7 +148,7 @@ Options = {
         for(option_id in Options.options){
             option = Options.options[option_id];
             setter = option.setter;
-            setter();
+            setter(option_id);
         }
     }
 

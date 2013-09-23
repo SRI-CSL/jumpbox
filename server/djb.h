@@ -29,4 +29,27 @@ void rdv_handle(httpsrv_client_t *hcl);
 /* Preferences API */
 void prf_handle(httpsrv_client_t *hcl);
 
+/* set the address from the dance; address is copied */
+void prf_set_stegotorus_server(char *address, int port);
+
+/* get the stegotorus argc & argv for a call to exevp from the preferences.
+   Linda points out the we also need to provide the location of the traces
+   directory.
+
+   Usage:
+   
+   int argc;
+   char** argv = NULL;
+
+   argc = prf_get_argv(&argv);
+
+   if(argc > 0){
+   ...
+   }
+
+*/
+int prf_get_argv(char*** argvp);
+char* prf_get_traces_dir(void);
+
+
 #endif /* SHARED_H */

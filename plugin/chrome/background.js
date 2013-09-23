@@ -102,10 +102,7 @@ JumpBox = {
         Debug.log('JumpBox::init pull: ' + JumpBox.jb_pull_url);
 
         try {
-            /* Jeroen, something fishy happens djb side:
-            */
             JumpBox.preferences_push();
-
         }catch (e){
             console.log(e);
         }

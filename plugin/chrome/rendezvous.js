@@ -68,6 +68,7 @@ Rendezvous = {
 
         document.querySelector('#mod_freedom').addEventListener('click', Rendezvous.send_url);
         Rendezvous.reset();
+        Rendezvous.bkg.JumpBox.preferences_push();
         UI.init();
     },
 

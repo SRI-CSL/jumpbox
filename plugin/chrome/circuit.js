@@ -102,6 +102,9 @@ Circuitous = {
 
         Circuit.log('jb_pull(' + circuit_id + ')');
 
+        
+        chrome.browsingData.removeCache({});
+
 	d = new Date();
 	jb_pull_request = new XMLHttpRequest();
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request, circuit_id); };
