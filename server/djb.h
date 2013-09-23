@@ -22,6 +22,7 @@ bool djb_proxy_add(httpsrv_client_t *hcl);
 /* ACS API */
 bool acs_handle(httpsrv_client_t *hcl);
 void acs_set_net(json_t *net_);
+void acs_exit(void);
 
 /* Rendezvous API */
 void rdv_handle(httpsrv_client_t *hcl);

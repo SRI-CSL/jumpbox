@@ -1112,6 +1112,9 @@ djb_run(void) {
 	/* Make sure that our threads are done */
 	thread_stopall(false);
 
+	/* Cleanup */
+	acs_set_net(NULL);
+
 	/* Clean up the http object */
 	if (hs)
 		httpsrv_exit(hs);

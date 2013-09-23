@@ -18,7 +18,9 @@ static json_t *l_net = NULL;
 /*
  * Set the NET, might get called by:
  * - Rendezvous when it is finished
- * - ACS-part of the plugin (though acs_dance_initial())
+ * - ACS-part of the plugin (through acs_dance_initial())
+ *
+ * Call with NULL to 'reset'/cleanup the status
  */
 void
 acs_set_net(json_t *net) {
@@ -32,23 +34,38 @@ acs_set_net(json_t *net) {
 	}
 
 	/* The new NET */
-	assert(net);
 	l_net = net;
-	json_incref(net);
+
+	if (net != NULL) {
+		/* Reference it so it will not go away */
+		json_incref(net);
+	}
 }
 
-static void
-acs_result(httpsrv_client_t *hcl, const char *status, const char *msg);
-static void
-acs_result(httpsrv_client_t *hcl, const char *status, const char *msg) {
-	char t[512];
+enum acs_status
+{
+	ACS_ERROR = 0,
+	ACS_OK
+};
 
-	snprintf(t, sizeof t,
+static void
+acs_result(httpsrv_client_t *hcl, enum acs_status status, const char *msg);
+static void
+acs_result(httpsrv_client_t *hcl, enum acs_status status, const char *msg) {
+	char	t[1024];
+	int	r;
+
+	r = snprintf(t, sizeof t,
 		"{"
 		"\"status\": \"%s\", "
 		"\"message\": \"%s\""
 		"}",
-		status, msg);
+		status == ACS_ERROR ? "error" : "ok",
+		msg);
+
+	if (!snprintfok(r, sizeof t)) {
+		acs_result(hcl, ACS_ERROR, "Too Big");
+	}
 
 	djb_result(hcl, t);
 }
@@ -57,7 +74,7 @@ static void
 acs_result_e(httpsrv_client_t *hcl, const char *msg);
 static void
 acs_result_e(httpsrv_client_t *hcl, const char *msg) {
-	acs_result(hcl, "error", msg);
+	acs_result(hcl, ACS_ERROR, msg);
 }
 
 static bool
@@ -184,5 +201,11 @@ acs_handle(httpsrv_client_t *hcl) {
 	djb_error(hcl, 404, "No such DJB API request (ACS)");
 
 	return (true);
+}
+
+void
+acs_exit(void) {
+	/* Reset */
+	acs_set_net(NULL);
 }
 
