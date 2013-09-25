@@ -214,11 +214,9 @@ djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl) {
 	list_unlock(lst);
 
 	if (pr != NULL) {
-		logline(log_DEBUG_, HCL_ID, pr->hcl->id);
+		log_dbg(HCL_ID, pr->hcl->id);
 	} else {
-		logline(log_WARNING_,
-			"No such HCL (" HCL_ID ") found!?",
-			hcl->id);
+		log_wrn("No such HCL (" HCL_ID ") found!?", hcl->id);
 	}
 
 	return (pr);
@@ -248,12 +246,10 @@ djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid) {
 	list_unlock(lst);
 
 	if (pr != NULL) {
-		logline(log_DEBUG_,
-			"%" PRIu64 ":%" PRIu64 " = " HCL_ID,
+		log_dbg("%" PRIu64 ":%" PRIu64 " = " HCL_ID,
 			id, reqid, pr->hcl->id);
 	} else {
-		logline(log_WARNING_,
-			"No such HCL (%" PRIu64 ":%" PRIu64 " found!?",
+		log_wrn("No such HCL (%" PRIu64 ":%" PRIu64 " found!?",
 			id, reqid);
 	}
 
@@ -298,9 +294,11 @@ djb_pull_post(httpsrv_client_t *hcl);
 void
 djb_pull_post(httpsrv_client_t *hcl) {
 	djb_req_t		*ar;
+#ifdef DEBUG
 	uint64_t		id = hcl->id;
+#endif
 
-	logline(log_DEBUG_, HCL_ID, id);
+	log_dbg(HCL_ID, id);
 
 	/* Proxy request - add it to the requester list */
 	ar = mcalloc(sizeof *ar, "djb_req_t *");
@@ -316,14 +314,14 @@ djb_pull_post(httpsrv_client_t *hcl) {
 
 	list_addtail_l(&lst_api_pull, &ar->node);
 
-	logline(log_DEBUG_, HCL_ID " done", id);
+	log_dbg(HCL_ID " done", id);
 }
 
 bool
 djb_pull(httpsrv_client_t *hcl);
 bool
 djb_pull(httpsrv_client_t *hcl){
-	logline(log_DEBUG_, HCL_ID " keephandling=yes", hcl->id);
+	log_dbg(HCL_ID " keephandling=yes", hcl->id);
 
 	/*
 	 * Add this request to the queue when the request is handled
@@ -343,27 +341,22 @@ bool
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	djb_req_t *pr;
 
-	logline(log_DEBUG_, HCL_ID, hcl->id);
+	log_dbg(HCL_ID, hcl->id);
 
 	/* Find the request */
 	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
 	if (pr == NULL) {
 		/* Can happen if the request timed out etc */
-		logline(log_DEBUG_,
-			HCL_ID " request timed out",
-			hcl->id);
+		log_dbg(HCL_ID " request timed out", hcl->id);
 		httpsrv_done(hcl);
 		return (true);
 	}
 
-	logline(log_DEBUG_,
-		HCL_ID " -> " HCL_ID,
-		hcl->id, pr->hcl->id);
+	log_dbg(HCL_ID " -> " HCL_ID, hcl->id, pr->hcl->id);
 
 	/* Connections might close before the answer is returned */
 	if (!conn_is_valid(&pr->hcl->conn)) {
-		logline(log_DEBUG_,
-			HCL_ID " " CONN_ID " closed",
+		log_dbg(HCL_ID " " CONN_ID " closed",
 			hcl->id, conn_id(&pr->hcl->conn));
 		httpsrv_done(hcl);
 		return (true);
@@ -386,7 +379,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	if (hcl->headers.content_length == 0) {
 		/* Send back a 200 OK as we proxied it */
-		logline(log_DEBUG_, "API push done (no content)");
+		log_dbg("API push done (no content)");
 
 		/* This request is done (after flushing) */
 		httpsrv_done(pr->hcl);
@@ -411,8 +404,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/* The Content-Length header is already included in all the headers */
 	conn_add_contentlen(&pr->hcl->conn, false);
 
-	logline(log_DEBUG_,
-		"Forwarding body from " HCL_ID " to " HCL_ID,
+	log_dbg("Forwarding body from " HCL_ID " to " HCL_ID,
 		pr->hcl->id, hcl->id);
 
 	/* Forward the body from hcl to pr */
@@ -431,8 +423,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 void
 djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *user) {
 
-	logline(log_DEBUG_,
-		"Done forwarding body from "
+	log_dbg("Done forwarding body from "
 		HCL_ID " (keephandling=%s) to "
 		HCL_ID " (keephandling=%s)",
 		hcl->id, yesno(hcl->keephandling),
@@ -444,7 +435,7 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 	/* Was this a push? Then we answer that it is okay */
 	if (strncasecmp(hcl->headers.uri, "/push/", 6) == 0) {
 		/* Send back a 200 OK as we proxied it */
-		logline(log_DEBUG_, "API push, done with it");
+		log_dbg("API push, done with it");
 
 		/* HTTP okay */
 		httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
@@ -453,14 +444,14 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 		conn_printf(&hcl->conn, "Push Body Forward successful\r\n");
 	} else {
 		/* This was a proxy-POST, thus add it back to process queue */
-		logline(log_DEBUG_, "proxy-POST, adding back to queue");
+		log_dbg("proxy-POST, adding back to queue");
 	}
 
 	/* Served another one */
 	thread_serve();
 
 	/* Done for this request is handled by caller: httpsrv_handle_http() */
-	logline(log_DEBUG_, "end");
+	log_dbg("end");
 }
 
 void
@@ -470,7 +461,7 @@ djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
 
 	djb_headers_t *dh;
 
-	logline(log_DEBUG_, HCL_ID, hcl->id);
+	log_dbg(HCL_ID, hcl->id);
 
 	dh = mcalloc(sizeof *dh, "djb_headers_t *");
 	if (!dh) {
@@ -478,9 +469,7 @@ djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
 		return;
 	}
 
-	logline(log_DEBUG_,
-		HCL_ID " %p",
-		hcl->id, (void *)dh);
+	log_dbg(HCL_ID " %p", hcl->id, (void *)dh);
 
 	httpsrv_set_userdata(hcl, dh);
 }
@@ -703,8 +692,7 @@ bool
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* A DJB API request */
-	logline(log_DEBUG_,
-		HCL_ID " DJB API request: %s",
+	log_dbg(HCL_ID " DJB API request: %s",
 		hcl->id, hcl->headers.uri);
 
 	/* Our API URIs                    123456  */
@@ -759,9 +747,11 @@ djb_handle_proxy_post(httpsrv_client_t *hcl);
 void
 djb_handle_proxy_post(httpsrv_client_t *hcl) {
 	djb_req_t	*pr;
+#ifdef DEBUG
 	uint64_t	id = hcl->id;
+#endif
 
-	logline(log_DEBUG_, HCL_ID, id);
+	log_dbg(HCL_ID, id);
 
 	/* Proxy request - add it to the requester list */
 	pr = mcalloc(sizeof *pr, "djb_req_t *");
@@ -781,14 +771,14 @@ djb_handle_proxy_post(httpsrv_client_t *hcl) {
 	 */
 	list_addtail_l(&lst_proxy_new, &pr->node);
 
-	logline(log_DEBUG_, HCL_ID " done", id);
+	log_dbg(HCL_ID " done", id);
 
 	return;
 }
 
 bool
 djb_proxy_add(httpsrv_client_t *hcl) {
-	logline(log_DEBUG_, HCL_ID " keephandling=yes", hcl->id);
+	log_dbg(HCL_ID " keephandling=yes", hcl->id);
 
 	/*
 	 * Add this request to the queue when the request is handled
@@ -818,8 +808,7 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 		hostname = getenv("DJB_FORCED_HOSTNAME");
 
 		if (hostname) {
-			logline(log_DEBUG_,
-				"Proxy Hostname Override: %s",
+			log_dbg("Proxy Hostname Override: %s",
 				hostname);
 		}
 	}
@@ -829,8 +818,7 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 		strncpy(hcl->headers.hostname,
 			hostname,
 			sizeof hcl->headers.hostname);
-		logline(log_DEBUG_,
-			"Forcing Hostname to: %s",
+		log_dbg("Forcing Hostname to: %s",
 			hcl->headers.hostname);
 	}
 
@@ -845,8 +833,7 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t	*dh = (djb_headers_t *)user;
 	bool		done;
 
-	logline(log_DEBUG_,
-		HCL_ID " hostname: %s uri: %s",
+	log_dbg(HCL_ID " hostname: %s uri: %s",
 		hcl->id, hcl->headers.hostname, hcl->headers.uri);
 
 	/* Parse the request */
@@ -867,19 +854,25 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 		done = djb_handle_proxy(hcl);
 	}
 
-	logline(log_DEBUG_, HCL_ID " end", hcl->id);
+	log_dbg(HCL_ID " end", hcl->id);
 
 	return (done);
 }
 
+#ifdef DEBUG
 void
 djb_done(httpsrv_client_t *hcl, void *user);
 void
 djb_done(httpsrv_client_t *hcl, void *user) {
+#else
+void
+djb_done(httpsrv_client_t UNUSED *hcl, void *user);
+void
+djb_done(httpsrv_client_t UNUSED *hcl, void *user) {
+#endif
 	djb_headers_t  *dh;
 
-	logline(log_DEBUG_,
-		HCL_ID " %p",
+	log_dbg(HCL_ID " %p",
 		hcl->id, user);
 
 	dh = (djb_headers_t *)user;
@@ -887,13 +880,17 @@ djb_done(httpsrv_client_t *hcl, void *user) {
 	memzero(dh, sizeof *dh);
 }
 
+#ifdef DEBUG
 void
 djb_close(httpsrv_client_t *hcl, void UNUSED *user);
 void
 djb_close(httpsrv_client_t *hcl, void UNUSED *user) {
-
-	logline(log_DEBUG_, HCL_ID, hcl->id);
+	log_dbg(HCL_ID, hcl->id);
 }
+#else
+/* httpsrv_init() takes this, thus NULL is nothing */
+#define djb_close NULL
+#endif
 
 /*
  * pr = client request
@@ -908,8 +905,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	fassert(pr->hcl);
 	fassert(ar->hcl);
 
-	logline(log_DEBUG_,
-		"request " HCL_ID ", puller " HCL_ID,
+	log_dbg("request " HCL_ID ", puller " HCL_ID,
 		pr->hcl->id, ar->hcl->id);
 
 	/* This has to be valid */
@@ -949,8 +945,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	}
 
 	if (pr->hcl->method != HTTP_M_POST) {
-		logline(log_DEBUG_,
-			"req " HCL_ID " with puller " HCL_ID " is non-POST",
+		log_dbg("req " HCL_ID " with puller " HCL_ID " is non-POST",
 			pr->hcl->id, ar->hcl->id);
 
 		/* XHR requires a return, thus just give it a blank body */
@@ -970,8 +965,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 
 	} else {
 		/* POST request */
-		logline(log_DEBUG_,
-			"req " HCL_ID " with puller " HCL_ID " is POST",
+		log_dbg("req " HCL_ID " with puller " HCL_ID " is POST",
 			pr->hcl->id, ar->hcl->id);
 
 		/* Add the content type of the data to come */
@@ -994,8 +988,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 			/* Put this on the proxy_out list */
 			list_addtail_l(&lst_proxy_out, &pr->node);
 
-			logline(log_DEBUG_,
-				"Forwarding POST body from "
+			log_dbg("Forwarding POST body from "
 				HCL_ID " (keephandling=%s) to " HCL_ID " (keephandling=%s)",
 				pr->hcl->id, yesno(pr->hcl->keephandling),
 				ar->hcl->id, yesno(ar->hcl->keephandling));
@@ -1005,7 +998,7 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		}
 	}
 
-	logline(log_DEBUG_, "end");
+	log_dbg("end");
 }
 
 static void *
@@ -1014,10 +1007,10 @@ static void *
 djb_worker_thread(void UNUSED *arg) {
 	djb_req_t	*pr, *ar;
 
-	logline(log_DEBUG_, "...");
+	log_dbg("...");
 
 	while (thread_keep_running()) {
-		logline(log_DEBUG_, "waiting for proxy request");
+		log_dbg("waiting for proxy request");
 
 		thread_setmessage("Waiting for Proxy Request");
 
@@ -1025,16 +1018,14 @@ djb_worker_thread(void UNUSED *arg) {
 		pr = (djb_req_t *)list_getnext(&lst_proxy_new);
 		if (pr == NULL) {
 			if (thread_keep_running()) {
-				logline(log_ERR_,
-					" get_next(proxy_new) failed...");
+				log_err("get_next(proxy_new) failed...");
 			}
 			break;
 		}
 
 		fassert(pr->hcl);
 
-		logline(log_DEBUG_, "got request " HCL_ID ", getting puller",
-			pr->hcl->id);
+		log_dbg("got request " HCL_ID ", getting puller", pr->hcl->id);
 		thread_setmessage("Got Request " HCL_ID, pr->hcl->id);
 
 		/* We got a request, get a puller for it */
@@ -1042,13 +1033,12 @@ djb_worker_thread(void UNUSED *arg) {
 
 		if (ar == NULL) {
 			if (thread_keep_running()) {
-				logline(log_ERR_,
-					" get_next(api_pull) failed...");
+				log_err(" get_next(api_pull) failed...");
 			}
 			break;
 		}
 
-		logline(log_DEBUG_, "request " HCL_ID ", puller "HCL_ID,
+		log_dbg("request " HCL_ID ", puller "HCL_ID,
 			pr->hcl->id, ar->hcl->id);
 
 		thread_setmessage("request " HCL_ID " puller " HCL_ID,
@@ -1062,10 +1052,10 @@ djb_worker_thread(void UNUSED *arg) {
 		/* Served another one */
 		thread_serve();
 
-		logline(log_DEBUG_, "end");
+		log_dbg("end");
 	}
 
-	logline(log_DEBUG_, "exit");
+	log_dbg("exit");
 
 	return (NULL);
 }
@@ -1081,7 +1071,7 @@ djb_run(void) {
 	/* Create out DGW structure */
 	hs = (httpsrv_t *)mcalloc(sizeof *hs, "httpsrv_t");
 	if (hs == NULL) {
-		logline(log_CRIT_, "No memory for HTTP Server");
+		log_crt("No memory for HTTP Server");
 		return (-1);
 	}
 
@@ -1089,7 +1079,7 @@ djb_run(void) {
 		/* Launch a few worker threads */
 		for (i = 0; i < DJB_WORKERS; i++) {
 			if (!thread_add("DJBWorker", &djb_worker_thread, NULL)) {
-				logline(log_ERR_, "could not create thread");
+				log_err("Could not create worker thread");
 				ret = -1;
 				break;
 			}
@@ -1105,14 +1095,14 @@ djb_run(void) {
 				  djb_bodyfwd_done,
 				  djb_done,
 				  djb_close)) {
-			logline(log_ERR_, "Could not initialize HTTP server");
+			log_err("Could not initialize HTTP server");
 			ret = -1;
 			break;
 		}
 
 		/* Fire up an HTTP server */
 		if (!httpsrv_start(hs, DJB_HOST, DJB_PORT, DJB_WORKERS)) {
-			logline(log_ERR_, "HTTP Server failed");
+			log_err("HTTP Server failed");
 			ret = -1;
 			break;
 		}
@@ -1127,7 +1117,7 @@ djb_run(void) {
 	}
 
 	/* Cleanup time as the mainloop ended */
-	logline(log_DEBUG_, "Cleanup Time...(main ret = %d)", ret);
+	log_dbg("Cleanup Time...(main ret = %d)", ret);
 
 	/* Make sure that our threads are done */
 	thread_stopall(false);
@@ -1198,7 +1188,7 @@ main(int argc, const char *argv[]) {
 		ret = -1;
 	}
 
-	logline(log_DEBUG_, "It's all over... (%d)", ret);
+	log_dbg("It's all over... (%d)", ret);
 
 	thread_exit();
 

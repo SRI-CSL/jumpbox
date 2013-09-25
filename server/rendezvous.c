@@ -50,7 +50,7 @@ static void
 rdv_onion_reset(void);
 static void
 rdv_onion_reset(void) {
-	logline(log_DEBUG_, "...");
+	log_dbg("...");
 
 	memset(l_password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
 
@@ -64,7 +64,7 @@ static void
 rdv_pow_reset(void);
 static void
 rdv_pow_reset(void) {
-	logline(log_DEBUG_, "...");
+	log_dbg("...");
 
 	if (l_pow_thread_started) {
 		onion_t inner;
@@ -87,12 +87,11 @@ static void
 rdv_captcha_reset(void);
 static void
 rdv_captcha_reset(void) {
-	logline(log_DEBUG_, "...");
+	log_dbg("...");
 
 	if (l_captcha_image_path != NULL) {
 		if (unlink(l_captcha_image_path) == -1) {
-			logline(log_DEBUG_,
-				"unlink(%s) failed: %s",
+			log_dbg("unlink(%s) failed: %s",
 				l_captcha_image_path, strerror(errno));
 		}
 
@@ -105,18 +104,16 @@ static void
 rdv_image_reset(void);
 static void
 rdv_image_reset(void) {
-	logline(log_DEBUG_, "...");
+	log_dbg("...");
 
 	if (l_current_image_path != NULL) {
 		if (unlink(l_current_image_path) == -1){
-			logline(log_WARNING_,
-				"unlink(%s) failed: %s",
+			log_wrn("unlink(%s) failed: %s",
 				l_current_image_path, strerror(errno));
 		};
 
 		if (rmdir(l_current_image_dir) == -1){
-			logline(log_WARNING_,
-				"rmdir(%s) failed: %s",
+			log_wrn("rmdir(%s) failed: %s",
 				l_current_image_dir, strerror(errno));
 		};
 
@@ -165,8 +162,7 @@ rdv_gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure) {
 	if (defcode == DEFIANT_OK) {
 		djb_result(hcl, request);
 
-		logline(log_DEBUG_,
-			"secure=%s, password=%s, request=%s",
+		log_dbg("secure=%s, password=%s, request=%s",
 			yesno(secure),
 			l_password, request);
 	} else {
@@ -196,14 +192,13 @@ rdv_gen_request(httpsrv_client_t* hcl) {
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
 		if (httpsrv_readbody_alloc(hcl, 2, 0) < 0){
-			logline(log_DEBUG_,
-				"httpsrv_readbody_alloc() failed");
+			log_dbg("httpsrv_readbody_alloc() failed");
 		}
 
 		return;
 	}
 
-	logline(log_DEBUG_, "data: %s", hcl->readbody);
+	log_dbg("data: %s", hcl->readbody);
 
 	root = json_loads(hcl->readbody, 0, &error);
 	httpsrv_readbody_free(hcl);
@@ -230,8 +225,7 @@ rdv_gen_request(httpsrv_client_t* hcl) {
 		djb_error(hcl, 500, "POST data conundrum");
 
 		if (root == NULL) {
-			logline(log_DEBUG_,
-				"data: %s, error: line: %u, msg: %s",
+			log_dbg("data: %s, error: line: %u, msg: %s",
 				hcl->readbody, error.line, error.text);
 		}
 	}
@@ -259,12 +253,12 @@ rdv_image(httpsrv_client_t*  hcl) {
 	size_t		encrypted_onion_sz = 0;
 	int		retcode = DEFIANT_OK;
 
-	logline(log_DEBUG_, "readbody: %s", yesno(hcl->readbody == NULL));
+	log_dbg("readbody: %s", yesno(hcl->readbody == NULL));
 
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0){
-			logline(log_DEBUG_, "httpsrv_readbody_alloc() failed");
+			log_dbg("httpsrv_readbody_alloc() failed");
 		}
 
 		return;
@@ -277,8 +271,7 @@ rdv_image(httpsrv_client_t*  hcl) {
 	httpsrv_readbody_free(hcl);
 
 	if (retcode != DEFIANT_OK){
-		logline(log_DEBUG_,
-			"extract_n_save() with password=%s returned %d -- %s",
+		log_dbg("extract_n_save() with password=%s returned %d -- %s",
 			l_password, retcode, defiant_strerror(retcode));
 
 		djb_error(hcl, 500,
@@ -291,21 +284,17 @@ rdv_image(httpsrv_client_t*  hcl) {
 				encrypted_onion_sz, &onion_sz);
 
 		if (onion == NULL){
-			logline(log_DEBUG_,
-				"Decrypting onion failed: No onion");
+			log_dbg("Decrypting onion failed: No onion");
 
 		} else if (onion_sz < (int)sizeof(onion_header_t)) {
-			logline(log_DEBUG_,
-				"Decrypting onion failed: onion_sz less "
+			log_dbg("Decrypting onion failed: onion_sz less "
 				"than onion header");
 
 		} else if (!ONION_IS_ONION(onion)) {
-			logline(log_DEBUG_,
-				"Decrypting onion failed: Onion Magic Incorrect");
+			log_dbg("Decrypting onion failed: Onion Magic Incorrect");
 
 		} else if (onion_sz != (int)ONION_SIZE(onion)) {
-			logline(log_DEBUG_,
-				"Decrypting onion failed: onion_sz (%u) "
+			log_dbg("Decrypting onion failed: onion_sz (%u) "
 				"does nat match real onion sizeu(%d)",
 				onion_sz, (int)ONION_SIZE(onion));
 		} else {
@@ -313,14 +302,13 @@ rdv_image(httpsrv_client_t*  hcl) {
 				    ONION_TYPE(onion));
 
 			if (response != NULL) {
-				logline(log_DEBUG_, "response %s", response);
+				log_dbg("response %s", response);
 
 				l_current_onion = (onion_t)onion;
 				l_current_image_path = image_path;
 				l_current_image_dir = image_dir;
 
-				logline(log_DEBUG_,
-					"onion_sz %u, "
+				log_dbg("onion_sz %u, "
 					"onion_type: %u",
 					onion_sz,
 					ONION_TYPE(l_current_onion));
@@ -384,7 +372,7 @@ rdv_peel_base(bool *json_response) {
 
 	nep = (char*)ONION_DATA(l_current_onion);
 
-	logline(log_DEBUG_, "nep = %s", nep);
+	log_dbg("nep = %s", nep);
 
 	root = json_loads(nep, 0, &error);
 	if (root != NULL) {
@@ -399,8 +387,7 @@ rdv_peel_base(bool *json_response) {
 		/* Pass the NET to ACS so that it can Dance */
 		acs_set_net(root);
 	} else {
-		logline(log_DEBUG_,
-			"data = %s error: line: %d msg: %s",
+		log_dbg("data = %s error: line: %d msg: %s",
 			 nep, error.line, error.text);
 		response = rdv_make_peel_response(
 			"Sorry your nep did not parse as JSON", "");
@@ -426,8 +413,7 @@ rdv_pow_worker(void UNUSED *arg) {
 					   (uchar*)data, data_len,
 					   &l_pow_thread_progress);
 
-	logline(log_DEBUG_,
-		"pow_inner_onion = %p : %s %s",
+	log_dbg("pow_inner_onion = %p : %s %s",
 		l_pow_inner_onion, (char *)l_pow_inner_onion,
 		(char *)ONION_DATA(l_pow_inner_onion));
 
@@ -448,7 +434,7 @@ rdv_attempts2percent(void) {
 	retval = ((current * 100) / maxAttempts);
 
 #ifdef RDV_VERBOSE
-	logline(log_DEBUG_, "%lu %u%%\n", current, retval);
+	log_dbg("%lu %u%%\n", current, retval);
 #endif
 	return (retval);
 }
@@ -519,8 +505,7 @@ rdv_peel_captcha_no_image_path(void) {
 		return (NULL);
 	}
 
-	logline(log_DEBUG_,
-		"Captcha image = %s",
+	log_dbg("Captcha image = %s",
 		l_captcha_image_path);
 
 	retcode = bytes2file(l_captcha_image_path,
@@ -528,8 +513,7 @@ rdv_peel_captcha_no_image_path(void) {
 			     ONION_PUZZLE(l_current_onion));
 
 	if (retcode != DEFIANT_OK) {
-		logline(log_DEBUG_,
-			"Could not store captcha to %s: %s",
+		log_dbg("Could not store captcha to %s: %s",
 			l_captcha_image_path,
 			defiant_strerror(retcode));
 
@@ -653,18 +637,17 @@ rdv_peel(httpsrv_client_t *hcl) {
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
-			logline(log_DEBUG_, "httpsrv_readbody_alloc() failed");
+			log_dbg("httpsrv_readbody_alloc() failed");
 		}
 		return;
 	}
 
-	logline(log_DEBUG_, "readbody: %s", hcl->readbody);
+	log_dbg("readbody: %s", hcl->readbody);
 	root = json_loads(hcl->readbody, 0, &error);
 	httpsrv_readbody_free(hcl);
 
 	if (root == NULL) {
-		logline(log_DEBUG_,
-			"libjansson error: line: %u msg: %s",
+		log_dbg("libjansson error: line: %u msg: %s",
 			error.line, error.text);
 		djb_error(hcl, 500, "Bad JSON");
 
@@ -728,7 +711,7 @@ rdv_file(httpsrv_client_t* hcl, const char *file);
 static void
 rdv_file(httpsrv_client_t* hcl, const char *file) {
 	/* Only serve random outguess_embed files */
-	logline(log_DEBUG_, "file = %s", file);
+	log_dbg("file = %s", file);
 
 	/*                     1234567890123456789 */
 	if (strncmp(file, "/tmp/outguess_embed", 19) == 0) {
@@ -751,7 +734,7 @@ rdv_handle(httpsrv_client_t *hcl) {
 	/* Skip '/rendezvous/' (12) */
 	query = &(hcl->headers.uri[12]);
 
-	logline(log_DEBUG_, "query = %s", query);
+	log_dbg("query = %s", query);
 
 	if (strcasecmp(query, "reset") == 0) {
 		rdv_reset(hcl);

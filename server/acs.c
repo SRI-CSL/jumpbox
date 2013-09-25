@@ -24,7 +24,7 @@ static json_t *l_net = NULL;
  */
 void
 acs_set_net(json_t *net) {
-	logline(log_DEBUG_, "...");
+	log_dbg("...");
 
 	/* Old NET? */
 	if (l_net != NULL) {
@@ -85,21 +85,21 @@ acs_initial(httpsrv_client_t *hcl) {
 	json_t		*initial_j, *root;
 	const char	*initial;
 
-	logline(log_INFO_, "..");
+	log_inf("..");
 
 	/* POST? Then read in the NET from the HTTP request */
 	if (hcl->method == HTTP_M_POST) {
-		logline(log_INFO_, "POST, checking for body");
+		log_inf("POST, checking for body");
 
 		/* No BODY yet, then we have to start reading */
 		if (hcl->readbody == NULL) {
-			logline(log_INFO_, "POST allocating memory for body");
+			log_inf("POST allocating memory for body");
 
 			if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
 				acs_result_e(hcl, "Out of Memory");
 				return (true);
 			} else {
-				logline(log_INFO_, "POST let it be read");
+				log_inf("POST let it be read");
 				/* Let httpsrv read it in */
 			}
 
@@ -107,14 +107,13 @@ acs_initial(httpsrv_client_t *hcl) {
 			return (false);
 		}
 
-		logline(log_INFO_, "Got a POST body, set the NET");
+		log_inf("Got a POST body, set the NET");
 
 		/* We should have a body, try to convert it into JSON */
 		root = json_loads(hcl->readbody, 0, &jerr);
 		if (root == NULL) {
 			/* Failure */
-			logline(log_INFO_,
-				"Could not parse NET (JSON load failed): "
+			log_inf("Could not parse NET (JSON load failed): "
 				"line %u, column %u: %s",
 				jerr.line, jerr.column, jerr.text);
 
@@ -157,7 +156,7 @@ acs_initial(httpsrv_client_t *hcl) {
 
 	initial = json_string_value(initial_j);
 
-	logline(log_INFO_, "Initial Gateway: %s", initial);
+	log_inf("Initial Gateway: %s", initial);
 
 	/*
 	 * We ask the plugin to contact the Initial gateway

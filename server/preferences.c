@@ -49,13 +49,12 @@ void
 prf_handle(httpsrv_client_t *hcl) {
   if (hcl->readbody == NULL) {
     if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
-      logline(log_WARNING_,
-              "httpsrv_readbody_alloc() failed");
+      log_wrn("httpsrv_readbody_alloc() failed");
     }
     return;
   } else {
     int retcode, i;
-    logline(log_INFO_, "prefs = %s", hcl->readbody);
+    log_inf("prefs = %s", hcl->readbody);
     if(current_preferences != NULL){ free(current_preferences); } 
     current_preferences = (hcl->readbody == NULL ? NULL : strdup(hcl->readbody));
     retcode = prf_parse_preferences();
@@ -66,13 +65,13 @@ prf_handle(httpsrv_client_t *hcl) {
         char**argv = NULL;
         dump_preferences();
         argc = prf_get_argv(&argv);
-        logline(log_WARNING_, "argc = %d", argc);
+        log_wrn("argc = %d", argc);
         for(i = 0; i < argc; i++){
           fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
         }
       }
     } else {
-      logline(log_WARNING_, "prf_parse_preferences() = %d", retcode);
+      log_wrn("prf_parse_preferences() = %d", retcode);
     }
   }
   djb_result(hcl, "Preferences OK");
