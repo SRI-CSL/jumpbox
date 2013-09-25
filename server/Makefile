@@ -97,6 +97,10 @@ LIBFUTIL:=../../libfutil/
 OBJFUTIL:=$(LIBFUTIL)src/
 CFLAGS	+= -I$(LIBFUTIL)include/
 
+# Make sure that we can find includes in local
+CFLAGS	+= -I/usr/local/include/
+LDFLAGS	+= -L/usr/local/lib/
+
 ifeq ($(shell echo $(CFLAGS) | grep -c "DJB_RENDEZVOUS"),1)
 # Rendezvous: Location of defiantclient + dependencies
 LIBDEFIANTCLIENT:=../../rendezvous/client/src/
