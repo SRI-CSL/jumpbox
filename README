@@ -15,9 +15,11 @@ These code libraries have to be placed in ../libfutil and ../rendezvous respecti
 
 For Rendezvous one needs the "pbc" library from Stanford's Crypto department:
  http://crypto.stanford.edu/pbc/
+and also the libjansson library
 
-Fortunately, this is available in Homebrew:
+Fortunately, these are available in Homebrew:
  brew install pbc
+ brew install jansson
 
 == Environment Variables ==
 
