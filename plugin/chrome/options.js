@@ -54,10 +54,6 @@ Options = {
         shared_secret: {
             getter: function (option_id) { return Options.text_getter(option_id); },
             setter: function (option_id) { return Options.text_setter(option_id); }
-        },
-        traces_directory: {
-            getter: function (option_id) { return Options.text_getter(option_id); },
-            setter: function (option_id) { return Options.text_setter(option_id); }
         }
     }, 
     

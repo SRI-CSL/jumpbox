@@ -18,12 +18,11 @@ static char* keys[] =   { (char *)"stegotorus_circuit_count",
                           (char *)"stegotorus_steg_module", 
                           (char *)"stegotorus_trace_packets", 
                           (char *)"shared_secret", 
-                          (char *)"traces_directory", 
                           (char *)"proxy_address", 
                           (char *)"djb_address", 
                           NULL};
 
-static char* values[] = { NULL,  NULL,  NULL,  NULL,   NULL,  NULL,  NULL,   NULL,  NULL,  NULL};
+static char* values[] = { NULL,  NULL,  NULL,  NULL,   NULL,  NULL,  NULL,   NULL,  NULL};
 
 static char* defaults[] =   { (char *)"1", 
                               (char *)"stegotorus", 
@@ -31,7 +30,6 @@ static char* defaults[] =   { (char *)"1",
                               (char *)"json", 
                               (char *)"false", 
                               (char *)NULL, 
-                              (char *)"/usr/share/stegotorus", 
                               (char *)"127.0.0.1:1080",     //do we need to burden the user with these (yet)?
                               (char *)"127.0.0.1:6543",     //do we need to burden the user with these (yet)?
                               NULL};
@@ -46,11 +44,6 @@ char* getvalue(int i){
     return (values[i] != NULL) ? values[i] : defaults[i]; 
   }
 }
-
-char* prf_get_traces_dir(void){
-  return getvalue(PRF_TD);
-}
-
 
 void
 prf_handle(httpsrv_client_t *hcl) {
@@ -77,7 +70,6 @@ prf_handle(httpsrv_client_t *hcl) {
         for(i = 0; i < argc; i++){
           fprintf(stderr, "argv[%d] = %s\n", i, argv[i]);
         }
-        logline(log_WARNING_, "traces directory = %s", prf_get_traces_dir());
       }
     } else {
       logline(log_WARNING_, "prf_parse_preferences() = %d", retcode);
