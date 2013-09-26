@@ -29,6 +29,8 @@ void rdv_handle(httpsrv_client_t *hcl);
 
 /* Preferences API */
 void prf_handle(httpsrv_client_t *hcl);
+void prf_init(void);
+void prf_exit(void);
 
 /* Get the stegotorus argc & argv for a call to exevp from the preferences.
 

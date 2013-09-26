@@ -1076,6 +1076,9 @@ djb_run(void) {
 	}
 
 	while (true) {
+		/* Initialize Preferences module */
+		prf_init();
+
 		/* Launch a few worker threads */
 		for (i = 0; i < DJB_WORKERS; i++) {
 			if (!thread_add("DJBWorker", &djb_worker_thread, NULL)) {
@@ -1122,7 +1125,10 @@ djb_run(void) {
 	/* Make sure that our threads are done */
 	thread_stopall(false);
 
-	/* Cleanup */
+	/* Cleanup Preferences */
+	prf_init();
+
+	/* Cleanup ACS */
 	acs_set_net(NULL);
 
 	/* Clean up the http object */
