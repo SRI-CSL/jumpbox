@@ -119,37 +119,56 @@ more detail below.
 ACS has two phases for the consideration of this document: initial + redirect.
 The third phase 'bridge' is performed by providing the NET details to StegoTorus and starting it.
 
+For the browser plugin these phases are transparent as the proxy /pull/ + /push/ API is used.
+
 ACS status is convened with a simple JSON message in the form:
   {
-     "status": "(ok|error|wait)",
+     "status": "(ok|error|done)",
      "message": "<message>",
   }
 
-==== ACS Initial ====
+==== ACS Setup ====
 
-There are two modes for /acs/initial/:
- - The last Rendezvous step provides the NET it received to acs_set_net()
-   and the browser plugin does a 'GET /acs/initial/'.
- - When ACS is performed without Rendezvous, the browser plugin does a
-   POST to /acs/initial/ with as the body the JSON for the NET.
+The browser gathers a NET, either through rendezvous or a textfield.
 
-During this the browser is always /pull/'ing for a request, ACS uses this also and provides
-it with the request it needs to make for the ACS Initial step. The browser will then return
-the result of that request by /push/'ing it back to djb. at which point that result comes
-back to the ACS code which handles it and returns from the /acs/initial/ with a JSON
-status message.
+It provides djb this NET with a 'POST /acs/setup/' (textfield) or
+with acs_set_net() directly from rendezvous.
 
-==== ACS Redirect ====
+This will result in a ACS status, after this, the plugin will start
+asking about progress of the Dance.
 
-When the Initial request has completed, the browser starts polling /acs/redirect/.
-The results are either a status of 'wait', 'error' or 'ok'.
+The browser does not need to know the contents of the NET.
 
-The 'wait' indicates that the Dance is still in it's wait phase.
+==== ACS status ====
 
-When the redirect phase succeeds DJB is reconfigured with the gateway(s) from ACS and
-StegoTorus and Tor are started by DJB.
+The browser asks about the progress of the Dance by sending a
+'GET /acs/progress/'
 
-When the redirect has completed it returns 'ok' or 'error' to indicate success or failure.
+The result is a ACS result. The browser will repeat this question
+till it gets an 'error' or 'done' back.
+
+The request blocks till the message changes.
+
+The first request to this URL triggers the Dance which is directed
+by djb.
+
+==== ACS Initial + Redirect ====
+
+The first phase is ACS Initial. djb injects a request for the Initial
+URL into the normal proxy /pull/ cycle and picks the answer back out of it.
+
+When Initial is complete, it waits a bit, updating the status to reflect this.
+It then executes the Redirect phase in the same way as the Initial phase.
+
+When Redirect completes it signals 'done' through the progress indicator.
+
+=== Tor over StegoTorus over Jumpbox through DGW ===
+
+At this point Tor over StegoTorus over JumpBox (Proxy) can be started as all
+details are available.
+
+To do this, a call to /start/ is made, a ACS response is used to signal the status.
+We use the preferences set to construct the relevant exec commands.
 
 === djb HTTP Errors ===
 
