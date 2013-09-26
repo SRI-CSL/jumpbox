@@ -1,6 +1,6 @@
 #include "djb.h"
 
-/* XXX: relies on strdup/calloc, but there is no free() */
+/* XXX: relies on strdup/calloc, verify if all is free()'d properly */
 
 static mutex_t	l_mutex;
 static char	*l_current_preferences = NULL;
@@ -63,7 +63,22 @@ prf_getvalue(enum prf_v i) {
  * stegotorus --log-min-severity=warn chop socks --persist-mode --trace-packets --shared-secret=bingoBedbug 127.0.0.1:1080 127.0.0.1:6543 ${MODULE} ... NULL
  * 1          2                       3    4      5             [opt]           [opt]                       6               [ n circuits * 2]           7 
 */
-
+/*
+ * Get the Stegotorus argc & argv for a call to exevp from the preferences.
+ *
+ * Usage:
+ *
+ *  int argc;
+ *  char** argv = NULL;
+ *
+ *  argc = prf_get_argv(&argv);
+ *
+ *  if (argc > 0) {
+ *  ...
+ *  }
+ *
+ *  prf_free_argv(argv);
+ */
 int
 prf_get_argv(char*** argvp) {
 	char		**argv = NULL;
@@ -136,6 +151,17 @@ prf_get_argv(char*** argvp) {
 	mutex_unlock(l_mutex);
 
 	return (argc);
+}
+
+void
+prf_free_argv(unsigned int argc, char **argv) {
+	unsigned int i;
+
+	for (i = 0; i < argc; i++) {
+		free(argv[i]);
+	}
+
+	free(argv);
 }
 
 /* XXX uses strdup */

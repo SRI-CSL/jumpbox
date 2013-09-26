@@ -28,31 +28,10 @@ void acs_exit(void);
 void rdv_handle(httpsrv_client_t *hcl);
 
 /* Preferences API */
-void prf_handle(httpsrv_client_t *hcl);
 void prf_init(void);
 void prf_exit(void);
-
-/* Get the stegotorus argc & argv for a call to exevp from the preferences.
-
-   Usage:
-   
-   int argc;
-   char** argv = NULL;
-
-   argc = prf_get_argv(&argv);
-
-   if(argc > 0){
-   ...
-   }
-
-   for(i = 0; i < argc; i++){
-     free(argv[i]);
-   }
-   free(argv);
-
-
-*/
+void prf_handle(httpsrv_client_t *hcl);
 int prf_get_argv(char*** argvp);
-
+void prf_free_argv(unsigned int argc, char **argv);
 
 #endif /* SHARED_H */
