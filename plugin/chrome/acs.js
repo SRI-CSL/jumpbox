@@ -136,8 +136,10 @@ process_response: function (req) {
 				/* Succesful requests cause */
 				ACS.progress();
 			}
+		} else if (req.status === 0) {
+			ACS.set_status("error", "ACS Setup failed: request not made");
 		} else {
-			ACS.set_status("error", "ACS Setup failed: " + req.status + " " + req.statusText );
+			ACS.set_status("error", "ACS Setup failed: HTTP Error " + req.status + " : " + req.statusText );
 		}
 	}
 },
