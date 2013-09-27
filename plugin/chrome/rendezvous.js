@@ -13,8 +13,7 @@
  * http://www.html5rocks.com/en/tutorials/file/xhr2/
  * 
  *  Step 3: Ask for the status of the onion (should respond with a status and perhaps an activity)
- *  Step 4: Repeat step 3 until we have a net. Once we have a net we need to do the dance.
- *  Ideas on this Jeroen?
+ *  Step 4: Repeat step 3 until we have a net. Once we have a net we need to do the ACS Dance.
  */
 
 var Rendezvous, UI;
@@ -42,8 +41,6 @@ Rendezvous = {
 
     peel_url: null,
 
-    acs_url: null,
-
     init: function () {
 
         Rendezvous.bkg = chrome.extension.getBackgroundPage();
@@ -63,7 +60,6 @@ Rendezvous = {
             Rendezvous.gen_request_url = djb + '/rendezvous/gen_request';
             Rendezvous.image_url = djb + '/rendezvous/image';
             Rendezvous.peel_url = djb + '/rendezvous/peel';
-            Rendezvous.acs_url = djb + '/acs/initial/';
         }
 
         document.querySelector('#mod_freedom').addEventListener('click', Rendezvous.send_url);
@@ -72,30 +68,10 @@ Rendezvous = {
         UI.init();
     },
 
-    dance: function () {
-        if (typeof Rendezvous.net === 'string'){
-            console.log("Sending your net: " + Rendezvous.net)
-            var acs_request = new XMLHttpRequest();
-            acs_request.onreadystatechange = function () { Rendezvous.dance_response(acs_request); };
-            acs_request.open('POST', Rendezvous.acs_url);
-            ////the webRequest API should ignore
-            //acs_request.setRequestHeader('DJB_REQUEST', 'true');
-            acs_request.send(Rendezvous.net);
-        } else {
-            console.log("Net is not a string: " + Rendezvous.net)
-        }
+    dance:  function (request) {
+	/* Open the ACS page for that to continue */
+	chrome.tabs.create({ url : "acs.html" });
     },
-
-    dance_response:  function (request) {
-        if (request.readyState === 4) {
-            if (request.status === 200) {
-                Rendezvous.set_status('dance: net sent OK');
-            } else {
-                //not sure why this would happen unless the jumpbox crashed
-                Rendezvous.set_status('dance: net sent **NOT** OK');
-            }
-        }
-    },    
 
     reset:  function () {
         var reset_request = new XMLHttpRequest();
@@ -318,20 +294,11 @@ UI = {
     },
 
     update_BASE_display: function (robj) {
-        if(typeof robj.info == 'object'){
-            var net_textarea_div = document.querySelector('#net_textarea_div');
-            var net_textarea = document.querySelector('#net_textarea');
-            var instructions =  document.querySelector('#base_peeling_intructions');
-            Rendezvous.net = JSON.stringify(robj.info);
-            net_textarea.value =  Rendezvous.net;
-            net_textarea_div.appendChild(net_textarea);
-            instructions.textContent = 'Press OK to start the dance';
-            document.querySelector('#base_peeler_button').removeEventListener('click', UI.peel_away);
-            document.querySelector('#base_peeler_button').addEventListener('click', Rendezvous.dance);
-        } else {
-            document.querySelector('#base_peeler_button').addEventListener('click', UI.peel_away);            
-
-        }
+	 var net_textarea_div = document.querySelector('#net_textarea_div');
+	 var instructions =  document.querySelector('#base_peeling_intructions');
+	 instructions.textContent = 'Press OK to start the dance';
+	 document.querySelector('#base_peeler_button').removeEventListener('click', UI.peel_away);
+	 document.querySelector('#base_peeler_button').addEventListener('click', Rendezvous.dance);
     },
 
     progress_bar: new Progress.bar({ id: "progress5", autoRemove: false, backgroundSpeed: -5, type: "charge", showPercentage: true }),

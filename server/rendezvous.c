@@ -343,9 +343,9 @@ static const char *
 rdv_make_peel_response(const char* info, const char* status);
 static const char *
 rdv_make_peel_response(const char* info, const char* status) {
-	int	onion_type = ONION_TYPE(l_current_onion);
+	unsigned int onion_type = ONION_TYPE(l_current_onion);
 
-	return (aprintf("{ \"info\": \"%s\",  \"status\": \"%s\", \"onion_type\": %d}",
+	return (aprintf("{ \"info\": \"%s\",  \"status\": \"%s\", \"onion_type\": %u}",
 			info, status, onion_type));
 }
 
@@ -353,22 +353,23 @@ static const char *
 rdv_make_pow_response(unsigned int percent, const char *status);
 static const char *
 rdv_make_pow_response(unsigned int percent, const char *status) {
-	int	onion_type = ONION_TYPE(l_current_onion);
+	unsigned int onion_type = ONION_TYPE(l_current_onion);
 
-	return (aprintf("{ \"info\": %u,  \"status\": \"%s\", \"onion_type\": %d}",
+	return (aprintf("{ \"info\": %u,  \"status\": \"%s\", \"onion_type\": %u}",
 			percent, status, onion_type));
 }
 
 static const char *
-rdv_peel_base(bool *json_response);
+rdv_peel_base(void);
 static const char *
-rdv_peel_base(bool *json_response) {
+rdv_peel_base(void) {
 	const char	*response = NULL;
 	const char	*nep;
 	json_error_t	error;
-	json_t		*root, *resp;
+	json_t		*root;
 
-	*json_response = false;
+	/* Just in case */
+	fassert(ONION_TYPE(l_current_onion) == BASE);
 
 	nep = (char*)ONION_DATA(l_current_onion);
 
@@ -376,16 +377,15 @@ rdv_peel_base(bool *json_response) {
 
 	root = json_loads(nep, 0, &error);
 	if (root != NULL) {
-		resp = json_pack("{s:i, s:s, s:o}",
-				 "onion_type", ONION_TYPE(l_current_onion),
-				 "status", "Here is your NET!",
-				 "info", root);
-
-		response = json_dumps(resp, 0);
-		*json_response = true;
-
 		/* Pass the NET to ACS so that it can Dance */
 		acs_set_net(root);
+		/* XXX: might fail if already dancing, check return */
+
+		response = rdv_make_peel_response(
+			"NET passed to ACS", "Complete");
+
+		/* Done with it here */
+		json_decref(root);
 	} else {
 		log_dbg("data = %s error: line: %d msg: %s",
 			 nep, error.line, error.text);
@@ -632,7 +632,6 @@ rdv_peel(httpsrv_client_t *hcl) {
 	json_error_t	error;
 	json_t		*root;
 	int		otype;
-	bool		json_response = false;
 
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
@@ -657,9 +656,9 @@ rdv_peel(httpsrv_client_t *hcl) {
 	} else {
 		otype = ONION_TYPE(l_current_onion);
 
-		switch(otype){
+		switch (otype){
 		case BASE:
-			response = rdv_peel_base(&json_response);
+			response = rdv_peel_base();
 			break;
 
 		case POW:
@@ -684,26 +683,14 @@ rdv_peel(httpsrv_client_t *hcl) {
 		if (response != NULL){
 			djb_result(hcl, response);
 
-			if (json_response) {
-				free((void *)response);
-			} else {
-				aprintf_free(response);
-			}
+			aprintf_free(response);
 			response = NULL;
-
 		} else {
 			djb_error(hcl, 500, "Peeling failed");
 		}
 	}
 
 	json_decref(root);
-}
-
-static void
-rdv_dance(httpsrv_client_t* hcl);
-static void
-rdv_dance(httpsrv_client_t* hcl) {
-	djb_error(hcl, 500, "Dancing not implemented yet");
 }
 
 static void
@@ -747,9 +734,6 @@ rdv_handle(httpsrv_client_t *hcl) {
 
 	} else if (strcasecmp(query, "peel") == 0) {
 		rdv_peel(hcl);
-
-	} else if (strcasecmp(query, "dance") == 0) {
-		rdv_dance(hcl);
 
 	} else if (strncasecmp(query, "file/", 5) == 0) {
 		rdv_file(hcl, &query[4]);
