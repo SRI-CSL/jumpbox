@@ -3,7 +3,14 @@ enum acs_status
 {
 	ACS_ERR = 0,
 	ACS_OK,
-	ACS_DONE
+	ACS_DONE,
+	ACS_MAX
+};
+
+static const char l_statusnames[ACS_MAX][10] = {
+	"error",
+	"ok",
+	"done"
 };
 
 /*
@@ -107,12 +114,14 @@ static void
 acs_result(httpsrv_client_t *hcl, enum acs_status status, const char *msg) {
 	const char	*buf;
 
+	fassert(status < ACS_MAX);
+
 	buf = aprintf(
 		"{"
 		"\"status\": \"%s\", "
 		"\"message\": \"%s\""
 		"}",
-		status == ACS_ERR ? "error" : "ok",
+		l_statusnames[status],
 		msg);
 
 	if (buf == NULL) {
