@@ -397,7 +397,7 @@ acs_redirect(void) {
 		return;
 
 	/* Inject ACS Redirect into the proxy queue */
-	if (!acs_request(acs_redirect_answer, redirect, "/?redirect")) {
+	if (!acs_request(acs_redirect_answer, redirect, "/")) {
 		acs_sitdown();
 	} else {
 		acs_status(ACS_OK, "Dancing: Redirect Request sent");
@@ -485,7 +485,7 @@ acs_initial(void) {
 	log_dbg("Initial Gateway: %s", initial);
 
 	/* Inject ACS Initial into the proxy queue */
-	if (!acs_request(acs_initial_answer, initial, "/?initial")) {
+	if (!acs_request(acs_initial_answer, initial, "/")) {
 		acs_sitdown();
 	} else {
 		acs_status(ACS_OK, "Dancing: Initial Request sent");
