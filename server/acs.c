@@ -525,8 +525,8 @@ acs_progress(httpsrv_client_t *hcl) {
 		acs_result(hcl, m->status, m->message);
 		acs_msg_free(m);
 	} else {
-		/* Wait for a bit till we get signaled or time out */
-		cond_wait(l_status_cond, l_status_mutex, (60*1000));
+		/* Wait for 5 seconds till we get signaled or time out */
+		cond_wait(l_status_cond, l_status_mutex, (5*1000));
 
 		/* Try to pop it from the list */
 		m = (acsmsg_t *)list_pop(&l_messages);
