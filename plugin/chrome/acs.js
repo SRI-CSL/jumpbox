@@ -133,7 +133,7 @@ process_response: function (req) {
 	if (req.readyState === 4) {
 		if (req.status === 200) {
 			if (ACS.set_status_json(req.responseText)) {
-				/* Succesful requests cause */
+				/* Successful requests cause */
 				ACS.progress();
 			}
 		} else if (req.status === 0) {
