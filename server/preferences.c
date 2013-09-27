@@ -165,9 +165,9 @@ prf_free_argv(unsigned int argc, char **argv) {
 }
 
 /* XXX uses strdup */
-static unsigned int
+static bool
 prf_parse_preferences(void);
-static unsigned int
+static bool
 prf_parse_preferences(void) {
 	json_error_t	jerr;
 	json_t		*root;
@@ -180,19 +180,19 @@ prf_parse_preferences(void) {
 
 	if (l_current_preferences == NULL){
 		log_err("No current preferences");
-		return (1);
+		return (false);
 	}
 
 	root = json_loads(l_current_preferences, 0, &jerr);
 	if (root == NULL) {
 		log_err("Could not JSON load preferences");
-		return (2);
+		return (false);
 	} 
 
 	if (!json_is_object(root)){
 		json_decref(root);
 		log_err("JSON Root is not a JSON Object");
-		return (3);
+		return (false);
 	}
 
 	for (i = 0; i < PRF_MAX; i++) {
@@ -216,7 +216,7 @@ prf_parse_preferences(void) {
 	json_decref(root);
 
 	/* All okay */
-	return (0);
+	return (true);
 }
 
 void
