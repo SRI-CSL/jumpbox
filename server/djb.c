@@ -18,14 +18,6 @@ hlist_t lst_proxy_out;
 /* Requests that want a 'pull', waiting for a 'proxy_new' entry */
 hlist_t lst_api_pull;
 
-typedef struct {
-	char	httpcode[64];
-	char	httptext[(256-64-32)];
-	char	seqno[32];
-	char	setcookie[8192];
-	char	cookie[8192];
-} djb_headers_t;
-
 #define DJBH(h) offsetof(djb_headers_t, h), sizeof (((djb_headers_t *)NULL)->h)
 
 misc_map_t djb_headers[] = {
@@ -133,6 +125,21 @@ djb_html_css(httpsrv_client_t *hcl) {
 		"div.status div.statustext\n"
 		"{\n"
 		"	float		: left;\n"
+		"}\n"
+		"\n"
+		"textarea#log, textarea#acsnet\n"
+		"{\n"
+		"	margin		: 5px;\n"
+		"	border		: 2px solid black;\n"
+		"	vertical-align	: middle;\n"
+		"	width		: 500px;\n"
+		"	height		: 130px;\n"
+		"}\n"
+		"\n"
+		"textarea#log\n"
+		"{\n"
+		"	width		: 90%;\n"
+		"	height		: 250px;\n"
 		"}\n"
 		"\n"
 		);
@@ -339,9 +346,12 @@ bool
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh);
 bool
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
-	djb_req_t *pr;
+	djb_req_t	*pr;
+	djb_headers_t	*pdh;
 
 	log_dbg(HCL_ID, hcl->id);
+
+	fassert(hcl != NULL);
 
 	/* Find the request */
 	pr = djb_find_req_dh(hcl, &lst_proxy_out, dh);
@@ -352,12 +362,45 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return (true);
 	}
 
+	fassert(pr->hcl != NULL);
+	pdh = httpsrv_get_userdata(pr->hcl);
+
 	log_dbg(HCL_ID " -> " HCL_ID, hcl->id, pr->hcl->id);
+
+	if (pdh->push != NULL) {
+		log_dbg(HCL_ID " internal proxy request", hcl->id);
+
+		/* Let the caller handle it */
+		pdh->push(hcl, pr->hcl);
+
+		/* Release it */
+		free(pr);
+
+		/* HTTP okay */
+		httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
+
+		/* A message as a body (Content-Length is arranged by conn) */
+		conn_printf(&hcl->conn, "Interal Push Proxy successful\r\n");
+
+		/* Request is done */
+		httpsrv_done(hcl);
+
+		return (true);
+	}
+
+	log_dbg(HCL_ID " normal proxy request", hcl->id);
 
 	/* Connections might close before the answer is returned */
 	if (!conn_is_valid(&pr->hcl->conn)) {
 		log_dbg(HCL_ID " " CONN_ID " closed",
-			hcl->id, conn_id(&pr->hcl->conn));
+			pr->hcl->id, conn_id(&pr->hcl->conn));
+
+		/* HTTP okay */
+		httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
+
+		conn_printf(&hcl->conn, "Remote closed connection\r\n");
+
+		/* Request is done */
 		httpsrv_done(hcl);
 		return (true);
 	}
@@ -454,24 +497,31 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 	log_dbg("end");
 }
 
-void
-djb_accept(httpsrv_client_t *hcl, void UNUSED *user);
-void
-djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
-
+djb_headers_t *
+djb_create_userdata(httpsrv_client_t *hcl) {
 	djb_headers_t *dh;
-
-	log_dbg(HCL_ID, hcl->id);
 
 	dh = mcalloc(sizeof *dh, "djb_headers_t *");
 	if (!dh) {
-		djb_error(hcl, 500, "Out of memory");
-		return;
+		return (NULL);
 	}
 
 	log_dbg(HCL_ID " %p", hcl->id, (void *)dh);
 
 	httpsrv_set_userdata(hcl, dh);
+
+	return (dh);
+}
+
+void
+djb_accept(httpsrv_client_t *hcl, void UNUSED *user);
+void
+djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
+	log_dbg(HCL_ID, hcl->id);
+
+	if (djb_create_userdata(hcl) == NULL) {
+		djb_error(hcl, 500, "Out of memory");
+	}
 }
 
 void
@@ -742,10 +792,8 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	return (false);
 }
 
-void
-djb_handle_proxy_post(httpsrv_client_t *hcl);
-void
-djb_handle_proxy_post(httpsrv_client_t *hcl) {
+bool
+djb_proxy_add(httpsrv_client_t *hcl) {
 	djb_req_t	*pr;
 #ifdef DEBUG
 	uint64_t	id = hcl->id;
@@ -756,10 +804,11 @@ djb_handle_proxy_post(httpsrv_client_t *hcl) {
 	/* Proxy request - add it to the requester list */
 	pr = mcalloc(sizeof *pr, "djb_req_t *");
 	if (!pr) {
+		log_crt("Out of memory for proxy request");
 		djb_error(hcl, 500, "Out of memory");
 
 		/* XXX: All is lost here, maybe cleanup hcl? */
-		return;
+		return (false);
 	}
 
 	/* Fill in the details */
@@ -773,21 +822,14 @@ djb_handle_proxy_post(httpsrv_client_t *hcl) {
 
 	log_dbg(HCL_ID " done", id);
 
-	return;
+	return (true);
 }
 
-bool
-djb_proxy_add(httpsrv_client_t *hcl) {
-	log_dbg(HCL_ID " keephandling=yes", hcl->id);
-
-	/*
-	 * Add this request to the queue when the request is handled
-	 * The manager will divide the work
-	 */
-	hcl->keephandling = true;
-	httpsrv_set_posthandle(hcl, djb_handle_proxy_post);
-
-	return (true);
+void
+djb_handle_proxy_post(httpsrv_client_t *hcl);
+void
+djb_handle_proxy_post(httpsrv_client_t *hcl) {
+	djb_proxy_add(hcl);
 }
 
 bool
@@ -822,8 +864,16 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 			hcl->headers.hostname);
 	}
 
-	/* Add it to the proxy queue */
-	return (djb_proxy_add(hcl));
+	/*
+	 * Add this request to the queue when the request is handled
+	 * The manager will divide the work
+	 */
+	log_dbg(HCL_ID " keephandling=yes", hcl->id);
+	hcl->keephandling = true;
+
+	httpsrv_set_posthandle(hcl, djb_handle_proxy_post);
+
+	return (true);
 }
 
 bool
@@ -833,14 +883,12 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t	*dh = (djb_headers_t *)user;
 	bool		done;
 
-	log_dbg(HCL_ID " hostname: %s uri: %s",
-		hcl->id, hcl->headers.hostname, hcl->headers.uri);
+	log_dbg(HCL_ID " hostname: %s", hcl->id, hcl->headers.hostname);
 
 	/* Parse the request */
-	if (!httpsrv_parse_request(hcl)) {
-		/* function has added error already */
-		return (true);
-	}
+	httpsrv_parse_request(hcl, NULL);
+
+	log_dbg(HCL_ID " uri: %s", hcl->id, hcl->headers.uri);
 
 	/* Is this a DJB API or a proxy request? */
 	if (	strcmp(hcl->headers.hostname, "127.0.0.1:6543"	) == 0 ||
@@ -908,9 +956,6 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 	log_dbg("request " HCL_ID ", puller " HCL_ID,
 		pr->hcl->id, ar->hcl->id);
 
-	/* This has to be valid */
-	fassert(conn_is_valid(&pr->hcl->conn));
-
 	/* Connection might have closed by now */
 	if (!conn_is_valid(&ar->hcl->conn)) {
 		fassert(false);
@@ -918,9 +963,6 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		httpsrv_done(ar->hcl);
 		return;
 	}
-
-	/* pr's headers */
-	dh = (djb_headers_t *)pr->hcl->user;
 
 	/* HTTP okay */
 	httpsrv_answer(ar->hcl, HTTPSRV_HTTP_OK, NULL);
@@ -938,8 +980,11 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 
 	assert(pr->hcl->method != HTTP_M_NONE);
 
+	/* pr's headers */
+	dh = (djb_headers_t *)pr->hcl->user;
+
 	/* Client to server */
-	if (strlen(dh->cookie) > 0) {
+	if (dh != NULL && strlen(dh->cookie) > 0) {
 		conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s",
 				dh->cookie);
 	}
@@ -1103,6 +1148,9 @@ djb_run(void) {
 			break;
 		}
 
+		/* Initialize ACS */
+		acs_init(hs);
+
 		/* Fire up an HTTP server */
 		if (!httpsrv_start(hs, DJB_HOST, DJB_PORT, DJB_WORKERS)) {
 			log_err("HTTP Server failed");
@@ -1125,11 +1173,11 @@ djb_run(void) {
 	/* Make sure that our threads are done */
 	thread_stopall(false);
 
+	/* Cleanup ACS */
+	acs_exit();
+
 	/* Cleanup Preferences */
 	prf_init();
-
-	/* Cleanup ACS */
-	acs_set_net(NULL);
 
 	/* Clean up the http object */
 	if (hs)

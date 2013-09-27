@@ -1,121 +1,148 @@
 /*jslint browser: true, devel: true, sloppy: true*/
 
-//Ian says: this is yet to succeed, my guess is that there is some crypto missing...
+var ACS;
 
-var ACSDancer;
+ACS = {
+bkg:		"",
+msg_prev:	"",
+url_setup:	"",
+url_progress:	"",
 
-ACSDancer = {
+set_status: function (st, msg) {
+	var s, col, l;
 
-    netfetcher_uri: 'http://dgw1.demo.safdef.org/safdef/net-fetcher/',
+	/* Don't log duplicates */
+	if (msg == ACS.msg_prev) {
+		return;
+	}
 
-    current_net: null,
-    net_obj: null,
+	s = document.querySelector("#status");
 
-    set_status: function (msg) {
-        if (msg) {
-            document.querySelector('#status').innerHTML = 'Status: ' + msg;
-        }
-    },
+	switch (st) {
+	case "ok":
+		col = "#eeeeee";
+		break;
+	case "error":
+		col = "#ffa500";
+		break;
+	case "done":
+		col = "00cc00";
+		break;
+	default:
+		col = "ff0000";
+		break;
+	}
 
-    populate: function () {
-        document.querySelector('#dance').addEventListener('click', ACSDancer.dance);
-        ACSDancer.netfetcher();
-    },
+	s.style.backgroundColor = col;
 
-    reset: function () {
-        ACSDancer.current_net = null;
-        ACSDancer.net_obj = null;
-    },
+	s.innerHTML = msg;
+	console.log("STATUS: " + msg);
+	ACS.msg_prev = msg;
 
-    dance: function () {
-        if (ACSDancer.current_net === null) {
-            ACSDancer.netfetcher();
-        } else {
-            ACSDancer.net_obj = JSON.parse(ACSDancer.current_net);
-            if (ACSDancer.net_obj !== null) {
-                ACSDancer.set_status('Initial: ' + ACSDancer.net_obj.initial);
-                ACSDancer.dancer_step_one();
-            }
-        }
-    },
+	d = new Date();
+	document.querySelector('#log').textContent += d + " " + st + ": " + msg + "\n";
+},
 
-    netfetcher : function () {
-        var netfetcher_request = new XMLHttpRequest();
-        netfetcher_request.onreadystatechange = function () { ACSDancer.handle_net(netfetcher_request); };
-        netfetcher_request.open('GET', ACSDancer.netfetcher_uri);
-        netfetcher_request.send(null);
-    },
+set_status_json: function(json) {
+	try {
+		r = JSON.parse(json);
 
-    handle_net: function (request) {
-        if (request.readyState === 4) {
-            if (request.status === 200) {
-                ACSDancer.current_net =  ACSDancer.parse_net(request.response);
-                document.querySelector('#netfetcher').innerHTML = ACSDancer.current_net;
-                ACSDancer.set_status("Yo tengo net");
-            } else {
-                ACSDancer.set_status('Net fetching **NOT** OK');
-            }
-        }
-    },
+		if (typeof r === "object" && typeof r.status === "string") {
+			ACS.set_status(r.status, r.message);
 
-    parse_net: function (html) {
-        var start, stop, retval = "none";
-        if (html) {
-            start = html.indexOf("<pre>");
-            stop = html.indexOf("</pre>");
-            if (start > 0) {
-                retval = html.substring(start + "<pre>".length, stop);
-            }
-        }
-        return retval;
-    },
+			/* ok = continue, done/error = stop */
+			return r.status === "ok";
+		} else {
+			ACS.set_status("error", "JSON okay, but missing fields: " + json);
+			return false;
+		}
 
-    dancer_step_one: function () {
-        var step_one_request, step_one_uri;
-        step_one_request = new XMLHttpRequest();
-        step_one_uri = 'http://' + ACSDancer.net_obj.initial;
-        step_one_request.onreadystatechange = function () { ACSDancer.dancer_step_two(step_one_request); };
-        step_one_request.open('GET', step_one_uri);
-        step_one_request.send(null);
-    },
+	} catch(e) {
+		ACS.set_status("error", "JSON error: " + json);
+	}
 
-    dancer_step_two: function (request) {
-        if (request.readyState === 4) {
-            if (request.status === 200) {
-                ACSDancer.set_status('Dance step one OK, setting timer for ' + ACSDancer.net_obj.wait + ' seconds');
-                setTimeout(ACSDancer.dancer_step_three, ACSDancer.net_obj.wait * 1000);
-            } else {
-                ACSDancer.set_status('Dance step one failed');
-            }
-        }
-    },
+	return false;
+},
 
-    dancer_step_three: function () {
-        var step_three_request, step_three_uri;
-        step_three_request = new XMLHttpRequest();
-        step_three_uri = 'http://' + ACSDancer.net_obj.redirect;
-        step_three_request.onreadystatechange = function () { ACSDancer.dancer_step_four(step_three_request); };
-        step_three_request.open('GET', step_three_uri);
-        step_three_request.send(null);
-    },
+init: function () {
+	var djb;
 
+	/* Watch out for when they want to dance */
+	document.querySelector("#dance").addEventListener("click", ACS.dance);
 
-    dancer_step_four: function (request) {
-        if (request.readyState === 4) {
-            if (request.status === 200) {
-                if (request.reponseText) {
-                    ACSDancer.set_status("Dance Result: " + request.reponseText);
-                } else {
-                    ACSDancer.set_status("Dance missing result");
-                }
-                ACSDancer.reset();
-                
-            } else {
-                ACSDancer.set_status('Dance step four failed');
-            }
-        }
-    }
-};
+	/* Where is our djb? */
+	ACS.bkg = chrome.extension.getBackgroundPage();
+	djb = ACS.bkg.JumpBox.jb_host;
 
-document.addEventListener('DOMContentLoaded', function () { ACSDancer.populate(); });
+	ACS.url_setup    = djb + '/acs/setup/';
+	ACS.url_progress = djb + '/acs/progress/';
+
+	ACS.set_status("ok", "Initialized");
+},
+
+dance: function () {
+	var net;
+
+	/* Empty the log */
+	document.querySelector('#log').textContent = "";
+
+	ACS.set_status("ok", "Dancing?");
+
+	/* Get the NET from the textfield */
+	net = document.querySelector("#acsnet").innerHTML;
+	if (net.length == 0) {
+		ACS.set_status("ok", "Using Rendezvous NET");
+
+		/* Start checking for progress */
+		ACS.get_progress();
+		return;
+	}
+
+	/* Use the manually supplied one, validate it */
+	try {
+		JSON.parse(net);
+		ACS.set_status("ok", "Manually provided NET is valid");
+	} catch(e) {
+		ACS.set_status("ok", "Manually provided NET is invalid: " + e);
+	}
+
+	/* Start monitoring progress, which triggers it all */
+	ACS.setup(net);
+},
+
+setup: function (net) {
+	var req;
+
+	req = new XMLHttpRequest();
+	req.onreadystatechange = function () { ACS.process_response(req); };
+	req.open("POST", ACS.url_setup);
+	req.setRequestHeader("Content-Type", "application/json");
+	req.send(net);
+},
+
+progress: function () {
+	var req;
+
+	req = new XMLHttpRequest();
+	req.onreadystatechange = function () { ACS.process_response(req); };
+	req.open("GET", ACS.url_progress);
+	req.send(null);
+},
+
+process_response: function (req) {
+	if (req.readyState === 4) {
+		if (req.status === 200) {
+			if (ACS.set_status_json(req.responseText)) {
+				/* Succesful requests cause */
+				ACS.progress();
+			}
+		} else {
+			ACS.set_status("error", "ACS Setup failed: " + req.status + " " + req.statusText );
+		}
+	}
+},
+
+}; /* ACS */
+
+document.addEventListener('DOMContentLoaded', function () { ACS.init(); });
 

@@ -4,28 +4,37 @@
 <title>JumpBox :: Address Change Signalling ACS</title>
 <link rel="stylesheet" type="text/css" href="http://localhost:6543/djb.css" />
 <script src="acs.js"></script>
-<style>
-div
-{
-	margin		: 5px;
-	border		: 2px solid black;
-	vertical-align	: middle;
-	width		: 500px;
-	height		: 500px;
-}
-</style>
 </head>
 <body>
 	<div class="header">
 		SAFER DEFIANCE :: JumpBox :: Address Change Signalling (ACS)
 	</div>
-	<h1>JumpBox AAddress Change Signalling (ACS)</h1>
 
-	<label id="status">Status:</label>
+	<h1>JumpBox Address Change Signalling (ACS)</h1>
 
-	<div id="netfetcher" src=""></div>
-	<br />
+	<div class="status">
+		<div class="statuslabel">Status:</div>
+		<div class="statustext" id="status">initializing...</div>
+	</div>
+
+	<p>
+	Either perform Rendezvous from the Plugin menu or provide a NET manually in the following textarea.
+	</p>
+
+<textarea id="acsnet">
+{
+	"window"	: 7,
+	"wait"		: 4,
+	"initial"	: "66.160.192.108",
+	"redirect"	: "66.160.192.108",
+	"passphrase"	: "8b42c8971567e309c5fe7865"
+}
+</textarea>
+
 	<button id="dance">Dance</button>
+
+	<h2>Log</h2>
+	<textarea id="log" readonly="readonly"></textarea>
 </body>
 </html>
 
