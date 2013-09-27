@@ -385,7 +385,7 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 
 	/* Show okay, we are done */
 	acs_status(ACS_DONE,
-		   "ACS completed succesfully, you can start Tor over StegoTorus over DGW");
+		   "ACS completed succesfully, you can start Tor over StegoTorus over JumpBox/DGW");
 
 	/* Done dancing */
 	acs_sitdown();
