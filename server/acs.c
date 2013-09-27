@@ -408,17 +408,17 @@ static void
 acs_wait(void);
 static void
 acs_wait(void) {
-	uint64_t window, wait, w;
+	uint64_t d_window, d_wait, w;
 
-	if (!acs_net_number("window", "Delay window", &window))
+	if (!acs_net_number("window", "Delay window", &d_window))
 		return;
 
-	if (!acs_net_number("wait", "Delay wait", &wait))
+	if (!acs_net_number("wait", "Delay wait", &d_wait))
 		return;
 
 	/* Calculate a random wait + window */
 	w = generate_random_number();
-	w = wait + (w % window);
+	w = d_wait + (w % d_window);
 
 	acs_status(ACS_OK, "Moonwalking for %" PRIu64 " seconds...", w);
 
