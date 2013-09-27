@@ -86,7 +86,7 @@ dance: function () {
 	/* Empty the log */
 	document.querySelector('#log').textContent = "";
 
-	ACS.set_status("ok", "Dancing?");
+	ACS.set_status("ok", "Attempting to start the dance");
 
 	/* Get the NET from the textfield */
 	net = document.querySelector("#acsnet").innerHTML;
