@@ -26,10 +26,10 @@ set_status: function (st, msg) {
 		col = "#ffa500";
 		break;
 	case "done":
-		col = "00cc00";
+		col = "#00cc00";
 		break;
 	default:
-		col = "ff0000";
+		col = "#ff0000";
 		break;
 	}
 
