@@ -64,11 +64,19 @@ set_status_json: function(json) {
 	return false;
 },
 
+empty_status: function () {
+	/* Empty the log */
+	document.querySelector('#log').textContent = "";
+
+	ACS.set_status("ok", "(Status log reset)");
+},
+
 init: function () {
 	var djb;
 
 	/* Watch out for when they want to dance */
-	document.querySelector("#dance").addEventListener("click", ACS.dance);
+	document.querySelector("#dancenet").addEventListener("click", ACS.danceNET);
+	document.querySelector("#dancerdv").addEventListener("click", ACS.danceRDV);
 
 	/* Where is our djb? */
 	ACS.bkg = chrome.extension.getBackgroundPage();
@@ -80,27 +88,22 @@ init: function () {
 	ACS.set_status("ok", "Initialized");
 },
 
-dance: function () {
+danceNET: function () {
 	var net, obj;
 
-	/* Empty the log */
-	document.querySelector('#log').textContent = "";
-
-	ACS.set_status("ok", "Attempting to start the dance");
+	ACS.empty_status();
 
 	/* Get the NET from the textfield */
 	net = document.querySelector("#acsnet").value;
 	if (net.length == 0) {
-		ACS.set_status("ok", "Using Rendezvous provided NET");
-
-		/* Start checking for progress */
-		ACS.get_progress();
+		ACS.set_status("ok", "To dance with a manually provided NET you need to provide one");
 		return;
 	}
 
 	/* Use the manually supplied one, validate it */
 	try {
 		obj = JSON.parse(net);
+
 		if (!obj || typeof obj !== 'object') {
 			ACS.set_status("error", "Manual NET was not parsed into a object");
 		} else if (typeof obj.initial !== 'string') {
@@ -122,8 +125,18 @@ dance: function () {
 		ACS.set_status("ok", "Manually provided NET is invalid: " + e);
 	}
 
-	/* Start monitoring progress, which triggers it all */
+	/* Setup the NET, which will trigger progress if that completes */
 	ACS.setup(net);
+},
+
+danceRDV: function () {
+	ACS.empty_status();
+
+	ACS.set_status("ok", "Using Rendezvous provided NET");
+
+	/* Start checking for progress */
+	ACS.get_progress();
+	return;
 },
 
 setup: function (net) {
