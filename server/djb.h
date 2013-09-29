@@ -13,7 +13,7 @@
 /* Jansson - the JSON parser */
 #include <jansson.h>
 
-typedef void (*djb_push_f)(httpsrv_client_t *shcl, httpsrv_client_t *hcl);
+typedef bool (*djb_push_f)(httpsrv_client_t *shcl, httpsrv_client_t *hcl);
 
 typedef struct {
 	/* Push Callback */
@@ -46,6 +46,7 @@ void rdv_handle(httpsrv_client_t *hcl);
 void prf_init(void);
 void prf_exit(void);
 void prf_handle(httpsrv_client_t *hcl);
+bool prf_parse_bridge_details(const char *br);
 int prf_get_argv(char*** argvp);
 void prf_free_argv(unsigned int argc, char **argv);
 

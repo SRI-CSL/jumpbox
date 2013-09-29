@@ -127,11 +127,40 @@ djb_html_css(httpsrv_client_t *hcl) {
 		"	float		: left;\n"
 		"}\n"
 		"\n"
+		"div.coltainer\n"
+		"{\n"
+		"	overflow	: hidden;\n"
+		"	position	: relative\n"
+		"}\n"
+		"\n"
+		"div.coltainer div.colleft\n"
+		"{\n"
+		"	float		: left;\n"
+		"	font-weight	: bold;\n"
+		"	width		: 50%;\n"
+		"}\n"
+		"\n"
+		"div.coltainer div.colright\n"
+		"{\n"
+		"	float		: left;\n"
+		"	width		: 50%;\n"
+		"}\n"
+		"\n"
+		"div.colleft button, div.colright button\n"
+		"{\n"
+		"	position	: absolute;\n"
+		"	bottom		: 0px;\n"
+		"}\n"
+		"\n"
 		"textarea#log, textarea#acsnet\n"
 		"{\n"
 		"	margin		: 5px;\n"
 		"	border		: 2px solid black;\n"
 		"	vertical-align	: middle;\n"
+		"}\n"
+		"\n"
+		"textarea#acsnet\n"
+		"{\n"
 		"	width		: 500px;\n"
 		"	height		: 130px;\n"
 		"}\n"
@@ -371,7 +400,17 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		log_dbg(HCL_ID " internal proxy request", hcl->id);
 
 		/* Let the caller handle it */
-		pdh->push(hcl, pr->hcl);
+		if (!pdh->push(hcl, pr->hcl)) {
+			/*
+			 * Not done yet, likely to read a POST body
+			 * Put it back on the list so we can find
+			 * it in the next loop
+			 */
+			list_addtail_l(&lst_proxy_out, &pr->node);
+			return (false);
+		}
+
+		/* Done */
 
 		/* Release it */
 		free(pr);
