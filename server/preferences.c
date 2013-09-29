@@ -151,7 +151,7 @@ prf_get_argv(char*** argvp) {
 		argv[vslot++] = strdup("--trace-packets");
 	}
 
-	if (shared_secret != NULL && (strcmp(shared_secret, "") != 0)){
+	if (shared_secret != NULL && (strcmp(shared_secret, "") != 0)) {
 		memzero(scratch, sizeof scratch);
 		snprintf(scratch, sizeof scratch, "--shared-secret=%s", prf_get_value(PRF_SHS));
 		argv[vslot++] = strdup(scratch);
@@ -231,7 +231,7 @@ prf_parse_bridge_details(const char *br) {
 	}
 
 	while (true) {
-		if (!json_is_object(root)){
+		if (!json_is_object(root)) {
 			log_err("JSON Root is not a JSON Object");
 			ok = false;
 			break;
@@ -290,7 +290,7 @@ prf_parse_preferences(void) {
 
 	log_dbg("...");
 
-	if (l_current_preferences == NULL){
+	if (l_current_preferences == NULL) {
 		log_err("No current preferences");
 		return (false);
 	}
@@ -301,7 +301,7 @@ prf_parse_preferences(void) {
 		return (false);
 	} 
 
-	if (!json_is_object(root)){
+	if (!json_is_object(root)) {
 		json_decref(root);
 		log_err("JSON Root is not a JSON Object");
 		return (false);
