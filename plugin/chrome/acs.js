@@ -47,7 +47,7 @@ set_status_json: function(json) {
 	try {
 		r = JSON.parse(json);
 
-		if (typeof r === "object" && typeof r.status === "string") {
+		if (r && typeof r === "object" && typeof r.status === "string") {
 			ACS.set_status(r.status, r.message);
 
 			/* ok = continue, done/error = stop */
@@ -81,7 +81,7 @@ init: function () {
 },
 
 dance: function () {
-	var net;
+	var net, obj;
 
 	/* Empty the log */
 	document.querySelector('#log').textContent = "";
@@ -89,9 +89,9 @@ dance: function () {
 	ACS.set_status("ok", "Attempting to start the dance");
 
 	/* Get the NET from the textfield */
-	net = document.querySelector("#acsnet").innerHTML;
+	net = document.querySelector("#acsnet").value;
 	if (net.length == 0) {
-		ACS.set_status("ok", "Using Rendezvous NET");
+		ACS.set_status("ok", "Using Rendezvous provided NET");
 
 		/* Start checking for progress */
 		ACS.get_progress();
@@ -100,8 +100,24 @@ dance: function () {
 
 	/* Use the manually supplied one, validate it */
 	try {
-		JSON.parse(net);
-		ACS.set_status("ok", "Manually provided NET is valid");
+		obj = JSON.parse(net);
+		if (!obj || typeof obj !== 'object') {
+			ACS.set_status("error", "Manual NET was not parsed into a object");
+		} else if (typeof obj.initial !== 'string') {
+			ACS.set_status("error", "Manual NET misses initial");
+		} else if (typeof obj.redirect !== 'string') {
+			ACS.set_status("error", "Manual NET misses redirect");
+		} else if (typeof obj.wait !== 'number') {
+			ACS.set_status("error", "Manual NET misses wait");
+		} else if (typeof obj.window !== 'number') {
+			ACS.set_status("error", "Manual NET misses window");
+		} else if (typeof obj.passphrase !== 'string') {
+			ACS.set_status("error", "Manual NET misses passphrase");
+		} else {
+			ACS.set_status("ok", "Manually provided NET is valid " +
+				             "(initial: " + obj.initial + ", " +
+					      "redirect: " + obj.redirect + ")");
+		}
 	} catch(e) {
 		ACS.set_status("ok", "Manually provided NET is invalid: " + e);
 	}
