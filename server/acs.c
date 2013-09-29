@@ -27,9 +27,6 @@ static const char l_statusnames[ACS_MAX][10] = {
 
 #define ACS_MSGLEN 256
 
-/* The NET as provided by Rendezvous */
-static json_t		*l_net = NULL;
-
 /* The HTTP Server */
 static httpsrv_t	*l_hs = NULL;
 
@@ -43,6 +40,7 @@ static hlist_t		l_messages;
 /* Are we dancing? */
 static mutex_t		l_dancing_mutex;
 static bool		l_dancing = false;
+static json_t		*l_net = NULL;
 
 typedef struct {
 	hnode_t		node;
@@ -87,6 +85,7 @@ acs_status(enum acs_status status, const char *format, ...) {
 	m = (acsmsg_t *)mcalloc(sizeof *m, "acsmsg");
 	if (m == NULL) {
 		log_crt("No memory for ACS Message");
+		l_status = ACS_ERR;
 	} else {
 		/* Init the node */
 		node_init(&m->node);
@@ -197,12 +196,10 @@ acs_set_net(json_t *net) {
 	mutex_lock(l_dancing_mutex);
 
 	if (l_dancing) {
+		/* Already dancing, thus can't change anything */
 		mutex_unlock(l_dancing_mutex);
 		return (false);
 	}
-
-	/* It can start dancing now */
-	mutex_unlock(l_dancing_mutex);
 
 	/* Old NET? */
 	if (l_net != NULL) {
@@ -229,8 +226,11 @@ acs_set_net(json_t *net) {
 			l_net = NULL;
 		}
 	} else {
-		acs_status(ACS_ERR, "Please provide a NET");
+		log_dbg("ACS NET reset");
 	}
+
+	/* It can start dancing now */
+	mutex_unlock(l_dancing_mutex);
 
 	return (true);
 }
@@ -617,20 +617,28 @@ acs_progress(httpsrv_client_t *hcl) {
 	mutex_lock(l_status_mutex);
 
 	if (!l_dancing && l_status == ACS_OK) {
-		/* Start the dance */
-		l_dancing = true;
+		if (l_net == NULL) {
+			mutex_unlock(l_status_mutex);
+			mutex_unlock(l_dancing_mutex);
 
-		mutex_unlock(l_dancing_mutex);
-		mutex_unlock(l_status_mutex);
+			acs_status(ACS_ERR, "No NET setup thus can't dance");
+		} else {
+			/* Start the dance */
+			l_dancing = true;
 
-		acs_status(ACS_OK, "Starting to dance...");
+			mutex_unlock(l_status_mutex);
+			mutex_unlock(l_dancing_mutex);
 
-		/* Queue ACS Initial */
-		acs_initial();
+			acs_status(ACS_OK, "Starting to dance...");
+
+			/* Queue ACS Initial */
+			acs_initial();
+		}
 
 		/* Lock it up again */
 		mutex_lock(l_status_mutex);
 	} else {
+		/* Nothing to report */
 		mutex_unlock(l_dancing_mutex);
 	}
 
