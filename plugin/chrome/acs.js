@@ -135,7 +135,7 @@ danceRDV: function () {
 	ACS.set_status("ok", "Using Rendezvous provided NET");
 
 	/* Start checking for progress */
-	ACS.get_progress();
+	ACS.progress();
 	return;
 },
 
