@@ -5,18 +5,6 @@
 static mutex_t	l_mutex;
 static char	*l_current_preferences = NULL;
 
-enum prf_v {
-	PRF_CC = 0,
-	PRF_EXE,
-	PRF_LL,
-	PRF_SM,
-	PRF_TP,
-	PRF_SHS,
-	PRF_PA,
-	PRF_JA,
-	PRF_MAX		/* Maximum argument */
-};
-
 /* keep these ALL the same length (number_of_keys) */
 static const char* l_keys[] =  {
 	"stegotorus_circuit_count", 
@@ -42,9 +30,7 @@ static const char* l_defaults[] = {
 	"127.0.0.1:6543"
 	};
 
-static const char *
-prf_get_value(enum prf_v i);
-static const char *
+const char *
 prf_get_value(enum prf_v i) {
 	/* Just in case */
 	fassert(i < PRF_MAX);

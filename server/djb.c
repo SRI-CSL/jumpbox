@@ -10,13 +10,16 @@ typedef struct {
 } djb_req_t;
 
 /* New, unforwarded queries (awaiting 'pull') */
-hlist_t lst_proxy_new;
+static hlist_t lst_proxy_new;
 
 /* Outstanding queries (answer to a 'pull', awaiting 'push') */
-hlist_t lst_proxy_out;
+static hlist_t lst_proxy_out;
 
 /* Requests that want a 'pull', waiting for a 'proxy_new' entry */
-hlist_t lst_api_pull;
+static hlist_t lst_api_pull;
+
+/* The exit hostname we use */
+static char *l_exit_hostname = NULL;
 
 #define DJBH(h) offsetof(djb_headers_t, h), sizeof (((djb_headers_t *)NULL)->h)
 
@@ -875,8 +878,8 @@ bool
 djb_handle_proxy(httpsrv_client_t *hcl);
 bool
 djb_handle_proxy(httpsrv_client_t *hcl) {
-	static const char	*hostname = NULL;
-	static bool		got_hostname = false;
+	static bool	got_hostname = false;
+	const char	*h;
 
 	/* Only fetch this once, ever */
 	if (got_hostname == false) {
@@ -886,18 +889,28 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 		 * Force the hostname to something else
 		 * than what the requestor wants?
 		 */
-		hostname = getenv("DJB_FORCED_HOSTNAME");
+		h = getenv("DJB_FORCED_HOSTNAME");
 
-		if (hostname) {
-			log_dbg("Proxy Hostname Override: %s",
-				hostname);
+		if (h != NULL) {
+			log_dbg("Proxy Hostname Override: %s", h);
+		} else {
+			/* Use the proxy address from preferences */
+			h = prf_get_value(PRF_PA);
+			if (h != NULL) {
+				log_dbg("Using preference for hostname: %s", h);
+			}
+		}
+
+		/* Duplicate it as it might be gone soon */
+		if (h != NULL) {
+			l_exit_hostname = strdup(h);
 		}
 	}
 
 	/* Override the hostname? */
-	if (hostname != NULL) {
+	if (l_exit_hostname != NULL) {
 		strncpy(hcl->headers.hostname,
-			hostname,
+			l_exit_hostname,
 			sizeof hcl->headers.hostname);
 		log_dbg("Forcing Hostname to: %s",
 			hcl->headers.hostname);
@@ -1282,6 +1295,10 @@ main(int argc, const char *argv[]) {
 	}
 
 	log_dbg("It's all over... (%d)", ret);
+
+	if (l_exit_hostname != NULL) {
+		free(l_exit_hostname);
+	}
 
 	thread_exit();
 
