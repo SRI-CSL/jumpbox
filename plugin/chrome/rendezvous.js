@@ -169,7 +169,7 @@ Rendezvous = {
             if (request.status === 200) {
                 Rendezvous.set_status('This image contains your stegged onion!');
                 robj = JSON.parse(request.responseText);
-                if (typeof robj === 'object') {
+                if (robj && typeof robj === 'object') {
                     UI.prepare_for_peeling(robj);
                 } else {
                     Rendezvous.set_status('Image post response failed to parse as JSON');
@@ -195,7 +195,7 @@ Rendezvous = {
         if (request.readyState === 4) {
             if (request.status === 200) {
                 peel_response = JSON.parse(request.responseText);
-                if (typeof peel_response === 'object') {
+                if (peel_response && typeof peel_response === 'object') {
                     Rendezvous.set_status(peel_response.status);
                     UI.update_display(peel_response.onion_type, peel_response);
                 } else {
