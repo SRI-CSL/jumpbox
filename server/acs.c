@@ -189,6 +189,8 @@ acs_check_net(json_t *net) {
  */
 bool
 acs_set_net(json_t *net) {
+	char *j;
+
 	log_dbg("...");
 
 	/* Check if we are dancing already */
@@ -214,6 +216,12 @@ acs_set_net(json_t *net) {
 
 	if (net != NULL) {
 		if (acs_check_net(net)) {
+			j = json_dumps(net, JSON_COMPACT | JSON_ENSURE_ASCII);
+			if (j != NULL) {
+				acs_status(ACS_OK, "NET: %s", j);
+				free(j);
+			}
+
 			/* Reference it so it will not go away */
 			json_incref(net);
 			acs_status(ACS_OK, "Ready to Dance");
