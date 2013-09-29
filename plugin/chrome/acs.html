@@ -17,22 +17,37 @@
 		<div class="statustext" id="status">initializing...</div>
 	</div>
 
+	<div class="coltainer">
+	<div class="colleft">
+	<h3>a) Manually provided ACS Dance</h3>
 	<p>
-	Either perform Rendezvous from the Plugin menu or provide a NET manually in the following textarea.
-	Do launch a a Circuit from the Plugin menu.
+		Please provide a NET in the textarea below to perform the ACS Dance.
 	</p>
 
 <textarea id="acsnet">
 {
-	"window"	: 7,
+	"initial"	: "10.42.20.170",
+	"redirect"	: "10.42.20.55",
 	"wait"		: 4,
-	"initial"	: "66.160.192.108",
-	"redirect"	: "66.160.192.108",
-	"passphrase"	: "8b42c8971567e309c5fe7865"
+	"window"	: 5,
+	"passphrase"	: "050a4ffb9934224523dc21d1"
 }
 </textarea>
 
-	<button id="dance">Dance</button>
+	<br />
+	<button id="dancenet">Dance with manually provided NET</button>
+	</div> <!-- colleft -->
+
+	<div class="colright">
+	<h3>b) Rendezvous provided ACS Dance</h3>
+	<p>
+		This option allows one to perform the ACS Dance using the
+		NET that was retrieved by performing Rendezvous from the plugin menu.
+	</p>
+	<button id="dancerdv">Dance with Rendezvous provided NET</button>
+	</div> <!-- colright -->
+
+	</div> <!-- coltainer -->
 
 	<h2>Log</h2>
 	<textarea id="log" readonly="readonly"></textarea>
