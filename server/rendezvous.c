@@ -54,7 +54,7 @@ rdv_onion_reset(void) {
 
 	memset(l_password, 0, DEFIANT_REQ_REP_PASSWORD_LENGTH + 1);
 
-	if (l_current_onion != NULL ){
+	if (l_current_onion != NULL) {
 		free_onion(l_current_onion);
 		l_current_onion = NULL;
 	}
@@ -107,12 +107,12 @@ rdv_image_reset(void) {
 	log_dbg("...");
 
 	if (l_current_image_path != NULL) {
-		if (unlink(l_current_image_path) == -1){
+		if (unlink(l_current_image_path) == -1) {
 			log_wrn("unlink(%s) failed: %s",
 				l_current_image_path, strerror(errno));
 		};
 
-		if (rmdir(l_current_image_dir) == -1){
+		if (rmdir(l_current_image_dir) == -1) {
 			log_wrn("rmdir(%s) failed: %s",
 				l_current_image_dir, strerror(errno));
 		};
@@ -191,7 +191,7 @@ rdv_gen_request(httpsrv_client_t* hcl) {
 
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
-		if (httpsrv_readbody_alloc(hcl, 2, 0) < 0){
+		if (httpsrv_readbody_alloc(hcl, 2, 0) < 0) {
 			log_dbg("httpsrv_readbody_alloc() failed");
 		}
 
@@ -214,7 +214,7 @@ rdv_gen_request(httpsrv_client_t* hcl) {
 
 		server_val = json_object_get(root, "server");
 
-		if (json_is_string(server_val)){
+		if (json_is_string(server_val)) {
 			server = (char *)json_string_value(server_val);
 		}
 	}
@@ -257,7 +257,7 @@ rdv_image(httpsrv_client_t*  hcl) {
 
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
-		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0){
+		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
 			log_dbg("httpsrv_readbody_alloc() failed");
 		}
 
@@ -270,7 +270,7 @@ rdv_image(httpsrv_client_t*  hcl) {
 
 	httpsrv_readbody_free(hcl);
 
-	if (retcode != DEFIANT_OK){
+	if (retcode != DEFIANT_OK) {
 		log_dbg("extract_n_save() with password=%s returned %d -- %s",
 			l_password, retcode, defiant_strerror(retcode));
 
@@ -283,7 +283,7 @@ rdv_image(httpsrv_client_t*  hcl) {
 				(const uchar *)encrypted_onion,
 				encrypted_onion_sz, &onion_sz);
 
-		if (onion == NULL){
+		if (onion == NULL) {
 			log_dbg("Decrypting onion failed: No onion");
 
 		} else if (onion_sz < (int)sizeof(onion_header_t)) {
@@ -466,7 +466,7 @@ rdv_peel_pow(void) {
 			response = rdv_make_pow_response(pc,
 				   "Working away...");
 		} else {
-			if (l_pow_inner_onion == NULL){
+			if (l_pow_inner_onion == NULL) {
 				response = rdv_make_peel_response("",
 					"Proof of work FAILED?!?");
 			} else {
@@ -566,7 +566,7 @@ rdv_peel_captcha_with_image_path(json_t *root) {
 		defcode = peel_captcha_onion(answer, l_current_onion,
 					     &inner_onion);
 
-		if (defcode == DEFIANT_OK){
+		if (defcode == DEFIANT_OK) {
 			/* Free current onion */
 			free_onion(l_current_onion);
 
@@ -602,11 +602,11 @@ rdv_peel_signed(void) {
 
 	errcode = verify_onion(l_current_onion);
 
-	if (errcode == DEFIANT_OK){
+	if (errcode == DEFIANT_OK) {
 		onion_t inner_onion = NULL;
 		errcode = peel_signed_onion(l_current_onion, &inner_onion);
 
-		if (errcode == DEFIANT_OK){
+		if (errcode == DEFIANT_OK) {
 			free_onion(l_current_onion);
 
 			l_current_onion = inner_onion;
@@ -656,7 +656,7 @@ rdv_peel(httpsrv_client_t *hcl) {
 	} else {
 		otype = ONION_TYPE(l_current_onion);
 
-		switch (otype){
+		switch (otype) {
 		case BASE:
 			response = rdv_peel_base();
 			break;
@@ -680,7 +680,7 @@ rdv_peel(httpsrv_client_t *hcl) {
 			break;
 		}
 
-		if (response != NULL){
+		if (response != NULL) {
 			djb_result(hcl, response);
 
 			aprintf_free(response);
