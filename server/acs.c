@@ -161,14 +161,24 @@ acs_keep_running(void) {
 	return (false);
 }
 
+static bool
+acs_check_net(json_t *net);
+static bool
+acs_check_net(json_t *net) {
+	if (!json_is_object(net)) {
+		acs_status(ACS_ERR, "Provided NET is not a JSON object");
+		return (false);
+	}
 
-/*
- * XXX: Create a separate function called before acs_set_net
- *      that verifies that all components (initial,redirect,etc)
- *      are present and contain mostly valid details
- *
- *      Currently this is done during the dance and errors there
- */
+	/*
+	 * XXX: Verify that all components (initial,redirect,etc)
+	 *      are present and contain mostly valid details
+	 *
+	 *      Currently this is done during the dance and errors there
+	 */
+
+	return (true);
+}
 
 /*
  * Set the NET, might get called by:
@@ -203,11 +213,15 @@ acs_set_net(json_t *net) {
 	l_net = net;
 
 	if (net != NULL) {
-		/* Reference it so it will not go away */
-		json_incref(net);
-		acs_status(ACS_OK, "Ready to Dance");
+		if (acs_check_net(net)) {
+			/* Reference it so it will not go away */
+			json_incref(net);
+			acs_status(ACS_OK, "Ready to Dance");
+		} else {
+			l_net = NULL;
+		}
 	} else {
-		acs_status(ACS_OK, "Please provide a NET");
+		acs_status(ACS_ERR, "Please provide a NET");
 	}
 
 	return (true);
@@ -389,11 +403,11 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	/* Did the request go okay? */
 	i = atoi(sdh->httpcode);
 	if (i != 200) {
-		acs_sitdown();
 		acs_status(ACS_ERR,
 			   "ACS Redirect failed: %u %s",
 			   i, sdh->httptext);
 		httpsrv_client_destroy(hcl);
+		acs_sitdown();
 		return (true);
 	}
 
@@ -597,8 +611,11 @@ acs_progress(httpsrv_client_t *hcl) {
 	if (!l_dancing && l_status == ACS_OK) {
 		/* Start the dance */
 		l_dancing = true;
+
 		mutex_unlock(l_dancing_mutex);
 		mutex_unlock(l_status_mutex);
+
+		acs_status(ACS_OK, "Starting to dance...");
 
 		/* Queue ACS Initial */
 		acs_initial();
