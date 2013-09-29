@@ -43,18 +43,39 @@ static const char* l_defaults[] = {
 	};
 
 static const char *
-prf_getvalue(enum prf_v i);
+prf_get_value(enum prf_v i);
 static const char *
-prf_getvalue(enum prf_v i) {
+prf_get_value(enum prf_v i) {
 	/* Just in case */
 	fassert(i < PRF_MAX);
 
 	/* Out of bound? */
 	if (i >= PRF_MAX) {
 		return (NULL);
-	} else {
-		/* Either return the current or the default */
-		return ((l_values[i] != NULL) ? l_values[i] : l_defaults[i]);
+	}
+
+	/* Either return the current or the default */
+	return ((l_values[i] != NULL) ? l_values[i] : l_defaults[i]);
+}
+
+static void
+prf_set_value(enum prf_v i, const char *val);
+static void
+prf_set_value(enum prf_v i, const char *val) {
+	/* Out of bound? */
+	if (i >= PRF_MAX) {
+		log_crt("Value out of range");
+		return;
+	}
+
+	if (l_values[i] != NULL)
+		free(l_values[i]);
+
+	log_dbg("Setting %s to %s", l_keys[i], val);
+	l_values[i] = val == NULL ? NULL : strdup(val);
+
+	if (l_values[i] == NULL) {
+		log_crt("Failed to duplicate string for preference value");
 	}
 }
 
@@ -82,16 +103,16 @@ prf_getvalue(enum prf_v i) {
 int
 prf_get_argv(char*** argvp) {
 	char		**argv = NULL;
-	const char	*shared_secret = prf_getvalue(PRF_SHS);
-	bool		trace_packets = (strcmp(prf_getvalue(PRF_TP), "true") == 0);
-	unsigned int	circuits = atoi(prf_getvalue(PRF_CC));
+	const char	*shared_secret = prf_get_value(PRF_SHS);
+	bool		trace_packets = (strcmp(prf_get_value(PRF_TP), "true") == 0);
+	unsigned int	circuits = atoi(prf_get_value(PRF_CC));
 	unsigned int	argc = 7 + (2 * circuits), i;
 	int		r;
 	char		scratch[256];
 	unsigned int	vslot = 0;
 
 	if (argvp == NULL) {
-		log_dbg("No arguments provided");
+		log_dbg("No argument storage provided");
 		return (-1);
 	}
 
@@ -103,8 +124,7 @@ prf_get_argv(char*** argvp) {
 		argc++;
  
 	argv = calloc(argc, sizeof argv);
-
-	if (argv != NULL) {
+	if (argv == NULL) {
 		log_crt("Could not allocate memory for arguments");
 		return (-1);
 	}
@@ -112,10 +132,10 @@ prf_get_argv(char*** argvp) {
 	mutex_lock(l_mutex);
 
 	/* Executable */
-	argv[vslot++] = strdup(prf_getvalue(PRF_EXE));
+	argv[vslot++] = strdup(prf_get_value(PRF_EXE));
 
 	memzero(scratch, sizeof scratch);
-	r = snprintf(scratch, sizeof scratch, "--log-min-severity=%s", prf_getvalue(PRF_LL));
+	r = snprintf(scratch, sizeof scratch, "--log-min-severity=%s", prf_get_value(PRF_LL));
 	if (!snprintfok(r, sizeof scratch)) {
 		mutex_unlock(l_mutex);
 		log_crt("Could not store log severity");
@@ -133,15 +153,15 @@ prf_get_argv(char*** argvp) {
 
 	if (shared_secret != NULL && (strcmp(shared_secret, "") != 0)){
 		memzero(scratch, sizeof scratch);
-		snprintf(scratch, sizeof scratch, "--shared-secret=%s", prf_getvalue(PRF_SHS));
+		snprintf(scratch, sizeof scratch, "--shared-secret=%s", prf_get_value(PRF_SHS));
 		argv[vslot++] = strdup(scratch);
 	}
 
-	argv[vslot++] = strdup(prf_getvalue(PRF_PA));
+	argv[vslot++] = strdup(prf_get_value(PRF_PA));
 
 	for (i = 0; i < circuits; i++) {
-		argv[vslot++] = strdup(prf_getvalue(PRF_JA));  
-		argv[vslot++] = strdup(prf_getvalue(PRF_SM));
+		argv[vslot++] = strdup(prf_get_value(PRF_JA));  
+		argv[vslot++] = strdup(prf_get_value(PRF_SM));
 	}
 
 	argv[vslot++] = NULL;
@@ -149,6 +169,8 @@ prf_get_argv(char*** argvp) {
 	*argvp = argv;
 
 	mutex_unlock(l_mutex);
+
+	fassert(vslot == argc);
 
 	return (argc);
 }
@@ -164,7 +186,98 @@ prf_free_argv(unsigned int argc, char **argv) {
 	free(argv);
 }
 
-/* XXX uses strdup */
+/*
+	Bridge Details:
+
+	{
+		"BR_Access":
+		{
+			"br_expiration":1000,
+			"br_identity":"IDENTITY",
+			"br_secret":"SECRET"
+		},
+		"Camouflage":
+		{
+			"method":"http",
+			"scheme":"steg",
+			"key":"XXX:ticket:46"
+		},
+		"Contact":
+		{
+			"IP_address":"10.42.20.221",
+			"Encapsulations":
+			[
+				{
+					"IP_subheader":6,
+					"Discriminator":80
+				}
+			]
+		}
+	}
+*/
+
+bool
+prf_parse_bridge_details(const char *br) {
+	json_error_t	jerr;
+	json_t		*root,
+			*camouflage, *method,
+			*contact, *ip_address;
+	bool		ok = true;
+
+	root = json_loads(br, 0, &jerr);
+	if (root == NULL) {
+		log_err("Could not JSON load Bridge Details");
+		return (false);
+	}
+
+	while (true) {
+		if (!json_is_object(root)){
+			log_err("JSON Root is not a JSON Object");
+			ok = false;
+			break;
+		}
+
+		camouflage = json_object_get(root, "Camouflage");
+		if (camouflage == NULL || !json_is_object(camouflage)) {
+			log_err("BR Camouflage not found");
+			break;
+		}
+
+		method = json_object_get(camouflage, "method");
+		if (method == NULL || !json_is_string(method)) {
+			log_err("BR Camouflage method not found");
+			break;
+		}
+
+		contact = json_object_get(root, "Contact");
+		if (contact == NULL || !json_is_object(contact)) {
+			log_err("BR Contact not found");
+			break;
+		}
+
+		ip_address = json_object_get(contact, "IP_address");
+		if (ip_address == NULL || !json_is_string(ip_address)) {
+			log_err("BR Contact IP_address not found");
+			break;
+		}
+
+		/* XXX: We ignore the protocol/port for now (TCP/80) */
+
+		/* Set the new values */
+		prf_set_value(PRF_SM, json_string_value(method));
+		prf_set_value(PRF_PA, json_string_value(ip_address));
+
+		/* All done here now */
+		log_err("Completed succesfully");
+		break;
+	}
+
+	/* Done */
+	json_decref(root);
+
+	return (ok);
+}
+
 static bool
 prf_parse_preferences(void);
 static bool
@@ -173,7 +286,6 @@ prf_parse_preferences(void) {
 	json_t		*root;
 	json_t		*valueobj;
 	const char	*key;
-	char		*oldval;
 	unsigned int	i;
 
 	log_dbg("...");
@@ -203,13 +315,7 @@ prf_parse_preferences(void) {
 		if (!json_is_string(valueobj)) { 
 			continue;
 		} else {
-			oldval = l_values[i];
-
-			if (oldval != NULL) {
-				free(oldval);
-			}
-
-			l_values[i] = strdup(json_string_value(valueobj));
+			prf_set_value(i, json_string_value(valueobj));
 		}
 	}
 
@@ -217,20 +323,6 @@ prf_parse_preferences(void) {
 
 	/* All okay */
 	return (true);
-}
-
-void
-prf_dump(void);
-void
-prf_dump(void) {
-	unsigned int i;
-
-	for (i = 0; i < PRF_MAX; i++) {
-		if (l_keys[i] == NULL)
-			continue;
-
-		fprintf(stderr, "%s => %s\n", l_keys[i], l_values[i]);
-	}
 }
 
 void
@@ -258,12 +350,20 @@ prf_handle(httpsrv_client_t *hcl) {
 		unsigned int	argc = 0, i;
 		char		**argv = NULL;
 
-		prf_dump();
+		for (i = 0; i < PRF_MAX; i++) {
+			if (l_keys[i] == NULL)
+				continue;
+
+			if (l_values[i] == NULL)
+				continue;
+
+			log_dbg("%s => %s\n", l_keys[i], l_values[i]);
+		}
 
 		argc = prf_get_argv(&argv);
 		log_wrn("argc = %u", argc);
 		for (i = 0; i < argc; i++) {
-			fprintf(stderr, "argv[%u] = %s\n", i, argv[i]);
+			log_dbg("argv[%u] = %s\n", i, argv[i]);
 		}
 #endif
 		djb_result(hcl, "Preferences OK");
