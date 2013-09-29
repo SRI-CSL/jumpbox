@@ -44,8 +44,6 @@ static hlist_t		l_messages;
 static mutex_t		l_dancing_mutex;
 static bool		l_dancing = false;
 
-typedef void (acs_cb_f)(httpsrv_client_t *shcl, httpsrv_client_t *hcl);
-
 typedef struct {
 	hnode_t		node;
 	uint64_t	status;
@@ -150,6 +148,19 @@ acs_sitdown(void) {
 	l_dancing = false;
 	mutex_unlock(l_dancing_mutex);
 }
+
+static bool
+acs_keep_running(void);
+static bool
+acs_keep_running(void) {
+	if (thread_keep_running())
+		return (true);
+
+	acs_status(ACS_ERR, "ACS Dance slipped, aborting");
+	acs_sitdown();
+	return (false);
+}
+
 
 /*
  * XXX: Create a separate function called before acs_set_net
@@ -312,7 +323,7 @@ acs_setup(httpsrv_client_t *hcl) {
 	httpsrv_readbody_free(hcl);
 
 	if (ok) {
-		acs_result(hcl, ACS_OK, "ACS setup succesful");
+		acs_result(hcl, ACS_OK, "ACS setup successful");
 		return (true);
 	}
 
@@ -321,13 +332,17 @@ acs_setup(httpsrv_client_t *hcl) {
 }
 
 static bool
-acs_request(acs_cb_f callback, const char *hostname, const char *uri);
+acs_request(djb_push_f callback, const char *hostname, const char *uri);
 static bool
-acs_request(acs_cb_f callback, const char *hostname, const char *uri) {
+acs_request(djb_push_f callback, const char *hostname, const char *uri) {
 	httpsrv_client_t	*hcl;
 	djb_headers_t		*dh;
 
 	log_dbg("hostname: %s, uri: %s", hostname, uri);
+
+	if (!acs_keep_running()) {
+		return (true);
+ 	}
 
 	assert(l_hs != NULL);
 	hcl = httpsrv_newcl(l_hs);
@@ -356,12 +371,16 @@ acs_request(acs_cb_f callback, const char *hostname, const char *uri) {
 	return (djb_proxy_add(hcl));
 }
 
-static void
+static bool
 acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl);
-static void
+static bool
 acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	djb_headers_t	*sdh;
-	unsigned int	i;
+	unsigned int	i, ans_len;
+	char		*ans;
+	bool		ok;
+	int		argc, a;
+	char		**argv;
 
 	log_dbg("..");
 
@@ -375,22 +394,74 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 			   "ACS Redirect failed: %u %s",
 			   i, sdh->httptext);
 		httpsrv_client_destroy(hcl);
-		return;
+		return (true);
 	}
 
-	acs_status(ACS_OK, "ACS Redirect success: %u %s", i, sdh->httptext);
+	/* No body yet? Then allocate some memory to get it */
+	if (shcl->readbody == NULL) {
+		if (httpsrv_readbody_alloc(shcl, 2, 0) < 0){
+			log_dbg("httpsrv_readbody_alloc() failed");
+		}
+
+		/* I want that body, thus not done yet */
+		return (false);
+	}
+
+	/* Decode the result */
+	if (!steg_decode(shcl->readbody, shcl->readbody_off,
+			 shcl->headers.content_type,
+			 &ans, &ans_len)) {
+		return (false);
+		
+	}
+
+	acs_status(ACS_OK, "ACS Redirect success: HTTP %u %s",
+		   i, sdh->httptext);
+
+	log_dbg("Bridge Details: %s", ans);
+
+	ok = prf_parse_bridge_details(ans);
+
+	/* Free it up */
+	steg_free(ans, ans_len, NULL, 0);
 
 	/* Done with this request */
 	httpsrv_client_destroy(hcl);
 
-	/* Show okay, we are done */
-	acs_status(ACS_DONE,
-		   "ACS completed succesfully, you can start Tor over StegoTorus over JumpBox/DGW");
+	if (ok) {
+		/* Show okay, we are done */
+		acs_status(ACS_OK, "ACS Dance complete");
+
+		argc = prf_get_argv(&argv);
+		if (argc < 1) {
+			acs_status(ACS_ERR, "Argument compilation failed");
+		} else {
+			acs_status(ACS_OK,
+				   "%u arguments for starting StegoTorus",
+				   argc - 1);
+
+			for (i = 0; a < argc-1; a++) {
+				acs_status(ACS_OK, "arg[%u] = %s", a, argv[a]);
+			}
+
+			prf_free_argv(argc, argv);
+
+			/* Show okay, we are done */
+			acs_status(ACS_DONE,
+				   "ACS completed successfully, you can "
+				   "start Tor over StegoTorus over "
+				   "JumpBox/DGW");
+		}
+	} else {
+		acs_status(ACS_ERR,
+			   "Unable to parse ACS received Bridge Details");
+	}
 
 	/* Done dancing */
 	acs_sitdown();
 
-	return;
+	/* Done */
+	return (true);
 }
 
 static void
@@ -435,13 +506,16 @@ acs_wait(void) {
 
 	acs_status(ACS_OK, "Moonwalk done");
 
+	if (!acs_keep_running())
+		return;
+
 	/* Go to the redirect phase */
 	acs_redirect();
 }
 
-static void
+static bool
 acs_initial_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl);
-static void
+static bool
 acs_initial_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	djb_headers_t	*sdh;
 	unsigned int	i;
@@ -458,16 +532,24 @@ acs_initial_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 			   i, sdh->httptext);
 		httpsrv_client_destroy(hcl);
 		acs_sitdown();
-		return;
+
+		/* Done */
+		return (true);
 	}
 
-	acs_status(ACS_OK, "ACS Initial success: %u %s", i, sdh->httptext);
+	acs_status(ACS_OK, "ACS Initial success: HTTP %u %s", i, sdh->httptext);
 
 	/* Done with this request */
 	httpsrv_client_destroy(hcl);
 
+	if (!acs_keep_running())
+		return (true);
+
 	/* Perform Wait stage */
 	acs_wait();
+
+	/* Done */
+	return (true);
 }
 
 static void
@@ -595,15 +677,23 @@ acs_init(httpsrv_t *hs) {
 	/* Empty it */
 	memzero(l_message, sizeof l_message);
 
-	acs_status(ACS_OK, "ACS Dancer Initialzed");
+	acs_status(ACS_OK, "ACS Dancer Initialized");
 }
 
 void
 acs_exit(void) {
 	acsmsg_t *m;
 
+	/* Stopped dancing */
+	acs_sitdown();
+
 	/* Reset */
 	acs_set_net(NULL);
+
+	/* Notify possible listeners */
+	mutex_lock(l_status_mutex);
+	cond_trigger(l_status_cond);
+	mutex_unlock(l_status_mutex);
 
 	l_hs = NULL;
 
