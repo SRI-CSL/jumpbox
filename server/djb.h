@@ -63,6 +63,7 @@ enum prf_v {
 	PRF_SHS,
 	PRF_PA,
 	PRF_JA,
+	PRF_SA,
 	PRF_MAX         /* Maximum argument */
 };
 

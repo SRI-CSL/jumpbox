@@ -14,7 +14,8 @@ static const char* l_keys[] =  {
 	"stegotorus_trace_packets", 
 	"shared_secret", 
 	"proxy_address", 
-	"djb_address"
+	"djb_address",
+	"server_address"
 	};
 
 static char* l_values[PRF_MAX];
@@ -27,7 +28,8 @@ static const char* l_defaults[] = {
 	"false", 
 	NULL, 
 	"127.0.0.1:1080",
-	"127.0.0.1:6543"
+	"127.0.0.1:6543",
+	"127.0.0.1:8080",
 	};
 
 const char *
@@ -253,7 +255,7 @@ prf_parse_bridge_details(const char *br) {
 
 		/* Set the new values */
 		prf_set_value(PRF_SM, json_string_value(method));
-		prf_set_value(PRF_PA, json_string_value(ip_address));
+		prf_set_value(PRF_SA, json_string_value(ip_address));
 
 		/* All done here now */
 		log_dbg("Completed succesfully");
