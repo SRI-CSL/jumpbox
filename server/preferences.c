@@ -360,9 +360,9 @@ prf_handle(httpsrv_client_t *hcl) {
 			log_dbg("argv[%u] = %s\n", i, argv[i]);
 		}
 #endif
-		djb_result(hcl, "Preferences OK");
+		djb_result(hcl, DJB_OK, "Preferences OK");
 	} else {
-		djb_result(hcl, "Preferences broken");
+		djb_result(hcl, DJB_OK, "Preferences broken");
 	}
 
 	mutex_unlock(l_mutex);
