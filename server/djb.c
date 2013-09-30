@@ -824,7 +824,9 @@ djb_launch(httpsrv_client_t *hcl) {
 	char		**argv;
 	int		argc, i;
 	bool		ok = false;
-	char		buf[128];
+	char		buf[256], *cur;
+	unsigned int	off, l;
+	const char	*msg;
 
 	/* Convert preferences into argv */
 	argc = prf_get_argv(&argv);
@@ -836,14 +838,33 @@ djb_launch(httpsrv_client_t *hcl) {
 		ok = thread_spawn(argv, buf);
 	}
 
+	cur = buf;
+	memzero(buf, sizeof buf);
+	for (i = 0, off = 0; argv[i]; i++) {
+		l = strlen(argv[i]);
+
+		if ((l + off + 2) >= sizeof buf)
+			break;
+
+		cur = stpncpy(cur, argv[i], l);
+		*cur = ' ';
+		cur++;
+		off += l+1;
+	}
+
 	/* Free argv */
 	prf_free_argv(argc, argv);
 
-	if (ok) {
-		djb_result(hcl, DJB_OK, "StegoTorus launch");
-	} else {
-		djb_result(hcl, DJB_ERR, "StegoTorus launch failed");
-	}
+	msg = aprintf("StegoTorus %s: %s",
+		ok ? "launched" : "launched failed",
+		buf);
+
+	djb_result(hcl,
+		   msg != NULL && ok ? DJB_OK : DJB_ERR,
+		   msg != NULL ? msg : "Could not format error");
+
+	if (msg != NULL)
+		aprintf_free(msg);
 }
 
 bool
