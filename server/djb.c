@@ -139,7 +139,6 @@ djb_html_css(httpsrv_client_t *hcl) {
 		"div.coltainer div.colleft\n"
 		"{\n"
 		"	float		: left;\n"
-		"	font-weight	: bold;\n"
 		"	width		: 50%;\n"
 		"}\n"
 		"\n"
