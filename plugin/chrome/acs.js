@@ -117,7 +117,7 @@ danceNET: function () {
 		} else if (typeof obj.passphrase !== 'string') {
 			ACS.set_status("error", "Manual NET misses passphrase");
 		} else {
-			ACS.set_status("ok", "Manually provided NET is valid " +
+			ACS.set_status("ok", "Manually provided NET looks valid " +
 				             "(initial: " + obj.initial + ", " +
 					      "redirect: " + obj.redirect + ")");
 		}
