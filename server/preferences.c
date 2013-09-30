@@ -52,7 +52,7 @@ static void
 prf_set_value(enum prf_v i, const char *val) {
 	/* Out of bound? */
 	if (i >= PRF_MAX) {
-		log_crt("Value out of range");
+		log_err("Value out of range");
 		return;
 	}
 
@@ -63,7 +63,7 @@ prf_set_value(enum prf_v i, const char *val) {
 	l_values[i] = val == NULL ? NULL : strdup(val);
 
 	if (l_values[i] == NULL) {
-		log_crt("Failed to duplicate string for preference value");
+		log_err("Failed to duplicate string for preference value");
 	}
 }
 
@@ -113,7 +113,7 @@ prf_get_argv(char*** argvp) {
  
 	argv = calloc(argc, sizeof argv);
 	if (argv == NULL) {
-		log_crt("Could not allocate memory for arguments");
+		log_err("Could not allocate memory for arguments");
 		return (-1);
 	}
 
@@ -126,7 +126,7 @@ prf_get_argv(char*** argvp) {
 	r = snprintf(scratch, sizeof scratch, "--log-min-severity=%s", prf_get_value(PRF_LL));
 	if (!snprintfok(r, sizeof scratch)) {
 		mutex_unlock(l_mutex);
-		log_crt("Could not store log severity");
+		log_err("Could not store log severity");
 		return (-1);
 	}
 	

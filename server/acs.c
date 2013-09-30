@@ -69,7 +69,7 @@ acs_status(djb_status_t status, const char *format, ...) {
 
 	m = (acsmsg_t *)mcalloc(sizeof *m, "acsmsg");
 	if (m == NULL) {
-		log_crt("No memory for ACS Message");
+		log_err("No memory for ACS Message");
 		l_status = DJB_ERR;
 	} else {
 		/* Init the node */
