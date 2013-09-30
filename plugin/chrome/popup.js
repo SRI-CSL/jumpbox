@@ -63,7 +63,7 @@ Popup = {
     },
 
     preferences: function () {
-         Popup.launch_just_one_tab('options.html');
+         Popup.launch_just_one_tab('preferences.html');
     },
 
     launchtools: function () {
