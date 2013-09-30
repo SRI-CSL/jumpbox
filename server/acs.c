@@ -150,6 +150,7 @@ acs_set_net(json_t *net) {
 	if (l_dancing) {
 		/* Already dancing, thus can't change anything */
 		mutex_unlock(l_dancing_mutex);
+		acs_status(DJB_ERR, "Already dancing, can't replace NET");
 		return (false);
 	}
 
@@ -307,7 +308,7 @@ acs_setup(httpsrv_client_t *hcl) {
 		return (true);
 	}
 
-	djb_result(hcl, DJB_ERR, "Already dancing the night away");
+	djb_result(hcl, DJB_ERR, "Could not setup NET");
 	return (false);
 }
 
