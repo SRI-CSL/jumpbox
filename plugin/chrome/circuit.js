@@ -113,7 +113,7 @@ Circuitous = {
 	d = new Date();
 	jb_pull_request = new XMLHttpRequest();
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request, circuit_id); };
-        jb_pull_request.open('GET', Circuit.jb_pull_url + circuit_id + '/' + Circuit.cnt_requests + '/' + d.getTime());
+        jb_pull_request.open('GET', Circuit.jb_pull_url + circuit_id + '/' + Circuit.cnt_requests_out + '/' + d.getTime());
         jb_pull_request.send(null);
 	Circuit.addRequestOut();
     },
@@ -251,7 +251,7 @@ Translator = {
          * The response should be converted into a POST
          * no DJB headers will be in the response
          */
-        request.open('POST', Circuit.jb_push_url + circuit_id + '/' + Circuit.cnt_requests + '/' + d.getTime());
+        request.open('POST', Circuit.jb_push_url + circuit_id + '/' + Circuit.cnt_requests_out + '/' + d.getTime());
 
 	/* When it failed, report 555 back to jumpbox
 	 * this allows the client to do a new request
