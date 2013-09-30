@@ -152,7 +152,7 @@ prf_get_argv(char*** argvp) {
 		argv[vslot++] = strdup(prf_get_value(PRF_SM));
 	}
 
-	argv[vslot++] = NULL;
+	argv[vslot] = NULL;
 
 	*argvp = argv;
 
