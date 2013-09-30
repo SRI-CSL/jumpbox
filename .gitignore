@@ -18,4 +18,6 @@ debian/saferdefiance-jumpbox-daemon.postinst.debhelper
 debian/saferdefiance-jumpbox-daemon.postrm.debhelper
 debian/saferdefiance-jumpbox-daemon.substvars
 debian/saferdefiance-jumpbox-daemon/
-
+debian/saferdefiance-jumpbox-daemon-dbg.debhelper.log
+debian/saferdefiance-jumpbox-daemon-dbg.substvars
+debian/saferdefiance-jumpbox-daemon-dbg/

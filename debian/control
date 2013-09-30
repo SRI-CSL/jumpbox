@@ -18,3 +18,12 @@ Depends: chromium-browser
 Description: SAFER DEFIANCE Chromium Plugin
  SAFER DEFIANCE Chromium Plugin
 
+Package: saferdefiance-jumpbox-daemon-dbg
+Architecture: any
+Section: debug
+Depends: adduser, openssl, tor, libgmp10, libjansson4, libpbc0, zlib1g, ${shlibs:Depends}, ${misc:Depends}
+Description: debugging symbols for djb
+ SAFER DEFIANCE JumpBox Daemon
+ .
+ This package contains the debugging symbols for JumpBox
+
