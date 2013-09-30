@@ -1,6 +1,6 @@
-var Options;
+var Preferences;
 
-Options = {
+Preferences = {
     
     debug: true,
 
@@ -9,51 +9,51 @@ Options = {
     options: { 
         
         server_name: {
-            getter: function (option_id) { return Options.text_getter(option_id); },
-            setter: function (option_id) { return Options.text_setter(option_id); }
+            getter: function (option_id) { return Preferences.text_getter(option_id); },
+            setter: function (option_id) { return Preferences.text_setter(option_id); }
         },
         
         jumpbox_port: {
-            getter: function (option_id) { return Options.text_getter(option_id); },
-            setter: function (option_id) { return Options.text_setter(option_id); }
+            getter: function (option_id) { return Preferences.text_getter(option_id); },
+            setter: function (option_id) { return Preferences.text_setter(option_id); }
         },
 
         debug_mode: {
-            getter: function (option_id) { return Options.checkbox_getter(option_id); },
-            setter: function (option_id) { return Options.checkbox_setter(option_id); }
+            getter: function (option_id) { return Preferences.checkbox_getter(option_id); },
+            setter: function (option_id) { return Preferences.checkbox_setter(option_id); }
         },
 
         plugin_circuit_count: {
-            getter: function (option_id) { return Options.select_getter(option_id); },
-            setter: function (option_id) { return Options.select_setter(option_id); }
+            getter: function (option_id) { return Preferences.select_getter(option_id); },
+            setter: function (option_id) { return Preferences.select_setter(option_id); }
         },
 
         stegotorus_executable: {
-            getter: function (option_id) { return Options.text_getter(option_id); },
-            setter: function (option_id) { return Options.text_setter(option_id); }
+            getter: function (option_id) { return Preferences.text_getter(option_id); },
+            setter: function (option_id) { return Preferences.text_setter(option_id); }
         },
 
         stegotorus_log_level: {
-            getter: function (option_id) { return Options.select_getter(option_id); },
-            setter: function (option_id) { return Options.select_setter(option_id); }
+            getter: function (option_id) { return Preferences.select_getter(option_id); },
+            setter: function (option_id) { return Preferences.select_setter(option_id); }
         },
 
         stegotorus_circuit_count: {
-            getter: function (option_id) { return Options.select_getter(option_id); },
-            setter: function (option_id) { return Options.select_setter(option_id); }
+            getter: function (option_id) { return Preferences.select_getter(option_id); },
+            setter: function (option_id) { return Preferences.select_setter(option_id); }
         },
 
         stegotorus_steg_module: {
-            getter: function (option_id) { return Options.select_getter(option_id); },
-            setter: function (option_id) { return Options.select_setter(option_id); }
+            getter: function (option_id) { return Preferences.select_getter(option_id); },
+            setter: function (option_id) { return Preferences.select_setter(option_id); }
         },
         stegotorus_trace_packets: {
-            getter: function (option_id) { return Options.checkbox_getter(option_id); },
-            setter: function (option_id) { return Options.checkbox_setter(option_id); }
+            getter: function (option_id) { return Preferences.checkbox_getter(option_id); },
+            setter: function (option_id) { return Preferences.checkbox_setter(option_id); }
         },
         shared_secret: {
-            getter: function (option_id) { return Options.text_getter(option_id); },
-            setter: function (option_id) { return Options.text_setter(option_id); }
+            getter: function (option_id) { return Preferences.text_getter(option_id); },
+            setter: function (option_id) { return Preferences.text_setter(option_id); }
         }
     }, 
     
@@ -104,33 +104,33 @@ Options = {
     },
 
     init: function () {
-        Options.bkg = chrome.extension.getBackgroundPage();
-        Options.restore_options();
-        document.querySelector('#save').addEventListener('click', Options.save_options);
+        Preferences.bkg = chrome.extension.getBackgroundPage();
+        Preferences.restore_options();
+        document.querySelector('#save').addEventListener('click', Preferences.save_options);
     },
     
     save_options: function () {
         var option_id, option, value, getter;
-        for(option_id in Options.options){
-            option = Options.options[option_id];
+        for(option_id in Preferences.options){
+            option = Preferences.options[option_id];
             getter = option.getter;
             value = getter(option_id);
             localStorage[option_id] = value;
-            if(Options.debug){
+            if(Preferences.debug){
                 console.log('getter option_id: ' + option_id);
                 console.log('getter value: ' + value);
                 console.log('typeof value: ' + typeof(value));
             }
         }
-        Options.notify('Options Saved.');
+        Preferences.notify('Preferences Saved.');
     },
     
     
     
     notify: function (msg)  {
-        if(Options.bkg){
+        if(Preferences.bkg){
             //(re)-init
-            Options.bkg.JumpBox.init();
+            Preferences.bkg.JumpBox.init();
         }
         if(msg){
             var status = document.getElementById("status");
@@ -141,8 +141,8 @@ Options = {
     
     restore_options: function () {
         var option_id, option, setter;
-        for(option_id in Options.options){
-            option = Options.options[option_id];
+        for(option_id in Preferences.options){
+            option = Preferences.options[option_id];
             setter = option.setter;
             setter(option_id);
         }
@@ -150,5 +150,5 @@ Options = {
 
 };
 
-document.addEventListener('DOMContentLoaded', Options.init);
+document.addEventListener('DOMContentLoaded', Preferences.init);
 
