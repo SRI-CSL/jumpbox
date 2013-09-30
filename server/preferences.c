@@ -158,6 +158,10 @@ prf_get_argv(char*** argvp) {
 
 	mutex_unlock(l_mutex);
 
+	if (vslot != argc) {
+		log_err("Calculated argc = %u, but had vslot = %u", argc, vslot);
+	}
+
 	return (argc);
 }
 
