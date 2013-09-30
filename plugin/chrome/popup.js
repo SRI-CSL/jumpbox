@@ -4,14 +4,13 @@ var Popup;
 
 Popup = {
     
-    extension_id: chrome.i18n.getMessage("@@extension_id"),
-
     bkg: null,
 
     init: function () {
         var logo, button;
 
         Popup.bkg = chrome.extension.getBackgroundPage();
+	Popup.bkg.popup = Popup;
 
         logo = document.querySelector('#logo');
         logo.src = 'jumpbox.png';
@@ -27,36 +26,19 @@ Popup = {
         button.addEventListener('click', Popup.preferences);
 
         button = document.querySelector('#launcher');
-        button.addEventListener('click', Popup.launcher);
+        button.addEventListener('click', Popup.bkg.JumpBox.circuits_launch);
 
         button = document.querySelector('#shutdowner');
-        button.addEventListener('click', Popup.shutdowner);
+        button.addEventListener('click', Popup.bkg.JumpBox.circuits_shutdown);
         
         button = document.querySelector('#launchtools');
         button.addEventListener('click', Popup.launchtools);
     },
-    
-    circuit_page: 'circuit.html',
 
-    shutdowner:  function () {
-        Popup.close_all(Popup.circuit_page);
-    },
-    
-    launcher: function () {
-        try {
-            var index;
-            Popup.shutdowner();
-            for (index = 0; index < Popup.bkg.JumpBox.circuit_count; index++){
-                chrome.tabs.create({ url : Popup.circuit_page + "?id=" + (index+1)});
-            }
-        } catch(e) {
-            console.log('launcher: ' + e);
-        }
-    },
+    close_all: function(page) {
+	var index, tab_uri;
 
-    close_all: function (page) {
-        var index, tab_uri;
-        tab_uri = 'chrome-extension://' + Popup.extension_id + '/' + page;
+        tab_uri = 'chrome-extension://' + Popup.bkg.JumpBox.jb_ext_id + '/' + page;
         chrome.tabs.getAllInWindow(null, function(tabs){
                 for (index = 0; index < tabs.length; index++) {
                     if (tabs[index].url.substr(0,tab_uri.length) === tab_uri){
@@ -64,7 +46,7 @@ Popup = {
                     }
                 }
             });
-    }, 
+    },
 
     launch_just_one_tab: function (page) {
         //try and keep their cardinality <= 1

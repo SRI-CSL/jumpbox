@@ -70,6 +70,9 @@ JumpBox = {
     jb_preferences_url  : '',
     jb_ext_id           : chrome.i18n.getMessage("@@extension_id"),
     circuit_count	: 1,
+    circuit_count_running : 0,
+    circuit_page	: 'circuit.html',
+    popup		: null,
 
     init : function () {
         var port, debug_mode, ccs, cc = 1;
@@ -125,9 +128,57 @@ JumpBox = {
                 if (request.status === 0) {  Debug.log('preferences_push request failed'); }
             }
         }
-    }
+    },
 
-};
+    circuits_ensure: function () {
+        /* If we do not have any circuits yet... */
+        if (JumpBox.circuit_count_running == 0) {
+                /* Launch them */
+                JumpBox.circuits_launch();
+        }
+    },
+
+    circuits_launch: function () {
+        var index;
+
+        try {
+            JumpBox.circuits_shutdown();
+            for (index = 0; index < JumpBox.circuit_count; index++){
+                chrome.tabs.create({ url : JumpBox.circuit_page + "?id=" + (index+1),
+				     active: false,
+				     pinned: true,
+				   });
+                JumpBox.circuit_count_running++;
+            }
+        } catch(e) {
+            console.log('circuits_launch: ' + e);
+        }
+    },
+
+    circuits_shutdown: function() {
+        var index, tab_uri;
+
+        tab_uri = 'chrome-extension://' + JumpBox.jb_ext_id + '/' + JumpBox.circuit_page;
+        chrome.tabs.getAllInWindow(null, function(tabs){
+                for (index = 0; index < tabs.length; index++) {
+                    if (tabs[index].url.substr(0,tab_uri.length) === tab_uri){
+                        chrome.tabs.remove(tabs[index].id);
+                        JumpBox.circuit_count_running--;
+                    }
+                }
+            });
+
+        /* Just in case */
+        if (JumpBox.circuit_count_running != 0) {
+            console.log("Not all circuits where shutdown, " +
+                        JumpBox.circuit_count_running +
+                        " circuits still active!?");
+            /* Force it to zero just in case */
+            JumpBox.circuit_count_running = 0;
+        }
+    },
+
+}; /* JumpBox */
 
 Headers = {
 

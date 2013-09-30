@@ -3,7 +3,6 @@
 var ACS;
 
 ACS = {
-bkg:		"",
 msg_prev:	"",
 url_setup:	"",
 url_progress:	"",
@@ -72,18 +71,21 @@ empty_status: function () {
 },
 
 init: function () {
-	var djb;
+	var bkg, djb;
 
 	/* Watch out for when they want to dance */
 	document.querySelector("#dancenet").addEventListener("click", ACS.danceNET);
 	document.querySelector("#dancerdv").addEventListener("click", ACS.danceRDV);
 
 	/* Where is our djb? */
-	ACS.bkg = chrome.extension.getBackgroundPage();
-	djb = ACS.bkg.JumpBox.jb_host;
+	bkg = chrome.extension.getBackgroundPage();
+	djb = bkg.JumpBox.jb_host;
 
 	ACS.url_setup    = djb + '/acs/setup/';
 	ACS.url_progress = djb + '/acs/progress/';
+
+	/* Ensure we have a circuit up and running */
+	bkg.JumpBox.circuits_ensure();
 
 	ACS.set_status("ok", "Initialized");
 },
