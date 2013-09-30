@@ -80,6 +80,9 @@ init: function () {
 
 	LT.url_launch = djb + "/launch/";
 
+	/* Ensure we have a circuit up and running */
+	bkg.JumpBox.circuits_ensure();
+
 	LT.set_status("ok", "Initialized");
 },
 
