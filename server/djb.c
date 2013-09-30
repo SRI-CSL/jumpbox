@@ -988,7 +988,7 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 			log_dbg("Proxy Hostname Override: %s", h);
 		} else {
 			/* Use the proxy address from preferences */
-			h = prf_get_value(PRF_PA);
+			h = prf_get_value(PRF_SA);
 			if (h != NULL) {
 				log_dbg("Using preference for hostname: %s", h);
 			}
