@@ -105,7 +105,7 @@ prf_get_argv(char*** argvp) {
 	}
 
 	/* Optional arguments given? */
-	if (shared_secret != NULL)
+	if (shared_secret != NULL && (strcmp(shared_secret, "") != 0))
 		argc++;
 
 	if (trace_packets)
@@ -152,13 +152,11 @@ prf_get_argv(char*** argvp) {
 		argv[vslot++] = strdup(prf_get_value(PRF_SM));
 	}
 
-	argv[vslot] = NULL;
+	argv[vslot++] = NULL;
 
 	*argvp = argv;
 
 	mutex_unlock(l_mutex);
-
-	fassert(vslot == argc);
 
 	return (argc);
 }
