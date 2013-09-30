@@ -332,7 +332,7 @@ prf_handle(httpsrv_client_t *hcl) {
 		return;
 	}
 
-	log_inf("prefs = %s", hcl->readbody);
+	log_dbg("prefs = %s", hcl->readbody);
 
 	mutex_lock(l_mutex);
 
