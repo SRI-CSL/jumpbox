@@ -18,7 +18,8 @@ Circuit = {
     jb_pull_url: null,
     jb_push_url: null,
 
-    cnt_requests: 0,
+    cnt_requests_in: 0,
+    cnt_requests_out: 0,
     cnt_bytes: 0,
     cnt_restarts: 0,
 
@@ -65,9 +66,14 @@ Circuit = {
         }
     },
 
-    addRequest: function (){
-        Circuit.cnt_requests += 1;
-        document.querySelector('#request_count').textContent = Circuit.cnt_requests;
+    addRequestIn: function (){
+        Circuit.cnt_requests_in++;
+        document.querySelector('#request_count_in').textContent = Circuit.cnt_requests_in;
+    },
+
+    addRequestOut: function (){
+        Circuit.cnt_requests_out++;
+        document.querySelector('#request_count_out').textContent = Circuit.cnt_requests_out;
     },
 
     Restart: function (circuit_id){
@@ -101,7 +107,6 @@ Circuitous = {
         var jb_pull_request;
 
         Circuit.log('jb_pull(' + circuit_id + ')');
-
         
         chrome.browsingData.removeCache({});
 
@@ -110,6 +115,7 @@ Circuitous = {
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request, circuit_id); };
         jb_pull_request.open('GET', Circuit.jb_pull_url + circuit_id + '/' + Circuit.cnt_requests + '/' + d.getTime());
         jb_pull_request.send(null);
+	Circuit.addRequestOut();
     },
 
     handle_jb_pull_response : function (request, circuit_id) {
@@ -126,6 +132,7 @@ Circuitous = {
                 ss_push_request.onreadystatechange = function () { Circuitous.handle_ss_push_response(ss_push_request, circuit_id); };
                 ss_push_contents = Translator.jb_response2request(request, ss_push_request);
                 ss_push_request.send(ss_push_contents);
+		Circuit.addRequestOut();
             } else {
                 if (request.status === 0) {
 			Circuit.log('jb_pull request failed');
@@ -147,6 +154,7 @@ Circuitous = {
             jb_push_contents = Translator.ss_response2request(request, jb_push_request, circuit_id);
             jb_push_request.seqno = request.seqno;
             jb_push_request.send(jb_push_contents);
+	    Circuit.addRequestOut();
         }
     },
 
@@ -155,7 +163,7 @@ Circuitous = {
         if (request.readyState === 4) {
             Circuit.log('jb_push_response status: ' + request.status + ' ' + request.statusText);
 
-            Circuit.addRequest();
+            Circuit.addRequestIn();
 
 	    /* Always continue running ... */
             Circuitous.jb_pull(circuit_id);
