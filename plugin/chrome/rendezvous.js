@@ -107,6 +107,7 @@ Rendezvous = {
     set_status: function (msg) {
         if (msg) {
             document.querySelector('#status').innerHTML = msg;
+	    console.log("STATUS: " + msg);
         }
     },
 
@@ -204,7 +205,11 @@ Rendezvous = {
                 }
                 if (peel_response && typeof peel_response === 'object') {
                     Rendezvous.set_status(peel_response.status);
-                    UI.update_display(peel_response.onion_type, peel_response);
+		    if (peel_response.onion_type && typeof peel_response.onion_type === 'string') {
+                        UI.update_display(peel_response.onion_type, peel_response);
+		    } else {
+                        Rendezvous.set_status("Peel response did not have onion_type: " + peel_response.onion_type);
+		    }
                 } else if (peel_response != null) {
                     Rendezvous.set_status('Peel response is not a JSON object');
 		}
