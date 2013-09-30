@@ -109,26 +109,32 @@ static void
 acs_result(httpsrv_client_t *hcl, enum acs_status status, const char *msg);
 static void
 acs_result(httpsrv_client_t *hcl, enum acs_status status, const char *msg) {
-	const char	*buf;
+	char	*buf;
+	json_t	*json;
 
 	fassert(status < ACS_MAX);
 
-	buf = aprintf(
-		"{"
-		"\"status\": \"%s\", "
-		"\"message\": \"%s\""
-		"}",
-		l_statusnames[status],
-		msg);
+	json = json_pack("{s:s, s:s}",
+			"status", l_statusnames[status],
+			"message", msg);
+	if (json == NULL) {
+		log_crt("Could not pack ACS result");
+		djb_result(hcl, "error");
+		return;
+	}
+
+	buf = json_dumps(json, 0);
 
 	if (buf == NULL) {
 		log_crt("Could not format ACS result");
+		json_decref(json);
+		djb_result(hcl, "error");
 		return;
 	}
 
 	djb_result(hcl, buf);
 
-	aprintf_free(buf);
+	free(buf);
 }
 
 static void
@@ -302,6 +308,11 @@ acs_setup(httpsrv_client_t *hcl) {
 
 	/* No BODY yet, then we have to start reading */
 	if (hcl->readbody == NULL) {
+		if (hcl->headers.content_length == 0) {
+			djb_error(hcl, 400, "setup requires length");
+			return (true);
+		}
+
 		log_dbg("POST allocating memory for body");
 
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
@@ -421,8 +432,18 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 
 	/* No body yet? Then allocate some memory to get it */
 	if (shcl->readbody == NULL) {
+		if (shcl->headers.content_length == 0) {
+			log_dbg("redirect_answer requires length");
+			acs_status(ACS_ERR,
+				   "ACS Redirect failed: no length");
+			return (true);
+		}
+
 		if (httpsrv_readbody_alloc(shcl, 2, 0) < 0){
 			log_dbg("httpsrv_readbody_alloc() failed");
+			acs_status(ACS_ERR,
+				   "ACS Redirect failed: no memory");
+			return (true);
 		}
 
 		/* I want that body, thus not done yet */
@@ -433,8 +454,9 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	if (!steg_decode(shcl->readbody, shcl->readbody_off,
 			 shcl->headers.content_type,
 			 &ans, &ans_len)) {
-		return (false);
-		
+		acs_status(ACS_ERR,
+			   "ACS Redirect failed: desteg failed");
+		return (true);
 	}
 
 	acs_status(ACS_OK, "ACS Redirect success: HTTP %u %s",

@@ -137,9 +137,9 @@ rdv_reset(httpsrv_client_t* hcl) {
 }
 
 static void
-rdv_gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure);
+rdv_gen_request_aux(httpsrv_client_t* hcl, const char *server, bool secure);
 static void
-rdv_gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure) {
+rdv_gen_request_aux(httpsrv_client_t* hcl, const char *server, bool secure) {
 	const char	*path = NULL;
 	char		*request = NULL;
 	bf_params_t	*params =  NULL;
@@ -166,7 +166,7 @@ rdv_gen_request_aux(httpsrv_client_t* hcl, char* server, bool secure) {
 			yesno(secure),
 			l_password, request);
 	} else {
-		djb_error(hcl, 500, defiant_strerror(defcode));
+		djb_error(hcl, 400, defiant_strerror(defcode));
 	}
 
 	bf_free_params(params);
@@ -186,11 +186,21 @@ static void
 rdv_gen_request(httpsrv_client_t* hcl) {
 	json_error_t	error;
 	json_t		*root;
-	char		*server = NULL;
+	const char	*server = NULL;
 	bool		secure = false;
+
+	if (hcl->method != HTTP_M_POST) {
+		djb_error(hcl, 400, "gen_request requires a POST");
+		return;
+	}
 
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
+		if (hcl->headers.content_length == 0) {
+			djb_error(hcl, 400, "gen_request requires length");
+			return;
+		}
+
 		if (httpsrv_readbody_alloc(hcl, 2, 0) < 0) {
 			log_dbg("httpsrv_readbody_alloc() failed");
 		}
@@ -203,26 +213,29 @@ rdv_gen_request(httpsrv_client_t* hcl) {
 	root = json_loads(hcl->readbody, 0, &error);
 	httpsrv_readbody_free(hcl);
 
-	if (root != NULL && json_is_object(root)) {
+	if (root == NULL) {
+		log_dbg("JSON load failed");
+		return;
+
+	} else if (json_is_object(root)) {
 		json_t *server_val, *secure_val;
 
 		secure_val = json_object_get(root, "secure");
-
 		if (secure_val != NULL && json_is_true(secure_val)) {
 			secure = true;
 		}
 
 		server_val = json_object_get(root, "server");
 
-		if (json_is_string(server_val)) {
-			server = (char *)json_string_value(server_val);
+		if (server_val != NULL && json_is_string(server_val)) {
+			server = json_string_value(server_val);
 		}
 	}
 
 	if (server != NULL) {
 		rdv_gen_request_aux(hcl, server, secure);
 	} else {
-		djb_error(hcl, 500, "POST data conundrum");
+		djb_error(hcl, 400, "POST data conundrum");
 
 		if (root == NULL) {
 			log_dbg("data: %s, error: line: %u, msg: %s",
@@ -233,12 +246,30 @@ rdv_gen_request(httpsrv_client_t* hcl) {
 	json_decref(root);
 }
 
+static const char onion_names[5][10] = {
+	"base",
+	"pow",
+	"captcha",
+	"signed",
+	"collection"
+};
+
+static const char *
+rdv_onion_name(enum onion_type onion_type);
+static const char *
+rdv_onion_name(enum onion_type onion_type) {
+	fassert(onion_type < lengthof(onion_names));
+
+	return (onion_names[onion_type]);
+}
+
 static const char *
 rdv_make_image_response(const char *path, int onion_type);
 static const char *
 rdv_make_image_response(const char *path, int onion_type) {
-	return (aprintf("{ \"image\": \"/rendezvous/file%s\", \"onion_type\": %u}",
-			path, onion_type));
+	return (aprintf("{ \"image\": \"/rendezvous/file%s\", "
+			  "\"onion_type\": \"%s\"}",
+			path, rdv_onion_name(onion_type)));
 }
 
 static void
@@ -253,10 +284,20 @@ rdv_image(httpsrv_client_t*  hcl) {
 	size_t		encrypted_onion_sz = 0;
 	int		retcode = DEFIANT_OK;
 
+	if (hcl->method != HTTP_M_POST) {
+		djb_error(hcl, 400, "gen_request requires a POST");
+		return;
+	}
+
 	log_dbg("readbody: %s", yesno(hcl->readbody == NULL));
 
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
+		if (hcl->headers.content_length == 0) {
+			djb_error(hcl, 400, "image requires length");
+			return;
+		}
+
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
 			log_dbg("httpsrv_readbody_alloc() failed");
 		}
@@ -274,7 +315,7 @@ rdv_image(httpsrv_client_t*  hcl) {
 		log_dbg("extract_n_save() with password=%s returned %d -- %s",
 			l_password, retcode, defiant_strerror(retcode));
 
-		djb_error(hcl, 500,
+		djb_error(hcl, 400,
 			 "extract_n_save() failure, see log)");
 
 	} else {
@@ -309,9 +350,10 @@ rdv_image(httpsrv_client_t*  hcl) {
 				l_current_image_dir = image_dir;
 
 				log_dbg("onion_sz %u, "
-					"onion_type: %u",
+					"onion_type: %s",
 					onion_sz,
-					ONION_TYPE(l_current_onion));
+					rdv_onion_name(
+					  ONION_TYPE(l_current_onion)));
 
 				djb_result(hcl, response);
 			}
@@ -328,7 +370,7 @@ rdv_image(httpsrv_client_t*  hcl) {
 		}
 
 		free(onion);
-		djb_error(hcl, 500, "server error");
+		djb_error(hcl, 400, "server error");
 	} else {
 		aprintf_free(response);
 	}
@@ -345,8 +387,10 @@ static const char *
 rdv_make_peel_response(const char* info, const char* status) {
 	unsigned int onion_type = ONION_TYPE(l_current_onion);
 
-	return (aprintf("{ \"info\": \"%s\",  \"status\": \"%s\", \"onion_type\": %u}",
-			info, status, onion_type));
+	return (aprintf("{ \"info\": \"%s\", "
+			  "\"status\": \"%s\", "
+			  "\"onion_type\": \"%s\"}",
+			info, status, rdv_onion_name(onion_type)));
 }
 
 static const char *
@@ -355,8 +399,10 @@ static const char *
 rdv_make_pow_response(unsigned int percent, const char *status) {
 	unsigned int onion_type = ONION_TYPE(l_current_onion);
 
-	return (aprintf("{ \"info\": %u,  \"status\": \"%s\", \"onion_type\": %u}",
-			percent, status, onion_type));
+	return (aprintf("{ \"info\": %u, "
+			  "\"status\": \"%s\", "
+			  "\"onion_type\": \"%s\"}",
+			percent, status, rdv_onion_name(onion_type)));
 }
 
 static const char *
@@ -470,15 +516,15 @@ rdv_peel_pow(void) {
 				response = rdv_make_peel_response("",
 					"Proof of work FAILED?!?");
 			} else {
+				response = rdv_make_pow_response(100,
+					"Your Proof-Of-Work has "
+					"finished successfully!");
+
 				/* Free the old onion */
 				free_onion(l_current_onion);
 
 				/* This is the new one */
 				l_current_onion = l_pow_inner_onion;
-
-				response = rdv_make_pow_response(100,
-					"Your Proof-Of-Work has "
-					"finished successfully!");
 
 				l_pow_inner_onion = NULL;
 				rdv_pow_reset();
@@ -556,7 +602,10 @@ rdv_peel_captcha_with_image_path(json_t *root) {
 	/* Do they have an answer? */
 	answer_val = json_object_get(root, "action");
 
-	if (json_is_string(answer_val)) {
+	if (answer_val == NULL) {
+		r = "Answer not found in JSON";
+
+	} else if (json_is_string(answer_val)) {
 		char	*answer;
 		onion_t	inner_onion = NULL;
 		int	defcode;
@@ -578,7 +627,7 @@ rdv_peel_captcha_with_image_path(json_t *root) {
 			r = "Nope, try again?";
 		}
 	} else {
-		r = "Answer wasn't of the right type";
+		r = "JSON Answer field wasn't of the right type";
 	}
 
 	return (rdv_make_peel_response("", r));
@@ -588,6 +637,8 @@ static const char *
 rdv_peel_captcha(json_t *root);
 static const char *
 rdv_peel_captcha(json_t *root) {
+	log_dbg("...");
+
 	return (l_captcha_image_path == NULL ?
 		rdv_peel_captcha_no_image_path() :
 		rdv_peel_captcha_with_image_path(root));
@@ -599,6 +650,8 @@ static const char *
 rdv_peel_signed(void) {
 	int 		errcode;
 	const char	*r;
+
+	log_dbg("...");
 
 	errcode = verify_onion(l_current_onion);
 
@@ -633,8 +686,18 @@ rdv_peel(httpsrv_client_t *hcl) {
 	json_t		*root;
 	int		otype;
 
+	if (hcl->method != HTTP_M_POST) {
+		djb_error(hcl, 400, "peel requires a POST");
+		return;
+	}
+
 	/* No body yet? Then allocate some memory to get it */
 	if (hcl->readbody == NULL) {
+		if (hcl->headers.content_length == 0) {
+			djb_error(hcl, 400, "peel requires length");
+			return;
+		}
+
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
 			log_dbg("httpsrv_readbody_alloc() failed");
 		}
@@ -648,13 +711,21 @@ rdv_peel(httpsrv_client_t *hcl) {
 	if (root == NULL) {
 		log_dbg("libjansson error: line: %u msg: %s",
 			error.line, error.text);
-		djb_error(hcl, 500, "Bad JSON");
+		djb_error(hcl, 400, "Invalid JSON");
 
-	} else if ((l_current_onion == NULL) || !ONION_IS_ONION(l_current_onion)) {
-		djb_error(hcl, 500, "Bad onion");
+	} else if (!json_is_object(root)) {
+		log_dbg("JSON passed is not an object");
+		djb_error(hcl, 400, "No Object in JSON");
+
+	} else if (l_current_onion == NULL) {
+		djb_error(hcl, 400, "Currently no onion");
+
+	} else if (!ONION_IS_ONION(l_current_onion)) {
+		djb_error(hcl, 400, "Onion is not an onion");
 
 	} else {
 		otype = ONION_TYPE(l_current_onion);
+		log_dbg("onion_type: %s\n", rdv_onion_name(otype));
 
 		switch (otype) {
 		case BASE:
@@ -675,7 +746,7 @@ rdv_peel(httpsrv_client_t *hcl) {
 
 		case COLLECTION:
 		default:
-			djb_error(hcl, 500,
+			djb_error(hcl, 400,
 				 "Onion method not implemented yet");
 			break;
 		}
@@ -686,7 +757,7 @@ rdv_peel(httpsrv_client_t *hcl) {
 			aprintf_free(response);
 			response = NULL;
 		} else {
-			djb_error(hcl, 500, "Peeling failed");
+			djb_error(hcl, 400, "Peeling failed");
 		}
 	}
 
@@ -739,7 +810,7 @@ rdv_handle(httpsrv_client_t *hcl) {
 		rdv_file(hcl, &query[4]);
 
 	} else {
-		djb_error(hcl, 500, "No such DJB API request (Rendezvous)");
+		djb_error(hcl, 400, "No such DJB API request (Rendezvous)");
 	}
 }
 

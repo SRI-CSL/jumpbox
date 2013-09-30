@@ -26,12 +26,9 @@ Rendezvous = {
     /* the wholey grey L */
     net: false,
 
-    /* needs to be kept in agreement with the enum of the same name in onion.h */
-    onion_type:  { BASE : 0, POW : 1, CAPTCHA : 2, SIGNED : 3, COLLECTION : 4 },
-
     state: false,
 
-    onion: -1,
+    onion: "",
 
     reset_url: null,
 
@@ -170,14 +167,15 @@ Rendezvous = {
                 Rendezvous.set_status('This image contains your stegged onion!');
 		try {
                     robj = JSON.parse(request.responseText);
-                    if (robj && typeof robj === 'object') {
-                        UI.prepare_for_peeling(robj);
-                    } else {
-                         Rendezvous.set_status('Image post is not a JSON object');
-		    }
 		} catch(e) {
                     Rendezvous.set_status('Image post response failed to parse as JSON: ' + e);
+		    robj = null;
                 }
+                if (robj && typeof robj === 'object') {
+                    UI.prepare_for_peeling(robj);
+		} else if (robj !== null) {
+                    Rendezvous.set_status('Image post is not a JSON object');
+	        }
             } else {
                 Rendezvous.set_status('Image post **NOT** OK');
             }
@@ -200,15 +198,16 @@ Rendezvous = {
             if (request.status === 200) {
 		try {
                     peel_response = JSON.parse(request.responseText);
-                    if (peel_response && typeof peel_response === 'object') {
-                        Rendezvous.set_status(peel_response.status);
-                        UI.update_display(peel_response.onion_type, peel_response);
-                    } else {
-                        Rendezvous.set_status('Peel response is not a JSON object');
-		    }
                 } catch(e) {
                     Rendezvous.set_status('Peel response failed to parse as JSON: ' + e);
+		    peel_response = null;
                 }
+                if (peel_response && typeof peel_response === 'object') {
+                    Rendezvous.set_status(peel_response.status);
+                    UI.update_display(peel_response.onion_type, peel_response);
+                } else if (peel_response != null) {
+                    Rendezvous.set_status('Peel response is not a JSON object');
+		}
             } else {
                 Rendezvous.set_status('Rendezvous.peel **NOT** OK');
             }
@@ -220,9 +219,6 @@ UI = {
     
     robj: {},
     
-    /* maps onion state to ui state  */
-    uiMap:  ['#base_peeler', '#pow_peeler', '#captcha_peeler', '#signed_peeler'],
-
     init: function () {
         document.querySelector('#signed_peeler_button').addEventListener('click', UI.peel_away);
     },
@@ -257,7 +253,7 @@ UI = {
             /* display the stegged onion */
             UI.display_image(Rendezvous.bkg.JumpBox.jb_host + robj.image);
         }
-        if (typeof robj.onion_type === 'number') {
+        if (typeof robj.onion_type === 'string') {
             console.log("ONION_TYPE: " + robj.onion_type);
             UI.update_display(robj.onion_type, robj);
         } else {
@@ -268,35 +264,47 @@ UI = {
     
 
     update_display: function (new_state, robj) {
-        var old_state, fresh, old_ui, new_ui, grab_bag, controls;
+        var old_state, ui, grab_bag, controls, st;
         UI.robj = robj;
         console.log("update_display: " + new_state + " robj: " + robj);
         old_state = Rendezvous.onion;
-        fresh = (new_state !== old_state);
-        if (fresh) {
+        if (new_state !== old_state) {
             /* move the current to the grab bag and instantiate the new */
             controls =  document.querySelector('#onion_peeling_controls');
             grab_bag = document.querySelector('#grab_bag');
-            if (old_state !== -1) {
-                old_ui = document.querySelector(UI.uiMap[old_state]);
-                controls.removeChild(old_ui);
-                grab_bag.appendChild(old_ui);
+            if (old_state !== "") {
+		st = "#" + old_state + "_peeler";
+                ui = document.querySelector(st);
+                controls.removeChild(ui);
+                grab_bag.appendChild(ui);
             }
-            new_ui = document.querySelector(UI.uiMap[new_state]);
-            controls.appendChild(new_ui);
+            st = "#" + new_state + "_peeler";
+            ui = document.querySelector(st);
+            controls.appendChild(ui);
         }
         /* now update the current state */
-        if (new_state === Rendezvous.onion_type.BASE) {
+	switch (new_state) {
+        case "base":
             UI.update_BASE_display(robj);
-        } else if (new_state === Rendezvous.onion_type.POW) {
+	    break;
+
+        case "pow":
             UI.update_POW_display(robj);
-        } else if (new_state === Rendezvous.onion_type.CAPTCHA) {
+	    break;
+
+        case "captcha":
             UI.update_CAPTCHA_display(robj);
-        } else if (new_state === Rendezvous.onion_type.SIGNED) {
+	    break;
 
-        } else {
+        case "signed":
+	    console.log("Not further processing signed onion");
+	    break;
 
+        default: 
+	    console.log("Unknown Onion Type: " + new_state);
+	    break;
         }
+
         /* finally record our new state */
         Rendezvous.onion = new_state;
     },
@@ -334,6 +342,9 @@ UI = {
                 setTimeout(UI.peel_away, 50);
             } else {
                 document.querySelector('#pow_peeler_button').disabled = false;
+
+		/* One last peel to get to the base */
+                UI.peel_away();
             }
         } else {
             document.querySelector('#pow_peeler_button').addEventListener('click', UI.pow_commence);

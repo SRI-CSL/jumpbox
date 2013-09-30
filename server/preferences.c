@@ -208,18 +208,20 @@ prf_parse_bridge_details(const char *br) {
 	json_t		*root,
 			*camouflage, *method,
 			*contact, *ip_address;
-	bool		ok = true;
+	bool		ok = false;
 
 	root = json_loads(br, 0, &jerr);
 	if (root == NULL) {
-		log_err("Could not JSON load Bridge Details");
+		log_err("Could not JSON load Bridge Details"
+			"line %u, column %u: %s",
+			jerr.line, jerr.column, jerr.text);
+
 		return (false);
 	}
 
 	while (true) {
 		if (!json_is_object(root)) {
 			log_err("JSON Root is not a JSON Object");
-			ok = false;
 			break;
 		}
 
@@ -255,6 +257,7 @@ prf_parse_bridge_details(const char *br) {
 
 		/* All done here now */
 		log_err("Completed succesfully");
+		ok = true;
 		break;
 	}
 
@@ -314,6 +317,11 @@ prf_parse_preferences(void) {
 void
 prf_handle(httpsrv_client_t *hcl) {
 	if (hcl->readbody == NULL) {
+		if (hcl->headers.content_length == 0) {
+			djb_error(hcl, 400, "prf_handle requires length");
+			return;
+		}
+
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
 			log_wrn("httpsrv_readbody_alloc() failed");
 		}
