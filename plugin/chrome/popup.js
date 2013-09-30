@@ -9,7 +9,7 @@ Popup = {
     bkg: null,
 
     init: function () {
-        var logo, rendezvous_button, acs_button, preferences_button, launcher_button, shutdowner_button; 
+        var logo, button;
 
         Popup.bkg = chrome.extension.getBackgroundPage();
 
@@ -17,25 +17,26 @@ Popup = {
         logo.src = 'jumpbox.png';
         logo.setAttribute('alt', 'jumpbox');
         
-        rendezvous_button = document.querySelector('#rendezvous');
-        rendezvous_button.addEventListener('click', Popup.rendezvous);
+        button = document.querySelector('#rendezvous');
+        button.addEventListener('click', Popup.rendezvous);
         
-        acs_button = document.querySelector('#acs');
-        acs_button.addEventListener('click', Popup.acs);
+        button = document.querySelector('#acs');
+        button.addEventListener('click', Popup.acs);
         
-        preferences_button = document.querySelector('#preferences');
-        preferences_button.addEventListener('click', Popup.preferences);
+        button = document.querySelector('#preferences');
+        button.addEventListener('click', Popup.preferences);
 
-        launcher_button = document.querySelector('#launcher');
-        launcher_button.addEventListener('click', Popup.launcher);
+        button = document.querySelector('#launcher');
+        button.addEventListener('click', Popup.launcher);
 
-        shutdowner_button = document.querySelector('#shutdowner');
-        shutdowner_button.addEventListener('click', Popup.shutdowner);
+        button = document.querySelector('#shutdowner');
+        button.addEventListener('click', Popup.shutdowner);
         
+        button = document.querySelector('#launchtools');
+        button.addEventListener('click', Popup.launchtools);
     },
     
     circuit_page: 'circuit.html',
-
 
     shutdowner:  function () {
         Popup.close_all(Popup.circuit_page);
@@ -48,7 +49,7 @@ Popup = {
             for (index = 0; index < Popup.bkg.JumpBox.circuit_count; index++){
                 chrome.tabs.create({ url : Popup.circuit_page + "?id=" + (index+1)});
             }
-        }catch(e){
+        } catch(e) {
             console.log('launcher: ' + e);
         }
     },
@@ -75,14 +76,17 @@ Popup = {
         Popup.launch_just_one_tab('rendezvous.html');
     },
 
-    acs:  function () {
+    acs: function () {
         Popup.launch_just_one_tab('acs.html');
     },
 
     preferences: function () {
          Popup.launch_just_one_tab('options.html');
-    }
-    
+    },
+
+    launchtools: function () {
+         Popup.launch_just_one_tab('launchtools.html');
+    }    
 };
 
 
