@@ -133,7 +133,7 @@ rdv_reset(httpsrv_client_t* hcl) {
 	rdv_image_reset();
 	rdv_pow_reset();
 
-	djb_result(hcl, "Reset OK");
+	djb_presult(hcl, "Reset OK");
 }
 
 static void
@@ -160,7 +160,7 @@ rdv_gen_request_aux(httpsrv_client_t* hcl, const char *server, bool secure) {
 	}
 
 	if (defcode == DEFIANT_OK) {
-		djb_result(hcl, request);
+		djb_presult(hcl, request);
 
 		log_dbg("secure=%s, password=%s, request=%s",
 			yesno(secure),
@@ -355,7 +355,7 @@ rdv_image(httpsrv_client_t*  hcl) {
 					rdv_onion_name(
 					  ONION_TYPE(l_current_onion)));
 
-				djb_result(hcl, response);
+				djb_presult(hcl, response);
 			}
 		}
 	}
@@ -752,7 +752,7 @@ rdv_peel(httpsrv_client_t *hcl) {
 		}
 
 		if (response != NULL) {
-			djb_result(hcl, response);
+			djb_presult(hcl, response);
 
 			aprintf_free(response);
 			response = NULL;
