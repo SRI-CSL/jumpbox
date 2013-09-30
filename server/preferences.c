@@ -256,7 +256,7 @@ prf_parse_bridge_details(const char *br) {
 		prf_set_value(PRF_PA, json_string_value(ip_address));
 
 		/* All done here now */
-		log_err("Completed succesfully");
+		log_dbg("Completed succesfully");
 		ok = true;
 		break;
 	}
