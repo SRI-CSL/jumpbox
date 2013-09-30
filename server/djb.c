@@ -821,15 +821,20 @@ void
 djb_launch(httpsrv_client_t *hcl);
 void
 djb_launch(httpsrv_client_t *hcl) {
-	char	**argv;
-	int	argc;
-	bool	ok;
+	char		**argv;
+	int		argc, i;
+	bool		ok = false;
+	char		buf[128];
 
 	/* Convert preferences into argv */
 	argc = prf_get_argv(&argv);
 
-	/* Spawn it */
-	ok = thread_spawn(argv);
+	/* Log file destination */
+	i = snprintf(buf, sizeof buf, "/tmp/djb_%s.log", argv[0]);
+	if (snprintfok(i, sizeof buf)) {
+		/* Spawn it */
+		ok = thread_spawn(argv, buf);
+	}
 
 	/* Free argv */
 	prf_free_argv(argc, argv);
