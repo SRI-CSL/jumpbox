@@ -68,8 +68,8 @@ install:
 	@$(MAKE) --no-print-directory -C server install
 
 deb: fakeroot depend
-	@echo "* Building Debian packages..."
-	@dpkg-buildpackage -rfakeroot -b
+	@echo "* Building Debian packages (unsigned)..."
+	@dpkg-buildpackage -rfakeroot -b -us -uc
 
 fakeroot:
 ifeq ($(shell which fakeroot),)
