@@ -9,6 +9,12 @@ typedef struct {
 	httpsrv_client_t	*hcl;		/* Client for this request */
 } djb_req_t;
 
+static const char l_statusnames[DJB_MAX][10] = {
+	"error",
+	"ok",
+	"done"
+};
+
 /* New, unforwarded queries (awaiting 'pull') */
 static hlist_t lst_proxy_new;
 
@@ -218,11 +224,45 @@ djb_error(httpsrv_client_t *hcl, unsigned int code, const char *msg) {
 }
 
 void
-djb_result(httpsrv_client_t *hcl, const char *msg) {
+djb_presult(httpsrv_client_t *hcl, const char *msg) {
 	httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_JSON);
 	httpsrv_expire(hcl, HTTPSRV_EXPIRE_FORCE);
 	conn_put(&hcl->conn, msg);
 	httpsrv_done(hcl);
+}
+
+void
+djb_result(httpsrv_client_t *hcl, djb_status_t status, const char *msg) {
+	char		*buf = NULL;
+	json_t		*json;
+
+	static const char err[]  =
+			"{\"status\": \"error\", "
+			 "\"message\": \"Error\" }";
+
+	fassert(status < DJB_MAX);
+
+	json = json_pack("{s:s, s:s}",
+			"status", l_statusnames[status],
+			"message", msg);
+	if (json == NULL) {
+		log_crt("Could not pack DJB result");
+	} else {
+		buf = json_dumps(json, 0);
+		if (buf == NULL) {
+			log_crt("Could not format DJB result");
+		}
+	}
+
+	djb_presult(hcl, buf != NULL ? buf : err);
+
+	if (buf) {
+		free(buf);
+	}
+
+	if (json) {
+		json_decref(json);
+	}
 }
 
 /* API-Pull, requests a new Proxy-request */
@@ -777,6 +817,30 @@ djb_status(httpsrv_client_t *hcl) {
 	httpsrv_done(hcl);
 }
 
+void
+djb_launch(httpsrv_client_t *hcl);
+void
+djb_launch(httpsrv_client_t *hcl) {
+	char	**argv;
+	int	argc;
+	bool	ok;
+
+	/* Convert preferences into argv */
+	argc = prf_get_argv(&argv);
+
+	/* Spawn it */
+	ok = thread_spawn(argv);
+
+	/* Free argv */
+	prf_free_argv(argc, argv);
+
+	if (ok) {
+		djb_result(hcl, DJB_OK, "StegoTorus launch");
+	} else {
+		djb_result(hcl, DJB_ERR, "StegoTorus launch failed");
+	}
+}
+
 bool
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh);
 bool
@@ -793,11 +857,6 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	} else if (strncasecmp(hcl->headers.uri, "/push/", 6) == 0) {
 		return djb_push(hcl, dh);
 
-	} else if (strcasecmp(hcl->headers.uri, "/shutdown/") == 0) {
-		djb_error(hcl, 200, "Shutting down");
-		thread_stop_running();
-		return (true);
-
 	/*					  12345 */
 	} else if (strncasecmp(hcl->headers.uri, "/acs/", 5) == 0) {
 		return (acs_handle(hcl));
@@ -813,6 +872,15 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	/*					   123456789012 */
 	} else if (strncasecmp(hcl->headers.uri, "/preferences/", 12) == 0) {
 		prf_handle(hcl);
+		return (false);
+
+	} else if (strcasecmp(hcl->headers.uri, "/shutdown/") == 0) {
+		djb_error(hcl, 200, "Shutting down");
+		thread_stop_running();
+		return (true);
+
+	} else if (strcasecmp(hcl->headers.uri, "/launch/") == 0) {
+		djb_launch(hcl);
 		return (false);
 
 	} else if (strcasecmp(hcl->headers.uri, "/") == 0) {

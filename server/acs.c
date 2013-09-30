@@ -1,17 +1,4 @@
 #include "djb.h"
-enum acs_status
-{
-	ACS_ERR = 0,
-	ACS_OK,
-	ACS_DONE,
-	ACS_MAX
-};
-
-static const char l_statusnames[ACS_MAX][10] = {
-	"error",
-	"ok",
-	"done"
-};
 
 /*
  * An example NET:
@@ -25,16 +12,14 @@ static const char l_statusnames[ACS_MAX][10] = {
  * }
  */
 
-#define ACS_MSGLEN 256
-
 /* The HTTP Server */
 static httpsrv_t	*l_hs = NULL;
 
 /* Current status message */
 static mutex_t		l_status_mutex;
 static cond_t		l_status_cond;
-static enum acs_status	l_status = ACS_ERR;
-static char		l_message[ACS_MSGLEN];
+static djb_status_t	l_status = DJB_ERR;
+static char		l_message[DJB_MSGLEN];
 static hlist_t		l_messages;
 
 /* Are we dancing? */
@@ -45,7 +30,7 @@ static json_t		*l_net = NULL;
 typedef struct {
 	hnode_t		node;
 	uint64_t	status;
-	char		message[ACS_MSGLEN];
+	char		message[DJB_MSGLEN];
 } acsmsg_t;
 
 static void
@@ -56,9 +41,9 @@ acs_msg_free(acsmsg_t *m) {
 }
 
 static void
-acs_status(enum acs_status status, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
+acs_status(djb_status_t status, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
 static void
-acs_status(enum acs_status status, const char *format, ...) {
+acs_status(djb_status_t status, const char *format, ...) {
 	acsmsg_t	*m;
 	va_list		ap;
 	int		r;
@@ -76,7 +61,7 @@ acs_status(enum acs_status status, const char *format, ...) {
 			r, (int)sizeof l_message);
 
 		snprintf(l_message, sizeof l_message, "Message too long");
-		l_status = ACS_ERR;
+		l_status = DJB_ERR;
 	}
 
 	/* Log it too, so it is easy to find as a single string */
@@ -85,7 +70,7 @@ acs_status(enum acs_status status, const char *format, ...) {
 	m = (acsmsg_t *)mcalloc(sizeof *m, "acsmsg");
 	if (m == NULL) {
 		log_crt("No memory for ACS Message");
-		l_status = ACS_ERR;
+		l_status = DJB_ERR;
 	} else {
 		/* Init the node */
 		node_init(&m->node);
@@ -106,45 +91,6 @@ acs_status(enum acs_status status, const char *format, ...) {
 }
 
 static void
-acs_result(httpsrv_client_t *hcl, enum acs_status status, const char *msg);
-static void
-acs_result(httpsrv_client_t *hcl, enum acs_status status, const char *msg) {
-	char	*buf;
-	json_t	*json;
-
-	fassert(status < ACS_MAX);
-
-	json = json_pack("{s:s, s:s}",
-			"status", l_statusnames[status],
-			"message", msg);
-	if (json == NULL) {
-		log_crt("Could not pack ACS result");
-		djb_result(hcl, "error");
-		return;
-	}
-
-	buf = json_dumps(json, 0);
-
-	if (buf == NULL) {
-		log_crt("Could not format ACS result");
-		json_decref(json);
-		djb_result(hcl, "error");
-		return;
-	}
-
-	djb_result(hcl, buf);
-
-	free(buf);
-}
-
-static void
-acs_result_e(httpsrv_client_t *hcl, const char *msg);
-static void
-acs_result_e(httpsrv_client_t *hcl, const char *msg) {
-	acs_result(hcl, ACS_ERR, msg);
-}
-
-static void
 acs_sitdown(void);
 static void
 acs_sitdown(void) {
@@ -161,7 +107,7 @@ acs_keep_running(void) {
 	if (thread_keep_running())
 		return (true);
 
-	acs_status(ACS_ERR, "ACS Dance slipped, aborting");
+	acs_status(DJB_ERR, "ACS Dance slipped, aborting");
 	acs_sitdown();
 	return (false);
 }
@@ -171,7 +117,7 @@ acs_check_net(json_t *net);
 static bool
 acs_check_net(json_t *net) {
 	if (!json_is_object(net)) {
-		acs_status(ACS_ERR, "Provided NET is not a JSON object");
+		acs_status(DJB_ERR, "Provided NET is not a JSON object");
 		return (false);
 	}
 
@@ -221,13 +167,13 @@ acs_set_net(json_t *net) {
 		if (acs_check_net(net)) {
 			j = json_dumps(net, JSON_COMPACT | JSON_ENSURE_ASCII);
 			if (j != NULL) {
-				acs_status(ACS_OK, "NET: %s", j);
+				acs_status(DJB_OK, "NET: %s", j);
 				free(j);
 			}
 
 			/* Reference it so it will not go away */
 			json_incref(net);
-			acs_status(ACS_OK, "Ready to Dance");
+			acs_status(DJB_OK, "Ready to Dance");
 		} else {
 			l_net = NULL;
 		}
@@ -253,7 +199,7 @@ acs_net_string(const char *var, const char *desc) {
 
 	if (!json_is_string(str_j)) {
 		log_dbg("%s (%s): not found", desc, var);
-		acs_status(ACS_ERR, "No %s in NET", desc);
+		acs_status(DJB_ERR, "No %s in NET", desc);
 		acs_sitdown();
 		return (NULL);
 	}
@@ -277,7 +223,7 @@ acs_net_number(const char *var, const char *desc, uint64_t *val) {
 
 	if (!json_is_number(num_j)) {
 		log_dbg("%s (%s): not found", desc, var);
-		acs_status(ACS_ERR, "No %s in NET", desc);
+		acs_status(DJB_ERR, "No %s in NET", desc);
 		acs_sitdown();
 		return (false);
 	}
@@ -300,7 +246,8 @@ acs_setup(httpsrv_client_t *hcl) {
 	log_dbg("...");
 
 	if (hcl->method != HTTP_M_POST) {
-		acs_result_e(hcl, "Setup requires a POST to provide the NET");
+		djb_result(hcl, DJB_ERR,
+			   "Setup requires a POST to provide the NET");
 		return (true);
 	}
 
@@ -316,7 +263,7 @@ acs_setup(httpsrv_client_t *hcl) {
 		log_dbg("POST allocating memory for body");
 
 		if (httpsrv_readbody_alloc(hcl, 0, 0) < 0) {
-			acs_result_e(hcl, "Out of Memory");
+			djb_result(hcl, DJB_ERR, "Out of Memory");
 			return (true);
 		}
 		
@@ -356,11 +303,11 @@ acs_setup(httpsrv_client_t *hcl) {
 	httpsrv_readbody_free(hcl);
 
 	if (ok) {
-		acs_result(hcl, ACS_OK, "ACS setup successful");
+		djb_result(hcl, DJB_OK, "ACS setup successful");
 		return (true);
 	}
 
-	acs_result_e(hcl, "Already dancing the night away");
+	djb_result(hcl, DJB_ERR, "Already dancing the night away");
 	return (false);
 }
 
@@ -381,13 +328,13 @@ acs_request(djb_push_f callback, const char *hostname, const char *uri) {
 	hcl = httpsrv_newcl(l_hs);
 
 	if (hcl == NULL) {
-		acs_status(ACS_ERR, "Failed to create request");
+		acs_status(DJB_ERR, "Failed to create request");
 		return (false);
 	}
 
 	dh = djb_create_userdata(hcl);
 	if (dh == NULL) {
-		acs_status(ACS_ERR, "Failed to create userdata");
+		acs_status(DJB_ERR, "Failed to create userdata");
 		httpsrv_close(hcl);
 		return (false);
 	}
@@ -412,8 +359,6 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	unsigned int	i, ans_len;
 	char		*ans;
 	bool		ok;
-	int		argc, a;
-	char		**argv;
 
 	log_dbg("..");
 
@@ -422,7 +367,7 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	/* Did the request go okay? */
 	i = atoi(sdh->httpcode);
 	if (i != 200) {
-		acs_status(ACS_ERR,
+		acs_status(DJB_ERR,
 			   "ACS Redirect failed: %u %s",
 			   i, sdh->httptext);
 		httpsrv_client_destroy(hcl);
@@ -434,14 +379,14 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	if (shcl->readbody == NULL) {
 		if (shcl->headers.content_length == 0) {
 			log_dbg("redirect_answer requires length");
-			acs_status(ACS_ERR,
+			acs_status(DJB_ERR,
 				   "ACS Redirect failed: no length");
 			return (true);
 		}
 
 		if (httpsrv_readbody_alloc(shcl, 2, 0) < 0){
 			log_dbg("httpsrv_readbody_alloc() failed");
-			acs_status(ACS_ERR,
+			acs_status(DJB_ERR,
 				   "ACS Redirect failed: no memory");
 			return (true);
 		}
@@ -454,12 +399,12 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	if (!steg_decode(shcl->readbody, shcl->readbody_off,
 			 shcl->headers.content_type,
 			 &ans, &ans_len)) {
-		acs_status(ACS_ERR,
+		acs_status(DJB_ERR,
 			   "ACS Redirect failed: desteg failed");
 		return (true);
 	}
 
-	acs_status(ACS_OK, "ACS Redirect success: HTTP %u %s",
+	acs_status(DJB_OK, "ACS Redirect success: HTTP %u %s",
 		   i, sdh->httptext);
 
 	log_dbg("Bridge Details: %s", ans);
@@ -474,30 +419,15 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 
 	if (ok) {
 		/* Show okay, we are done */
-		acs_status(ACS_OK, "ACS Dance complete");
+		acs_status(DJB_OK, "ACS Dance complete");
 
-		argc = prf_get_argv(&argv);
-		if (argc < 1) {
-			acs_status(ACS_ERR, "Argument compilation failed");
-		} else {
-			acs_status(ACS_OK,
-				   "%u arguments for starting StegoTorus",
-				   argc - 1);
-
-			for (i = 0; a < argc-1; a++) {
-				acs_status(ACS_OK, "arg[%u] = %s", a, argv[a]);
-			}
-
-			prf_free_argv(argc, argv);
-
-			/* Show okay, we are done */
-			acs_status(ACS_DONE,
-				   "ACS completed successfully, you can "
-				   "start Tor over StegoTorus over "
-				   "JumpBox/DGW");
-		}
+		/* Show okay, we are done */
+		acs_status(DJB_DONE,
+			   "ACS completed successfully, you can "
+			   "launch Tor over StegoTorus over "
+			   "JumpBox/DGW");
 	} else {
-		acs_status(ACS_ERR,
+		acs_status(DJB_ERR,
 			   "Unable to parse ACS received Bridge Details");
 	}
 
@@ -524,7 +454,7 @@ acs_redirect(void) {
 	if (!acs_request(acs_redirect_answer, redirect, "/")) {
 		acs_sitdown();
 	} else {
-		acs_status(ACS_OK, "Dancing: Redirect Request sent");
+		acs_status(DJB_OK, "Dancing: Redirect Request sent");
 	}
 }
 
@@ -544,11 +474,11 @@ acs_wait(void) {
 	w = generate_random_number();
 	w = d_wait + (w % d_window);
 
-	acs_status(ACS_OK, "Moonwalking for %" PRIu64 " seconds...", w);
+	acs_status(DJB_OK, "Moonwalking for %" PRIu64 " seconds...", w);
 
 	thread_sleep(w * 1000);
 
-	acs_status(ACS_OK, "Moonwalk done");
+	acs_status(DJB_OK, "Moonwalk done");
 
 	if (!acs_keep_running())
 		return;
@@ -571,7 +501,7 @@ acs_initial_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 	/* Did the request go okay? */
 	i = atoi(sdh->httpcode);
 	if (i != 200) {
-		acs_status(ACS_ERR,
+		acs_status(DJB_ERR,
 			   "ACS Initial failed: %u %s",
 			   i, sdh->httptext);
 		httpsrv_client_destroy(hcl);
@@ -581,7 +511,7 @@ acs_initial_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 		return (true);
 	}
 
-	acs_status(ACS_OK, "ACS Initial success: HTTP %u %s", i, sdh->httptext);
+	acs_status(DJB_OK, "ACS Initial success: HTTP %u %s", i, sdh->httptext);
 
 	/* Done with this request */
 	httpsrv_client_destroy(hcl);
@@ -609,7 +539,7 @@ acs_initial(void) {
 	initial_j = json_object_get(l_net, "initial");
 
 	if (initial_j == NULL || !json_is_string(initial_j)) {
-		acs_status(ACS_ERR, "No ACS Initial Gateway in NET");
+		acs_status(DJB_ERR, "No ACS Initial Gateway in NET");
 		acs_sitdown();
 		return;
 	}
@@ -623,7 +553,7 @@ acs_initial(void) {
 	if (!acs_request(acs_initial_answer, initial, "/")) {
 		acs_sitdown();
 	} else {
-		acs_status(ACS_OK, "Dancing: Initial Request sent");
+		acs_status(DJB_OK, "Dancing: Initial Request sent");
 	}
 }
 
@@ -638,12 +568,12 @@ acs_progress(httpsrv_client_t *hcl) {
 
 	mutex_lock(l_status_mutex);
 
-	if (!l_dancing && l_status == ACS_OK) {
+	if (!l_dancing && l_status == DJB_OK) {
 		if (l_net == NULL) {
 			mutex_unlock(l_status_mutex);
 			mutex_unlock(l_dancing_mutex);
 
-			acs_status(ACS_ERR, "No NET setup thus can't dance");
+			acs_status(DJB_ERR, "No NET setup thus can't dance");
 		} else {
 			/* Start the dance */
 			l_dancing = true;
@@ -651,7 +581,7 @@ acs_progress(httpsrv_client_t *hcl) {
 			mutex_unlock(l_status_mutex);
 			mutex_unlock(l_dancing_mutex);
 
-			acs_status(ACS_OK, "Starting to dance...");
+			acs_status(DJB_OK, "Starting to dance...");
 
 			/* Queue ACS Initial */
 			acs_initial();
@@ -668,7 +598,7 @@ acs_progress(httpsrv_client_t *hcl) {
 	m = (acsmsg_t *)list_pop(&l_messages);
 	if (m != NULL) {
 		/* Return it directly */
-		acs_result(hcl, m->status, m->message);
+		djb_result(hcl, m->status, m->message);
 		acs_msg_free(m);
 	} else {
 		/* Wait for 5 seconds till we get signaled or time out */
@@ -678,11 +608,11 @@ acs_progress(httpsrv_client_t *hcl) {
 		m = (acsmsg_t *)list_pop(&l_messages);
 		if (m != NULL) {
 			/* Return the one from the queue */
-			acs_result(hcl, m->status, m->message);
+			djb_result(hcl, m->status, m->message);
 			acs_msg_free(m);
 		} else {
 			/* Return the current status + message */
-			acs_result(hcl, l_status, l_message);
+			djb_result(hcl, l_status, l_message);
 		}
 	}
 
@@ -732,7 +662,7 @@ acs_init(httpsrv_t *hs) {
 	/* Empty it */
 	memzero(l_message, sizeof l_message);
 
-	acs_status(ACS_OK, "ACS Dancer Initialized");
+	acs_status(DJB_OK, "ACS Dancer Initialized");
 }
 
 void

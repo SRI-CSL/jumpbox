@@ -26,9 +26,20 @@ typedef struct {
 	char		cookie[8192];
 } djb_headers_t;
 
+typedef enum
+{
+	DJB_ERR = 0,
+	DJB_OK,
+	DJB_DONE,
+	DJB_MAX
+} djb_status_t;
+
+#define DJB_MSGLEN 256
+
 /* DJB provided functions */
 void djb_error(httpsrv_client_t *hcl, unsigned int errcode, const char *msg);
-void djb_result(httpsrv_client_t *hcl, const char *msg);
+void djb_presult(httpsrv_client_t *hcl, const char *msg);
+void djb_result(httpsrv_client_t *hcl, djb_status_t status, const char *msg);
 
 bool djb_proxy_add(httpsrv_client_t *hcl);
 djb_headers_t *djb_create_userdata(httpsrv_client_t *hcl);
