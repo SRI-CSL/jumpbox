@@ -30,16 +30,16 @@ static char *l_exit_hostname = NULL;
 #define DJBH(h) offsetof(djb_headers_t, h), sizeof (((djb_headers_t *)NULL)->h)
 
 misc_map_t djb_headers[] = {
-	{ "DJB-HTTPCode",	DJBH(httpcode)	},
-	{ "DJB-HTTPText",	DJBH(httptext)	},
-	{ "DJB-SeqNo",		DJBH(seqno)	},
+	{ MAPLABEL("DJB-HTTPCode"),	DJBH(httpcode)	},
+	{ MAPLABEL("DJB-HTTPText"),	DJBH(httptext)	},
+	{ MAPLABEL("DJB-SeqNo"),	DJBH(seqno)	},
 
 	/* Server -> Client */
-	{ "DJB-Set-Cookie",	DJBH(setcookie)	},
+	{ MAPLABEL("DJB-Set-Cookie"),	DJBH(setcookie)	},
 
 	/* Client -> Server */
-	{ "Cookie",		DJBH(cookie)	},
-	{ NULL,			0, 0		}
+	{ MAPLABEL("Cookie"),		DJBH(cookie)	},
+	{ MAPEND }
 };
 
 void
@@ -525,9 +525,6 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* Still need to forward the body as there is length */
 
-	/* The Content-Length header is already included in all the headers */
-	conn_add_contentlen(&pr->hcl->conn, false);
-
 	log_dbg("Forwarding body from " HCL_ID " to " HCL_ID,
 		pr->hcl->id, hcl->id);
 
@@ -552,9 +549,6 @@ djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *use
 		HCL_ID " (keephandling=%s)",
 		hcl->id, yesno(hcl->keephandling),
 		fhcl->id, yesno(fhcl->keephandling));
-
-	/* Send a content-length again if there is one */
-	conn_add_contentlen(&fhcl->conn, true);
 
 	/* Was this a push? Then we answer that it is okay */
 	if (strncasecmp(hcl->headers.uri, "/push/", 6) == 0) {
