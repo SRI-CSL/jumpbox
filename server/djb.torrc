@@ -1,0 +1,20 @@
+# torrc for Tor as used by SAFER DEFIANCE JumpBox
+#
+# Client applications on localhost only
+# (SOCKS port for WebBrowsers etc)
+SocksPort 9060
+SocksListenAddress 127.0.0.1
+
+# For debugging purposes we will want full output
+SafeLogging 0
+
+# Where the SOCKS proxy for this Tor instance is
+# (this points to the StegoTorus client)
+Socks4Proxy 127.0.0.1:1080
+
+# A fake Bridge line, gets overruled by StegoTorus SOCKS)
+Bridge 127.0.0.1:9060
+
+# Use the above bridges
+UseBridges 1
+
