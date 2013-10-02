@@ -47,9 +47,9 @@ misc_map_t djb_headers[] = {
 	{ MAPEND }
 };
 
-void
+static void
 djb_html_css(httpsrv_client_t *hcl);
-void
+static void
 djb_html_css(httpsrv_client_t *hcl) {
 	/* Can Cache This */
 	httpsrv_expire(hcl, HTTPSRV_EXPIRE_LONG);
@@ -187,9 +187,9 @@ djb_html_css(httpsrv_client_t *hcl) {
 		);
 }
 
-void
+static void
 djb_html_top(httpsrv_client_t *hcl, void UNUSED *user);
-void
+static void
 djb_html_top(httpsrv_client_t *hcl, void UNUSED *user) {
 	conn_put(&hcl->conn,
 		"<!doctype html>\n"
@@ -206,9 +206,9 @@ djb_html_top(httpsrv_client_t *hcl, void UNUSED *user) {
 		"</div>\n");
 }
 
-void
+static void
 djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user);
-void
+static void
 djb_html_tail(httpsrv_client_t *hcl, void UNUSED *user) {
 	conn_put(&hcl->conn,
 		"<div class=\"footer\">\n"
@@ -270,44 +270,9 @@ djb_result(httpsrv_client_t *hcl, djb_status_t status, const char *msg) {
 	}
 }
 
-/* API-Pull, requests a new Proxy-request */
-djb_req_t *
-djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl);
-djb_req_t *
-djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl) {
-	djb_req_t	*r, *rn, *pr = NULL;
-
-	fassert(lst != NULL);
-	fassert(hcl != NULL);
-
-	/* Find this HCL in this list of requests */
-	list_lock(lst);
-	list_for(lst, r, rn, djb_req_t *) {
-		if (r->hcl != hcl) {
-			continue;
-		}
-
-		/* Gotcha */
-		pr = r;
-
-		/* Remove it from this list */
-		list_remove(lst, &pr->node);
-		break;
-	}
-	list_unlock(lst);
-
-	if (pr != NULL) {
-		log_dbg(HCL_ID, pr->hcl->id);
-	} else {
-		log_wrn("No such HCL (" HCL_ID ") found!?", hcl->id);
-	}
-
-	return (pr);
-}
-
-djb_req_t *
+static djb_req_t *
 djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid);
-djb_req_t *
+static djb_req_t *
 djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid) {
 	djb_req_t	*r, *rn, *pr = NULL;
 
@@ -339,9 +304,9 @@ djb_find_req(hlist_t *lst, uint64_t id, uint64_t reqid) {
 	return (pr);
 }
 
-djb_req_t *
+static djb_req_t *
 djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh);
-djb_req_t *
+static djb_req_t *
 djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh) {
 	djb_req_t	*pr;
 	uint64_t	id, reqid;
@@ -372,9 +337,9 @@ djb_find_req_dh(httpsrv_client_t *hcl, hlist_t *lst, djb_headers_t *dh) {
 	return (pr);
 }
 
-void
+static void
 djb_pull_post(httpsrv_client_t *hcl);
-void
+static void
 djb_pull_post(httpsrv_client_t *hcl) {
 	djb_req_t		*ar;
 #ifdef DEBUG
@@ -400,9 +365,9 @@ djb_pull_post(httpsrv_client_t *hcl) {
 	log_dbg(HCL_ID " done", id);
 }
 
-bool
+static bool
 djb_pull(httpsrv_client_t *hcl);
-bool
+static bool
 djb_pull(httpsrv_client_t *hcl){
 	log_dbg(HCL_ID " keephandling=yes", hcl->id);
 
@@ -418,9 +383,9 @@ djb_pull(httpsrv_client_t *hcl){
 }
 
 /* Push request, answer to a pull request */
-bool
+static bool
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh);
-bool
+static bool
 djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 	djb_req_t	*pr;
 	djb_headers_t	*pdh;
@@ -544,9 +509,9 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 }
 
 /* hcl == the client proxy request, pr->hcl = pull API request */
-void
+static void
 djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *user);
-void
+static void
 djb_bodyfwd_done(httpsrv_client_t *hcl, httpsrv_client_t *fhcl, void UNUSED *user) {
 
 	log_dbg("Done forwarding body from "
@@ -593,9 +558,9 @@ djb_create_userdata(httpsrv_client_t *hcl) {
 	return (dh);
 }
 
-void
+static void
 djb_accept(httpsrv_client_t *hcl, void UNUSED *user);
-void
+static void
 djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
 	log_dbg(HCL_ID, hcl->id);
 
@@ -604,9 +569,9 @@ djb_accept(httpsrv_client_t *hcl, void UNUSED *user) {
 	}
 }
 
-void
+static void
 djb_header(httpsrv_client_t UNUSED *hcl, void *user, char *line);
-void
+static void
 djb_header(httpsrv_client_t UNUSED *hcl, void *user, char *line) {
 	djb_headers_t *dh = (djb_headers_t *)user;
 
@@ -855,9 +820,9 @@ djb_status_version(httpsrv_client_t *hcl) {
 		"</table>\n");
 }
 
-void
+static void
 djb_status(httpsrv_client_t *hcl);
-void
+static void
 djb_status(httpsrv_client_t *hcl) {
 	httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
 
@@ -891,9 +856,9 @@ djb_status(httpsrv_client_t *hcl) {
 }
 
 /* Instead of tracking the pnum, maybe just pass the binary name */
-void
+static void
 djb_launch(httpsrv_client_t *hcl);
-void
+static void
 djb_launch(httpsrv_client_t *hcl) {
 	char		**st_argv;
 	const char * const tor_argv[4] = {
@@ -961,9 +926,9 @@ djb_launch(httpsrv_client_t *hcl) {
 		aprintf_free(msg);
 }
 
-bool
+static bool
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh);
-bool
+static bool
 djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 
 	/* A DJB API request */
@@ -1054,16 +1019,16 @@ djb_proxy_add(httpsrv_client_t *hcl) {
 	return (true);
 }
 
-void
+static void
 djb_handle_proxy_post(httpsrv_client_t *hcl);
-void
+static void
 djb_handle_proxy_post(httpsrv_client_t *hcl) {
 	djb_proxy_add(hcl);
 }
 
-bool
+static bool
 djb_handle_proxy(httpsrv_client_t *hcl);
-bool
+static bool
 djb_handle_proxy(httpsrv_client_t *hcl) {
 	static bool	got_hostname = false;
 	const char	*h;
@@ -1115,9 +1080,9 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 	return (true);
 }
 
-bool
+static bool
 djb_handle(httpsrv_client_t *hcl, void *user);
-bool
+static bool
 djb_handle(httpsrv_client_t *hcl, void *user) {
 	djb_headers_t	*dh = (djb_headers_t *)user;
 	bool		done;
@@ -1147,14 +1112,14 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 }
 
 #ifdef DEBUG
-void
+static void
 djb_done(httpsrv_client_t *hcl, void *user);
-void
+static void
 djb_done(httpsrv_client_t *hcl, void *user) {
 #else
-void
+static void
 djb_done(httpsrv_client_t UNUSED *hcl, void *user);
-void
+static void
 djb_done(httpsrv_client_t UNUSED *hcl, void *user) {
 #endif
 	djb_headers_t  *dh;
@@ -1192,9 +1157,9 @@ djb_find_phcl(hlist_t *lst, uint64_t phcl_id) {
 	return (pr);
 }
 
-void
+static void
 djb_close(httpsrv_client_t *hcl, void UNUSED *user);
-void
+static void
 djb_close(httpsrv_client_t *hcl, void UNUSED *user) {
 	djb_req_t *pr;
 
