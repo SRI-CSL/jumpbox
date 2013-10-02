@@ -832,6 +832,12 @@ djb_launch(httpsrv_client_t *hcl) {
 		ok = thread_spawn(argv, buf);
 	}
 
+	/*
+	 * stpncpy returns a non-\0 terminated string
+	 * when the input is longer than the dest
+	 * we memzero first and then limit what we
+	 * output to avoid these situations
+	 */
 	cur = buf;
 	memzero(buf, sizeof buf);
 	for (i = 0, off = 0; argv[i]; i++) {
