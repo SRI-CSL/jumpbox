@@ -76,6 +76,8 @@ JumpBox = {
 
     init : function () {
         var port, debug_mode, ccs, cc = 1;
+
+	/* Retrieve settings from LocalStorage */
         port = localStorage.jumpbox_port;
         debug_mode = localStorage.debug_mode;
         if (port) {
@@ -104,12 +106,23 @@ JumpBox = {
 
         Debug.log('JumpBox::init pull: ' + JumpBox.jb_pull_url);
 
+	/* Notify the JumpBox Daemon of this settings update */
         try {
             JumpBox.preferences_push();
         }catch (e){
             console.log(e);
         }
 
+	/*
+	 * Shutdown existing circuits
+	 * these might be left over, pinned or re-started
+	 * after a crash/shutdown and thus not related
+	 * to this background page anymore
+	 *
+	 * Circuits will be started ensure_circuits()
+	 * by components that need them
+	 */
+	JumpBox.circuits_shutdown();
     },
 
     preferences_push: function () {
