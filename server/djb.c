@@ -855,75 +855,72 @@ djb_status(httpsrv_client_t *hcl) {
 	httpsrv_done(hcl);
 }
 
-/* Instead of tracking the pnum, maybe just pass the binary name */
+/* XXX: Instead of tracking the pnum, maybe just pass the binary name */
 static void
-djb_launch(httpsrv_client_t *hcl);
+djb_launch(httpsrv_client_t *hcl, char **argv, myprocess_num_t *num);
 static void
-djb_launch(httpsrv_client_t *hcl) {
-	char		**st_argv;
-	const char * const tor_argv[4] = {
-				"tor",
-				"-f",
-				"/usr/share/saferdefiance/djb.torrc",
-				NULL};
-	int		st_argc, i;
-	char		st_cmdline[512], tor_cmdline[512], logfile[128];
+djb_launch(httpsrv_client_t *hcl, char **argv, myprocess_num_t *num) {
+	char		cmdline[512], logfile[128];
 	const char	*msg;
+	int		i;
 
-	/* StegoTorus: Already had one running? stop it */
-	if (l_st_pnum != 0) {
-		process_terminate(l_st_pnum, false);
-		l_st_pnum = 0;
-	}
-
-	/* Convert preferences into argv */
-	st_argc = prf_get_argv(&st_argv);
-
-	/* Log file destination */
-	i = snprintf(logfile, sizeof logfile, "/tmp/djb_%s.log", st_argv[0]);
-	if (!snprintfok(i, sizeof logfile)) {
-		log_crt("Could not format StegoTorus log location");
-	} else {
-		/* Spawn it */
-		l_st_pnum = process_spawn(st_argv, logfile);
-	}
-
-	/* Generate what would be the full cmdline */
-	process_cmdline(st_argv, st_cmdline, sizeof st_cmdline);
-
-	/* Free argv */
-	prf_free_argv(st_argc, st_argv);
-
-	/* Tor: Already had one running? stop it */
-	if (l_tor_pnum != 0) {
-		process_terminate(l_tor_pnum, false);
-		l_tor_pnum = 0;
+	/* Already had one running? stop it */
+	if (*num != 0) {
+		process_terminate(*num, false);
+		*num = 0;
 	}
 
 	/* Log file destination */
-	i = snprintf(logfile, sizeof logfile, "/tmp/djb_%s.log", tor_argv[0]);
+	i = snprintf(logfile, sizeof logfile, "/tmp/djb_%s.log", argv[0]);
 	if (!snprintfok(i, sizeof logfile)) {
-		log_crt("Could not format Tor log location");
+		log_crt("Could not format log location");
 	} else {
 		/* Spawn it */
-		l_tor_pnum = process_spawn((char **)&tor_argv[0], logfile);
+		*num = process_spawn(argv, logfile);
 	}
 
 	/* Generate what would be the full cmdline */
-	process_cmdline((char **)&tor_argv[0], tor_cmdline, sizeof tor_cmdline);
+	process_cmdline(argv, cmdline, sizeof cmdline);
 
-	msg = aprintf("StegoTorus (%s) %s, Tor (%s) %s",
-		st_cmdline,
-		l_st_pnum > 0 ? "launched" : "launch failed",
-		tor_cmdline,
-		l_tor_pnum > 0 ? "launched" : "launch failed");
+	msg = aprintf("%s: %s",
+		*num > 0 ? "Launched" : "Failed to launch",
+		cmdline);
 
 	djb_result(hcl,
-		   msg != NULL && l_st_pnum > 0 ? DJB_OK : DJB_ERR,
+		   msg != NULL && *num > 0 ? DJB_OK : DJB_ERR,
 		   msg != NULL ? msg : "Could not format error");
 
 	if (msg != NULL)
 		aprintf_free(msg);
+}
+
+static void
+djb_launch_st(httpsrv_client_t *hcl);
+static void
+djb_launch_st(httpsrv_client_t *hcl) {
+	char		**argv;
+	int		argc;
+
+	/* Convert preferences into argv */
+	argc = prf_get_argv(&argv);
+
+	djb_launch(hcl, argv, &l_st_pnum);
+
+	/* Free argv */
+	prf_free_argv(argc, argv);
+}
+
+static void
+djb_launch_tor(httpsrv_client_t *hcl);
+static void
+djb_launch_tor(httpsrv_client_t *hcl) {
+	const char * const argv[] = {
+				"tor",
+				"-f",
+				"/usr/share/saferdefiance/djb.torrc",
+				NULL};
+
+	djb_launch(hcl, (char **)&argv[0], &l_tor_pnum);
 }
 
 static bool
@@ -964,8 +961,12 @@ djb_handle_api(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		thread_stop_running();
 		return (true);
 
-	} else if (strcasecmp(hcl->headers.uri, "/launch/") == 0) {
-		djb_launch(hcl);
+	} else if (strcasecmp(hcl->headers.uri, "/launch/stegotorus/") == 0) {
+		djb_launch_st(hcl);
+		return (false);
+
+	} else if (strcasecmp(hcl->headers.uri, "/launch/tor/") == 0) {
+		djb_launch_tor(hcl);
 		return (false);
 
 	} else if (strcasecmp(hcl->headers.uri, "/") == 0) {

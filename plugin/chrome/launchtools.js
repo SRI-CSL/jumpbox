@@ -72,7 +72,8 @@ empty_status: function () {
 init: function () {
 	var bkg, djb;
 
-	document.querySelector("#launch").addEventListener("click", LT.launch);
+	document.querySelector("#launchst").addEventListener("click", LT.launchst);
+	document.querySelector("#launchtor").addEventListener("click", LT.launchtor);
 
 	/* Where is our djb? */
 	bkg = chrome.extension.getBackgroundPage();
@@ -86,14 +87,21 @@ init: function () {
 	LT.set_status("ok", "Initialized");
 },
 
-launch: function () {
+launchst: function () {
 	var req;
-
-	LT.empty_status();
 
 	req = new XMLHttpRequest();
 	req.onreadystatechange = function () { LT.process_response(req); };
-	req.open("GET", LT.url_launch);
+	req.open("GET", LT.url_launch + "stegotorus/");
+	req.send(null);
+},
+
+launchtor: function () {
+	var req;
+
+	req = new XMLHttpRequest();
+	req.onreadystatechange = function () { LT.process_response(req); };
+	req.open("GET", LT.url_launch + "tor/");
 	req.send(null);
 },
 
