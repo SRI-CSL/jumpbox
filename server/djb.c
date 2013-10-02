@@ -27,6 +27,9 @@ static hlist_t lst_api_pull;
 /* The exit hostname we use */
 static char *l_exit_hostname = NULL;
 
+/* The Process ID of StegoTorus that we launched */
+static myprocess_num_t l_st_pnum = 0;
+
 #define DJBH(h) offsetof(djb_headers_t, h), sizeof (((djb_headers_t *)NULL)->h)
 
 misc_map_t djb_headers[] = {
@@ -664,6 +667,79 @@ djb_status_list(httpsrv_client_t *hcl, hlist_t *lst,
 }
 
 static void
+djb_status_processes_cb(void		*cbdata,
+			uint64_t	tnum,
+			uint64_t	tid,
+			const char	*starttime,
+			uint64_t	runningsecs,
+			const char	*description,
+			const char	*state,
+			const char	*logfile);
+static void
+djb_status_processes_cb(void		*cbdata,
+			uint64_t	tnum,
+			uint64_t	tid,
+			const char	*starttime,
+			uint64_t	runningsecs,
+			const char	*description,
+			const char	*state,
+			const char	*logfile)
+{
+	httpsrv_client_t *hcl = (httpsrv_client_t *)cbdata;
+
+	conn_printf(&hcl->conn,
+		"<tr>"
+		"<td>%" PRIu64 "</td>"
+		"<td>%" PRIu64 "</td>"
+		"<td>%s</td>"
+		"<td>%" PRIu64 "</td>"
+		"<td>%s</td>"
+		"<td>%s</td>"
+		"<td>%s</td>"
+		"</tr>\n",
+		tnum,
+		tid,
+		starttime,
+		runningsecs,
+		description,
+		state,
+		logfile);
+}
+
+static void
+djb_status_processes(httpsrv_client_t *hcl);
+static void
+djb_status_processes(httpsrv_client_t *hcl) {
+	unsigned int cnt;
+
+	conn_put(&hcl->conn,
+		"<h1>Processes</h1>\n"
+		"<p>\n"
+		"Processes started by JumpBox.\n"
+		"</p>\n"
+		"<table>\n"
+		"<tr>\n"
+		"<th>Num</th>\n"
+		"<th>PID</th>\n"
+		"<th>Start Time</th>\n"
+		"<th>Running seconds</th>\n"
+		"<th>Description</th>\n"
+		"<th>State</th>\n"
+		"<th>Logfile</th>\n"
+		"</tr>\n");
+
+	cnt = process_list(djb_status_processes_cb, hcl);
+
+	conn_put(&hcl->conn,
+			"</table>\n");
+
+	if (cnt == 0) {
+		conn_put(&hcl->conn,
+				"No processes where launched");
+	}
+}
+
+static void
 djb_status_threads_cb(	void		*cbdata,
 			uint64_t	tnum,
 			uint64_t	tid,
@@ -724,7 +800,7 @@ djb_status_threads(httpsrv_client_t *hcl) {
 		"</p>\n"
 		"<table>\n"
 		"<tr>\n"
-		"<th>No</th>\n"
+		"<th>Num</th>\n"
 		"<th>TID</th>\n"
 		"<th>Start Time</th>\n"
 		"<th>Running seconds</th>\n"
@@ -788,6 +864,7 @@ djb_status(httpsrv_client_t *hcl) {
 
 	djb_status_version(hcl);
 	djb_status_threads(hcl);
+	djb_status_processes(hcl);
 
 	djb_status_list(hcl, &lst_proxy_new,
 			"Proxy New",
@@ -817,10 +894,15 @@ void
 djb_launch(httpsrv_client_t *hcl) {
 	char		**argv;
 	int		argc, i;
-	bool		ok = false;
-	char		buf[256], *cur;
+	char		buf[512], *cur;
 	unsigned int	off, l;
 	const char	*msg;
+
+	/* Already had one running? stop it */
+	if (l_st_pnum != 0) {
+		process_terminate(l_st_pnum, false);
+		l_st_pnum = 0;
+	}
 
 	/* Convert preferences into argv */
 	argc = prf_get_argv(&argv);
@@ -829,7 +911,7 @@ djb_launch(httpsrv_client_t *hcl) {
 	i = snprintf(buf, sizeof buf, "/tmp/djb_%s.log", argv[0]);
 	if (snprintfok(i, sizeof buf)) {
 		/* Spawn it */
-		ok = thread_spawn(argv, buf);
+		l_st_pnum = process_spawn(argv, buf);
 	}
 
 	/*
@@ -855,12 +937,16 @@ djb_launch(httpsrv_client_t *hcl) {
 	/* Free argv */
 	prf_free_argv(argc, argv);
 
-	msg = aprintf("StegoTorus %s: %s",
-		ok ? "launched" : "launched failed",
-		buf);
+	if (l_st_pnum > 0) {
+		msg = aprintf("StegoTorus launched (cmdline: %s)",
+			buf);
+	} else {
+		msg = aprintf("Failed to launch StegoTorus (cmdline: %s)",
+			buf);
+	}
 
 	djb_result(hcl,
-		   msg != NULL && ok ? DJB_OK : DJB_ERR,
+		   msg != NULL && l_st_pnum > 0 ? DJB_OK : DJB_ERR,
 		   msg != NULL ? msg : "Could not format error");
 
 	if (msg != NULL)
