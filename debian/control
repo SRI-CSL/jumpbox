@@ -8,7 +8,7 @@ Homepage: http://www.safdef.org
 
 Package: saferdefiance-jumpbox-daemon
 Architecture: any
-Depends: adduser, openssl, tor, libgmp10, libjansson4, libpbc0, zlib1g, ${shlibs:Depends}, ${misc:Depends}
+Depends: adduser, openssl, tor, saferdefiance-stegotorus, saferdefiance-stegotorus-traces-client, libgmp10, libjansson4, libpbc0, zlib1g, ${shlibs:Depends}, ${misc:Depends}
 Description: SAFER DEFIANCE JumpBox Daemon
  SAFER DEFIANCE JumpBox Daemon
 
