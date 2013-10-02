@@ -7,6 +7,7 @@
 typedef struct {
 	hnode_t			node;		/* List node */
 	httpsrv_client_t	*hcl;		/* Client for this request */
+	uint64_t		phcl_id;	/* Paired HCL */
 } djb_req_t;
 
 static const char l_statusnames[DJB_MAX][10] = {
@@ -279,7 +280,7 @@ djb_find_hcl(hlist_t *lst, httpsrv_client_t *hcl) {
 	fassert(lst != NULL);
 	fassert(hcl != NULL);
 
-	/* Find this HCL in our outstanding proxy requests */
+	/* Find this HCL in this list of requests */
 	list_lock(lst);
 	list_for(lst, r, rn, djb_req_t *) {
 		if (r->hcl != hcl) {
@@ -1166,17 +1167,49 @@ djb_done(httpsrv_client_t UNUSED *hcl, void *user) {
 	memzero(dh, sizeof *dh);
 }
 
-#ifdef DEBUG
+static djb_req_t *
+djb_find_phcl(hlist_t *lst, uint64_t phcl_id);
+static djb_req_t *
+djb_find_phcl(hlist_t *lst, uint64_t phcl_id) {
+	djb_req_t	*pr = NULL, *r, *rn;
+
+	/* Find this Request-ID in this list of requests */
+	list_lock(lst);
+	list_for(lst, r, rn, djb_req_t *) {
+		if (r->phcl_id != phcl_id) {
+			continue;
+		}
+
+		/* Gotcha */
+		pr = r;
+
+		/* Remove it from this list */
+		list_remove(lst, &pr->node);
+		break;
+	}
+	list_unlock(lst);
+
+	return (pr);
+}
+
 void
 djb_close(httpsrv_client_t *hcl, void UNUSED *user);
 void
 djb_close(httpsrv_client_t *hcl, void UNUSED *user) {
+	djb_req_t *pr;
+
 	log_dbg(HCL_ID, hcl->id);
+
+	/* Was this request paired? */
+	pr = djb_find_phcl(&lst_proxy_out, hcl->id);
+	if (pr != NULL) {
+		log_dbg(HCL_ID " found pair: " HCL_ID, hcl->id, pr->hcl->id);
+
+		/* Reschedule it */	
+		list_addtail_l(&lst_proxy_new, &pr->node);
+		log_dbg("Rescheduled " HCL_ID, pr->hcl->id);
+	}
 }
-#else
-/* httpsrv_init() takes this, thus NULL is nothing */
-#define djb_close NULL
-#endif
 
 /*
  * pr = client request
@@ -1226,6 +1259,9 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		conn_addheaderf(&ar->hcl->conn, "DJB-Cookie: %s",
 				dh->cookie);
 	}
+
+	/* The paired HCL (so we can detect closes and restart this request) */
+	pr->phcl_id = ar->hcl->id;
 
 	if (pr->hcl->method != HTTP_M_POST) {
 		log_dbg("req " HCL_ID " with puller " HCL_ID " is non-POST",
