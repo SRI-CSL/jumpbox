@@ -87,7 +87,7 @@ init: function () {
 	/* Watch out for when they want to dance */
 	document.querySelector("#dancenet").addEventListener("click", ACS.but_danceNET);
 	document.querySelector("#dancerdv").addEventListener("click", ACS.but_danceRDV);
-	document.querySelector("#launchtools").addEventListener("click", ACS.but_launch);
+	document.querySelector("#launchtools").addEventListener("click", ACS.but_launchtools);
 	document.querySelector("#restart").addEventListener("click", ACS.but_restart);
 
 	/* Where is our djb? */
@@ -155,7 +155,7 @@ but_danceRDV: function () {
 	ACS.progress();
 },
 
-but_launch: function () {
+but_launchtools: function () {
 	ACS.bkg.JumpBox.launch_just_one_tab("launchtools.html");
 },
 
