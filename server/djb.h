@@ -71,8 +71,8 @@ void prf_init(void);
 void prf_exit(void);
 void prf_handle(httpsrv_client_t *hcl);
 bool prf_parse_bridge_details(const char *br);
-int prf_get_argv(char*** argvp);
-void prf_free_argv(unsigned int argc, char **argv);
+int prf_get_argv(char **argv[]);
+void prf_free_argv(unsigned int argc, char *argv[]);
 const char *prf_get_value(enum prf_v i);
 
 #endif /* SHARED_H */

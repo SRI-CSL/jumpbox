@@ -89,7 +89,7 @@ prf_set_value(enum prf_v i, const char *val) {
  *  prf_free_argv(argv);
  */
 int
-prf_get_argv(char*** argvp) {
+prf_get_argv(char **argvp[]) {
 	char		**argv = NULL;
 	const char	*shared_secret = prf_get_value(PRF_SHS);
 	bool		trace_packets = (strcmp(prf_get_value(PRF_TP), "true") == 0);
@@ -166,7 +166,7 @@ prf_get_argv(char*** argvp) {
 }
 
 void
-prf_free_argv(unsigned int argc, char **argv) {
+prf_free_argv(unsigned int argc, char *argv[]) {
 	unsigned int i;
 
 	for (i = 0; i < argc; i++) {

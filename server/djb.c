@@ -27,8 +27,9 @@ static hlist_t lst_api_pull;
 /* The exit hostname we use */
 static char *l_exit_hostname = NULL;
 
-/* The Process ID of StegoTorus that we launched */
+/* The Process ID of StegoTorus / Tor that we launched */
 static myprocess_num_t l_st_pnum = 0;
+static myprocess_num_t l_tor_pnum = 0;
 
 #define DJBH(h) offsetof(djb_headers_t, h), sizeof (((djb_headers_t *)NULL)->h)
 
@@ -888,62 +889,68 @@ djb_status(httpsrv_client_t *hcl) {
 	httpsrv_done(hcl);
 }
 
+/* Instead of tracking the pnum, maybe just pass the binary name */
 void
 djb_launch(httpsrv_client_t *hcl);
 void
 djb_launch(httpsrv_client_t *hcl) {
-	char		**argv;
-	int		argc, i;
-	char		buf[512], *cur;
-	unsigned int	off, l;
+	char		**st_argv;
+	const char * const tor_argv[4] = {
+				"tor",
+				"-f",
+				"/usr/share/saferdefiance/djb.torrc",
+				NULL};
+	int		st_argc, i;
+	char		st_cmdline[512], tor_cmdline[512], logfile[128];
 	const char	*msg;
 
-	/* Already had one running? stop it */
+	/* StegoTorus: Already had one running? stop it */
 	if (l_st_pnum != 0) {
 		process_terminate(l_st_pnum, false);
 		l_st_pnum = 0;
 	}
 
 	/* Convert preferences into argv */
-	argc = prf_get_argv(&argv);
+	st_argc = prf_get_argv(&st_argv);
 
 	/* Log file destination */
-	i = snprintf(buf, sizeof buf, "/tmp/djb_%s.log", argv[0]);
-	if (snprintfok(i, sizeof buf)) {
+	i = snprintf(logfile, sizeof logfile, "/tmp/djb_%s.log", st_argv[0]);
+	if (!snprintfok(i, sizeof logfile)) {
+		log_crt("Could not format StegoTorus log location");
+	} else {
 		/* Spawn it */
-		l_st_pnum = process_spawn(argv, buf);
+		l_st_pnum = process_spawn(st_argv, logfile);
 	}
 
-	/*
-	 * stpncpy returns a non-\0 terminated string
-	 * when the input is longer than the dest
-	 * we memzero first and then limit what we
-	 * output to avoid these situations
-	 */
-	cur = buf;
-	memzero(buf, sizeof buf);
-	for (i = 0, off = 0; argv[i]; i++) {
-		l = strlen(argv[i]);
-
-		if ((l + off + 2) >= sizeof buf)
-			break;
-
-		cur = stpncpy(cur, argv[i], l);
-		*cur = ' ';
-		cur++;
-		off += l+1;
-	}
+	/* Generate what would be the full cmdline */
+	process_cmdline(st_argv, st_cmdline, sizeof st_cmdline);
 
 	/* Free argv */
-	prf_free_argv(argc, argv);
+	prf_free_argv(st_argc, st_argv);
 
-	if (l_st_pnum > 0) {
-		msg = aprintf("StegoTorus launched (cmdline: %s)",
-			buf);
-	} else {
-		msg = aprintf("Failed to launch StegoTorus (cmdline: %s)",
-			buf);
+	/* Tor: Already had one running? stop it */
+	if (l_tor_pnum != 0) {
+		process_terminate(l_tor_pnum, false);
+		l_tor_pnum = 0;
 	}
+
+	/* Log file destination */
+	i = snprintf(logfile, sizeof logfile, "/tmp/djb_%s.log", tor_argv[0]);
+	if (!snprintfok(i, sizeof logfile)) {
+		log_crt("Could not format Tor log location");
+	} else {
+		/* Spawn it */
+		l_tor_pnum = process_spawn((char **)&tor_argv[0], logfile);
+	}
+
+	/* Generate what would be the full cmdline */
+	process_cmdline((char **)&tor_argv[0], tor_cmdline, sizeof tor_cmdline);
+
+	msg = aprintf("StegoTorus (%s) %s, Tor (%s) %s",
+		st_cmdline,
+		l_st_pnum > 0 ? "launched" : "launch failed",
+		tor_cmdline,
+		l_tor_pnum > 0 ? "launched" : "launch failed");
 
 	djb_result(hcl,
 		   msg != NULL && l_st_pnum > 0 ? DJB_OK : DJB_ERR,
