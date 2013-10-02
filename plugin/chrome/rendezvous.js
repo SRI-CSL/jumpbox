@@ -67,7 +67,7 @@ Rendezvous = {
 
     dance:  function (request) {
 	/* Open the ACS page for that to continue */
-	ACS.bkg.JumpBox.launch_just_one_tab("acs.html");
+	Rendezvous.bkg.JumpBox.launch_just_one_tab("acs.html");
     },
 
     reset:  function () {
