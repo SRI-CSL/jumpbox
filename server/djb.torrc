@@ -1,5 +1,8 @@
 # torrc for Tor as used by SAFER DEFIANCE JumpBox
-#
+
+# Force a custom Tor directory for it's caches etc
+DataDirectory /var/cache/saferdefiance/djb/tor/
+
 # Client applications on localhost only
 # (SOCKS port for WebBrowsers etc)
 SocksPort 9060

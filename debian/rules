@@ -20,6 +20,7 @@ override_dh_auto_install:
 	cp server/djb debian/saferdefiance-jumpbox-daemon/usr/sbin/
 	mkdir -p debian/saferdefiance-jumpbox-daemon/usr/share/saferdefiance/
 	cp server/djb.torrc debian/saferdefiance-jumpbox-daemon/usr/share/saferdefiance/
+	mkdir -p debian/saferdefiance-jumpbox-daemon/var/cache/saferdefiance/djb/tor/
 
 	# PLUGIN
 	mkdir -p debian/saferdefiance-jumpbox-chromium-plugin/usr/lib/chromium-browser/plugins
