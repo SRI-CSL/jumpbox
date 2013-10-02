@@ -3,6 +3,7 @@
 var ACS;
 
 ACS = {
+bkg:		null,
 msg_prev:	"",
 url_setup:	"",
 url_progress:	"",
@@ -23,9 +24,11 @@ set_status: function (st, msg) {
 		break;
 	case "error":
 		col = "#ffa500";
+		ACS.show("intro");
 		break;
 	case "done":
 		col = "#00cc00";
+		ACS.show("launch");
 		break;
 	default:
 		col = "#ff0000";
@@ -65,34 +68,45 @@ set_status_json: function(json) {
 
 empty_status: function () {
 	/* Empty the log */
-	document.querySelector('#log').textContent = "";
+	document.querySelector("#log").textContent = "";
 
 	ACS.set_status("ok", "(Status log reset)");
 },
 
+show: function (id) {
+	document.querySelector("#" + id).style.display = "block";
+},
+
+hide: function (id) {
+	document.querySelector("#" + id).style.display = "none";
+},
+
 init: function () {
-	var bkg, djb;
+	var djb;
 
 	/* Watch out for when they want to dance */
-	document.querySelector("#dancenet").addEventListener("click", ACS.danceNET);
-	document.querySelector("#dancerdv").addEventListener("click", ACS.danceRDV);
+	document.querySelector("#dancenet").addEventListener("click", ACS.but_danceNET);
+	document.querySelector("#dancerdv").addEventListener("click", ACS.but_danceRDV);
+	document.querySelector("#launchtools").addEventListener("click", ACS.but_launch);
+	document.querySelector("#restart").addEventListener("click", ACS.but_restart);
 
 	/* Where is our djb? */
-	bkg = chrome.extension.getBackgroundPage();
-	djb = bkg.JumpBox.jb_host;
+	ACS.bkg = chrome.extension.getBackgroundPage();
+	djb = ACS.bkg.JumpBox.jb_host;
 
 	ACS.url_setup    = djb + '/acs/setup/';
 	ACS.url_progress = djb + '/acs/progress/';
 
 	/* Ensure we have a circuit up and running */
-	bkg.JumpBox.circuits_ensure();
+	ACS.bkg.JumpBox.circuits_ensure();
 
 	ACS.set_status("ok", "Initialized");
 },
 
-danceNET: function () {
+but_danceNET: function () {
 	var net, obj;
 
+	ACS.hide("intro");
 	ACS.empty_status();
 
 	/* Get the NET from the textfield */
@@ -131,14 +145,24 @@ danceNET: function () {
 	ACS.setup(net);
 },
 
-danceRDV: function () {
+but_danceRDV: function () {
+	ACS.hide("intro");
 	ACS.empty_status();
 
 	ACS.set_status("ok", "Using Rendezvous provided NET");
 
 	/* Start checking for progress */
 	ACS.progress();
-	return;
+},
+
+but_launch: function () {
+	ACS.bkg.JumpBox.launch_just_one_tab("launchtools.html");
+},
+
+but_restart: function () {
+	ACS.hide("launch");
+	ACS.show("intro");
+	ACS.empty_status();
 },
 
 setup: function (net) {

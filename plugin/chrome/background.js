@@ -191,6 +191,25 @@ JumpBox = {
         }
     },
 
+    close_all: function(page) {
+        var index, tab_uri;
+
+        tab_uri = 'chrome-extension://' + JumpBox.jb_ext_id + '/' + page;
+        chrome.tabs.getAllInWindow(null, function(tabs){
+                for (index = 0; index < tabs.length; index++) {
+                    if (tabs[index].url.substr(0,tab_uri.length) === tab_uri){
+                        chrome.tabs.remove(tabs[index].id);
+                    }
+                }
+            });
+    },
+
+    launch_just_one_tab: function (page) {
+        //try and keep their cardinality <= 1
+        JumpBox.close_all(page);
+        chrome.tabs.create({ url : page });
+    },
+
 }; /* JumpBox */
 
 Headers = {
