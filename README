@@ -46,16 +46,16 @@ server/djb run
 In Chrome/Chromium configure the Plugin by clicking on the JumpBox button and selecting
 "Preferences", fill in the rendezvous server and select the amount of circuits.
 
-Then start a Stegotorus client in persist JSON mode
+Then start a Stegotorus client in persist JSON mode (can also be performed from the Plugin).
 {{{
 ./stegotorus --log-min-severity=warn chop socks --trace-packets --persist-mode 127.0.0.1:1080 127.0.0.1:6543 json
 }}}
 
 That lets StegoTorus be a SOCKS server on 127.0.0.1:1080 while connecting to JumpBox at 6543.
 
-Then start the Stegotorus server:
+Then start the Stegotorus server in non-persist mode (this typically runs behind DGW):
 {{{
-./stegotorus --log-min-severity=warn chop server --trace-packets --persist-mode 64.62.249.222:443 127.0.0.1:8080 json
+./stegotorus --log-min-severity=warn chop server --trace-packets 64.62.249.222:443 127.0.0.1:8080 json
 }}}
 
 That lets ST accept HTP at 127.0.0.1:8080 (matching DJB_FORCED_HOSTNAME above) and makes
