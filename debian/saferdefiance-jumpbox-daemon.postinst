@@ -8,7 +8,7 @@ if ! getent passwd djb >/dev/null; then
 fi
 
 # Make sure this is ours
-chown -R djb:nobody /var/cache/saferdefiance/djb/
+chown -R djb:nogroup /var/cache/saferdefiance/djb/
 
 if [ -x /usr/sbin/invoke-rc.d ]; then
 	invoke-rc.d djb restart || true
