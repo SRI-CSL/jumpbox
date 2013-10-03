@@ -22,7 +22,7 @@ static char* l_values[PRF_MAX];
 
 static const char* l_defaults[] = {
 	"1", 
-	"stegotorus", 
+	"/usr/sbin/stegotorus", 
 	"warn", 
 	"json", 
 	"false", 
