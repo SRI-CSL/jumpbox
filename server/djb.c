@@ -861,7 +861,7 @@ djb_launch(httpsrv_client_t *hcl, char **argv, myprocess_num_t *num);
 static void
 djb_launch(httpsrv_client_t *hcl, char **argv, myprocess_num_t *num) {
 	char		cmdline[512], logfile[128];
-	const char	*msg;
+	const char	*msg, *lfn;
 	int		i;
 
 	/* Already had one running? stop it */
@@ -870,8 +870,12 @@ djb_launch(httpsrv_client_t *hcl, char **argv, myprocess_num_t *num) {
 		*num = 0;
 	}
 
+	/* Find the last / in case there is a path */
+	lfn = strrchr(argv[0], '/');
+	lfn = lfn == NULL ? argv[0] : &lfn[1];
+
 	/* Log file destination */
-	i = snprintf(logfile, sizeof logfile, "/tmp/djb_%s.log", argv[0]);
+	i = snprintf(logfile, sizeof logfile, "/tmp/djb_%s.log", lfn);
 	if (!snprintfok(i, sizeof logfile)) {
 		log_crt("Could not format log location");
 	} else {
@@ -882,8 +886,10 @@ djb_launch(httpsrv_client_t *hcl, char **argv, myprocess_num_t *num) {
 	/* Generate what would be the full cmdline */
 	process_cmdline(argv, cmdline, sizeof cmdline);
 
-	msg = aprintf("%s: %s",
+	msg = aprintf("%s%s%s: %s",
 		*num > 0 ? "Launched" : "Failed to launch",
+		logfile == NULL ? "" : " with logfile ",
+		logfile == NULL ? "" : logfile,
 		cmdline);
 
 	djb_result(hcl,
