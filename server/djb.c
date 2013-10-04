@@ -1097,7 +1097,10 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 	log_dbg(HCL_ID " hostname: %s", hcl->id, hcl->headers.hostname);
 
 	/* Parse the request */
-	httpsrv_parse_request(hcl, NULL);
+	if (!httpsrv_parse_request(hcl, NULL)) {
+		/* parse_request will have called httpsrv_error() */
+		return (true);
+	}
 
 	log_dbg(HCL_ID " uri: %s", hcl->id, hcl->headers.uri);
 
@@ -1207,8 +1210,10 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 		return;
 	}
 
-	/* HTTP okay */
-	httpsrv_answer(ar->hcl, HTTPSRV_HTTP_OK, NULL);
+	/* HTTP okay (non-POST gets a short HTML answer) */
+	httpsrv_answer(ar->hcl, HTTPSRV_HTTP_OK,
+			pr->hcl->method != HTTP_M_POST ?
+				HTTPSRV_CTYPE_HTML : NULL);
 
 	/* DJB headers */
 	conn_addheaderf(&ar->hcl->conn, "DJB-URI: http://%s%s",
@@ -1240,8 +1245,6 @@ djb_handle_forward(djb_req_t *pr, djb_req_t *ar) {
 			pr->hcl->id, ar->hcl->id);
 
 		/* XHR requires a return, thus just give it a blank body */
-		conn_addheaderf(&ar->hcl->conn, "Content-Type: text/html");
-
 		/* Empty-ish body (Content-Length is arranged by conn) */
 		conn_printf(&ar->hcl->conn, "Non-POST JumpBox response\r\n");
 
