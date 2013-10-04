@@ -477,7 +477,10 @@ acs_wait(void) {
 
 	acs_status(DJB_OK, "Moonwalking for %" PRIu64 " seconds...", w);
 
-	thread_sleep(w * 1000);
+	if (!thread_sleep(w * 1000)) {
+		acs_status(DJB_ERR, "Moonwalking aborted");
+		return;
+	}
 
 	acs_status(DJB_OK, "Moonwalk done");
 

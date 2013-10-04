@@ -575,7 +575,9 @@ static void
 djb_header(httpsrv_client_t UNUSED *hcl, void *user, char *line) {
 	djb_headers_t *dh = (djb_headers_t *)user;
 
-	misc_map(line, djb_headers, (char *)dh);
+	if (!misc_map(line, djb_headers, (char *)dh)) {
+		log_err("misc_map(%s) failed", line);
+	}
 }
 
 static void
@@ -1412,8 +1414,10 @@ djb_run(void) {
 	}
 
 	/* Just sleep over here */
-	while (ret == 0 && thread_keep_running()) {
-		thread_sleep(5000);
+	while (ret == 0 &&
+		thread_keep_running() &&
+		thread_sleep(5000)) {
+		/* Sleep tight */
 	}
 
 	/* Cleanup time as the mainloop ended */
