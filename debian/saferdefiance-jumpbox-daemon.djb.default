@@ -16,5 +16,14 @@ RUN_DAEMON="yes"
 # to a certain host/port
 # This setting is typically set by ACS/Rendezvous
 #
-# export DJB_FORCED_HOSTNAME=
+# export DJB_FORCED_HOSTNAME=<hostname>[:<port>]
+
+# Force the JumpBox Address (the StegoTorus 'server' parameter)
+# export DJB_FORCED_JUMPBOXADDRESS=<<address>:<port>"
+
+# Force the StegoTorus method (should match StegoTorus server side)
+# export DJB_FORCED_STEGMETHOD=(json|http)
+
+# Force StegoTorus Shared Secret
+# export DJB_FORCED_SHAREDSECRET="<string>"
 
