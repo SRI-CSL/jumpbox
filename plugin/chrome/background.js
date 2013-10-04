@@ -145,7 +145,7 @@ JumpBox = {
 
     circuits_ensure: function () {
         /* If we do not have any circuits yet... */
-        if (JumpBox.circuit_count_running == 0) {
+        if (JumpBox.circuit_count_running <= 0) {
                 /* Launch them */
                 JumpBox.circuits_launch();
         }
