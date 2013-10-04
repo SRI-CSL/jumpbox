@@ -91,10 +91,9 @@ prf_set_value(enum prf_v i, const char *val) {
 int
 prf_get_argv(char **argvp[]) {
 	char		**argv = NULL;
-	const char	*shared_secret = prf_get_value(PRF_SHS);
-	bool		trace_packets = (strcmp(prf_get_value(PRF_TP), "true") == 0);
-	unsigned int	circuits = atoi(prf_get_value(PRF_CC));
-	unsigned int	argc = 7 + (2 * circuits), i;
+	const char	*ss, *sm, *ja;
+	bool		trace_packets;
+	unsigned int	circuits, argc, i;
 	int		r;
 	char		scratch[256];
 	unsigned int	vslot = 0;
@@ -104,8 +103,44 @@ prf_get_argv(char **argvp[]) {
 		return (-1);
 	}
 
+	/* Lock up to avoid other threads from modifying the prefs */
+	mutex_lock(l_mutex);
+
+	/* Do we want to trace packets? */
+	trace_packets = (strcmp(prf_get_value(PRF_TP), "true") == 0);
+
+	/* How many circuits? */
+	circuits = atoi(prf_get_value(PRF_CC));
+
+	/* Starting argument count */
+	argc = 7 + (2 * circuits);
+
+	/* Override the Shared Secret */
+	ss = getenv("DJB_FORCED_SHAREDSECRET");
+	if (ss == NULL) {
+		ss = prf_get_value(PRF_SHS);
+	} else {
+		log_inf("Using Forced Shared Secret: %s", ss);
+	}
+
+	/* Override the JumpBox Address? */
+	ja = getenv("DJB_FORCED_JUMPBOXADDRESS");
+	if (ja == NULL) {
+		ja = prf_get_value(PRF_JA);
+	} else {
+		log_inf("Using Forced JumpBox Address: %s", ja);
+	}
+
+	/* Override the Steg Method? */
+	sm = getenv("DJB_FORCED_STEGMETHOD");
+	if (sm == NULL) {
+		sm = prf_get_value(PRF_SM);
+	} else {
+		log_inf("Using Forced Steg Method: %s", sm);
+	}
+
 	/* Optional arguments given? */
-	if (shared_secret != NULL && (strcmp(shared_secret, "") != 0))
+	if (ss != NULL && (strcmp(ss, "") != 0))
 		argc++;
 
 	if (trace_packets)
@@ -114,10 +149,9 @@ prf_get_argv(char **argvp[]) {
 	argv = calloc(argc, sizeof argv);
 	if (argv == NULL) {
 		log_err("Could not allocate memory for arguments");
+		mutex_unlock(l_mutex);
 		return (-1);
 	}
-
-	mutex_lock(l_mutex);
 
 	/* Executable */
 	argv[vslot++] = strdup(prf_get_value(PRF_EXE));
@@ -125,8 +159,8 @@ prf_get_argv(char **argvp[]) {
 	memzero(scratch, sizeof scratch);
 	r = snprintf(scratch, sizeof scratch, "--log-min-severity=%s", prf_get_value(PRF_LL));
 	if (!snprintfok(r, sizeof scratch)) {
-		mutex_unlock(l_mutex);
 		log_err("Could not store log severity");
+		mutex_unlock(l_mutex);
 		return (-1);
 	}
 	
@@ -139,17 +173,17 @@ prf_get_argv(char **argvp[]) {
 		argv[vslot++] = strdup("--trace-packets");
 	}
 
-	if (shared_secret != NULL && (strcmp(shared_secret, "") != 0)) {
+	if (ss != NULL && (strcmp(ss, "") != 0)) {
 		memzero(scratch, sizeof scratch);
-		snprintf(scratch, sizeof scratch, "--shared-secret=%s", prf_get_value(PRF_SHS));
+		snprintf(scratch, sizeof scratch, "--shared-secret=%s", ss);
 		argv[vslot++] = strdup(scratch);
 	}
 
 	argv[vslot++] = strdup(prf_get_value(PRF_PA));
 
 	for (i = 0; i < circuits; i++) {
-		argv[vslot++] = strdup(prf_get_value(PRF_JA));  
-		argv[vslot++] = strdup(prf_get_value(PRF_SM));
+		argv[vslot++] = strdup(ja);  
+		argv[vslot++] = strdup(sm);
 	}
 
 	argv[vslot++] = NULL;

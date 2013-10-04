@@ -23,9 +23,27 @@ Fortunately, these are available in Homebrew:
 
 == Environment Variables ==
 
-DJB_FORCED_HOSTNAME defines the hostname that we force connections to (DJB-URI)
+The following DJB_FORCED_* environment variables override either the preferences
+as they are configured or the result retrieved from ACS and thus allows easier
+testing by bypassing various components.
 
-SAFDEF_LOG_LEVEL defines the logging level (debug is very verbose).
+* DJB_FORCED_HOSTNAME
+	defines the hostname that we force connections to (DJB-URI)
+
+* DJB_FORCED_JUMPBOXADDRESS
+	defines the 'JumpBox Address' to be used for StegoTorus
+	this can be used to bypass the DJB Proxy while being able to start from DJB.
+
+* DJB_FORCED_STEGMETHOD
+	defines the Steg Method (json|http) to be used for StegoTorus
+
+* DJB_FORCED_SHAREDSECRET
+	defines the Shared Secret to be used for StegoTorus
+
+Generic (libfutil):
+
+* SAFDEF_LOG_LEVEL
+	defines the logging level (debug is very verbose).
 
 == Running with StegoTorus ==
 
