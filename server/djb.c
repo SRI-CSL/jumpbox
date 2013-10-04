@@ -1099,7 +1099,7 @@ djb_handle(httpsrv_client_t *hcl, void *user) {
 	log_dbg(HCL_ID " hostname: %s", hcl->id, hcl->headers.hostname);
 
 	/* Parse the request */
-	if (!httpsrv_parse_request(hcl, NULL)) {
+	if (httpsrv_parse_request(hcl, NULL) == -1) {
 		/* parse_request will have called httpsrv_error() */
 		return (true);
 	}
