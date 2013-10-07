@@ -575,7 +575,7 @@ static void
 djb_header(httpsrv_client_t UNUSED *hcl, void *user, char *line) {
 	djb_headers_t *dh = (djb_headers_t *)user;
 
-	if (!misc_map(line, djb_headers, (char *)dh)) {
+	if (misc_map(line, djb_headers, (char *)dh) == -1) {
 		log_err("misc_map(%s) failed", line);
 	}
 }
