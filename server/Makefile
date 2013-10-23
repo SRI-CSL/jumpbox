@@ -200,10 +200,9 @@ $(error Unknown number of bits: $(OS_BITS))
 endif
 endif
 
-BUILD_GIT:=$(shell git log --pretty=format:'%H' -n 1)
 CFLAGS += -DPROJECT_VERSION=$(PROJECT_VERSION)
-CFLAGS += -DPROJECT_BUILDTIME=$(PROJECT_BUILDTIME)
-CFLAGS += -DPROJECT_GIT=$(BUILD_GIT)
+CFLAGS += -DPROJECT_GIT_HASH=$(PROJECT_GIT_HASH)
+CFLAGS += -DPROJECT_GIT_TIME=$(PROJECT_GIT_TIME)
 
 # Prettifiers
 LINK	= @echo "* Linking $@"; $(CC) $(CFLAGS) $(LDFLAGS)
@@ -271,8 +270,8 @@ else
 intro:
 endif
 	@echo "Version   : $(PROJECT_VERSION)"
-	@echo "Build Time: $(PROJECT_BUILDTIME)"
-	@echo "Git Hash  : $(BUILD_GIT)"
+	@echo "Git Hash  : $(PROJECT_GIT_HASH)"
+	@echo "Git Time  : $(PROJECT_GIT_TIME)"
 	@echo "Target OS : $(OS_NAME) $(OS_BITS)-bits ($(OS_PROC))"
 	@echo "Compiler  : $(CC) ($(CC_TYPE) $(CC_VERSION))"
 #	@echo "CFLAGS    : $(CFLAGS)"

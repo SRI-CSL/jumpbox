@@ -28,9 +28,15 @@
 #
 
 # The name of this project
-PROJECT_NAME=jumpbox
-PROJECT_VERSION=$(shell date +"%Y.%m.%d")
-PROJECT_BUILDTIME=$(shell date +"%Y.%m.%d-%H:%M:%S")
+PROJECT_NAME:=jumpbox
+PROJECT_VERSION:=$(shell head -n 1 debian/changelog | cut -f2 -d"(" | cut -f1 -d")")
+PROJECT_GIT_HASH:=$(shell git log --pretty=format:'%H' -n 1 2>/dev/null || echo "unknownGIThash")
+PROJECT_GIT_TIME:='$(shell git log --pretty=format:'%ci' -n 1 2>/dev/null || echo "unknownGITtime")'
+
+# Check if it is modified, and include a notice about that
+ifneq ($(shell git status --porcelain 2>/dev/null | wc -l),0)
+PROJECT_GIT_HASH:=$(PROJECT_GIT_HASH)-modified
+endif
 
 # Debug build
 CFLAGS += -DDEBUG
@@ -44,7 +50,8 @@ CFLAGS += -DDJB_RENDEZVOUS
 #########################################################
 export PROJECT_NAME
 export PROJECT_VERSION
-export PROJECT_BUILDTIME
+export PROJECT_GIT_HASH
+export PROJECT_GIT_TIME
 export CFLAGS
 
 all:
