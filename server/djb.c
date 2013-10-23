@@ -816,9 +816,11 @@ djb_status_version(httpsrv_client_t *hcl) {
 		"</p>\n"
 		"\n"
 		"<table>\n"
-		"<tr><th>Version:</th><td>" STR(PROJECT_VERSION) "</td></tr>"
-		"<tr><th>GIT hash:</th><td>" STR(PROJECT_GIT_HASH) "</td></tr>"
-		"<tr><th>GIT time:</th><td>" STR(PROJECT_GIT_TIME) "</td></tr>"
+		"<tr><th>Version:</th><td>" PROJECT_VERSION "</td></tr>"
+		"<tr><th>GIT origin:</th><td>" PROJECT_GIT_ORIG "</td></tr>"
+		"<tr><th>GIT branch:</th><td>" PROJECT_GIT_BRCH "</td></tr>"
+		"<tr><th>GIT hash:</th><td>" PROJECT_GIT_HASH "</td></tr>"
+		"<tr><th>GIT time:</th><td>" PROJECT_GIT_TIME "</td></tr>"
 		"</table>\n");
 }
 

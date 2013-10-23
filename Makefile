@@ -30,8 +30,10 @@
 # The name of this project
 PROJECT_NAME:=jumpbox
 PROJECT_VERSION:=$(shell head -n 1 debian/changelog | cut -f2 -d"(" | cut -f1 -d")")
+PROJECT_GIT_ORIG:=$(shell git config --get remote.origin.url 2>/dev/null || echo "unknownGITorigin")
+PROJECT_GIT_BRCH:=$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknownGITbranch")
 PROJECT_GIT_HASH:=$(shell git log --pretty=format:'%H' -n 1 2>/dev/null || echo "unknownGIThash")
-PROJECT_GIT_TIME:='$(shell git log --pretty=format:'%ci' -n 1 2>/dev/null || echo "unknownGITtime")'
+PROJECT_GIT_TIME:=$(shell git log --pretty=format:'%ci' -n 1 2>/dev/null || echo "unknownGITtime")
 
 # Check if it is modified, and include a notice about that
 ifneq ($(shell git status --porcelain 2>/dev/null | wc -l),0)
@@ -50,6 +52,8 @@ CFLAGS += -DDJB_RENDEZVOUS
 #########################################################
 export PROJECT_NAME
 export PROJECT_VERSION
+export PROJECT_GIT_ORIG
+export PROJECT_GIT_BRCH
 export PROJECT_GIT_HASH
 export PROJECT_GIT_TIME
 export CFLAGS
