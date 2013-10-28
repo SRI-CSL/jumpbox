@@ -1,12 +1,15 @@
 #include "djb.h"
 
+/* define to enable verbose debug output from prf_handle() function */
+#undef DEBUGHANDLE
+
 /* XXX: relies on strdup/calloc, verify if all is free()'d properly */
 
 static mutex_t	l_mutex;
 static char	*l_current_preferences = NULL;
 
 /* keep these ALL the same length (number_of_keys) */
-static const char* l_keys[] =  {
+static const char *l_keys[] =  {
 	"stegotorus_circuit_count", 
 	"stegotorus_executable", 
 	"stegotorus_log_level", 
@@ -18,9 +21,9 @@ static const char* l_keys[] =  {
 	"server_address"
 	};
 
-static char* l_values[PRF_MAX];
+static char *l_values[PRF_MAX];
 
-static const char* l_defaults[] = {
+static const char *l_defaults[] = {
 	"1", 
 	"/usr/sbin/stegotorus", 
 	"warn", 
@@ -69,16 +72,20 @@ prf_set_value(enum prf_v i, const char *val) {
 
 /*
  * Common options:
- * stegotorus --log-min-severity=warn chop socks --persist-mode --trace-packets --shared-secret=bingoBedbug 127.0.0.1:1080 127.0.0.1:6543 ${MODULE} ... NULL
- * 1          2                       3    4      5             [opt]           [opt]                       6               [ n circuits * 2]           7 
-*/
+ * stegotorus --log-min-severity=warn chop socks --persist-mode --trace-packets
+ * 1          2                       3    4      5             [opt]
+ *
+ * --shared-secret=bingoBedbug 127.0.0.1:1080 127.0.0.1:6543 ${MODULE} ... NULL
+ * [opt]                       6               [ n circuits * 2]           7 
+ */
+
 /*
  * Get the Stegotorus argc & argv for a call to exevp from the preferences.
  *
  * Usage:
  *
  *  int argc;
- *  char** argv = NULL;
+ *  char **argv = NULL;
  *
  *  argc = prf_get_argv(&argv);
  *
@@ -377,7 +384,7 @@ prf_handle(httpsrv_client_t *hcl) {
 
 	l_current_preferences = (hcl->readbody == NULL ? NULL : strdup(hcl->readbody));
 	if (prf_parse_preferences()) {
-#if 0
+#if DEBUGHANDLE
 		/* this block is just for testing */
 		unsigned int	argc = 0, i;
 		char		**argv = NULL;

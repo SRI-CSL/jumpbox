@@ -924,7 +924,7 @@ static void
 djb_launch_tor(httpsrv_client_t *hcl);
 static void
 djb_launch_tor(httpsrv_client_t *hcl) {
-	const char * const argv[] = {
+	const char *const argv[] = {
 				"tor",
 				"-f",
 				"/usr/share/saferdefiance/djb.torrc",

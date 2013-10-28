@@ -125,9 +125,9 @@ rdv_image_reset(void) {
 }
 
 static void
-rdv_reset(httpsrv_client_t* hcl);
+rdv_reset(httpsrv_client_t *hcl);
 static void
-rdv_reset(httpsrv_client_t* hcl) {
+rdv_reset(httpsrv_client_t *hcl) {
 	rdv_onion_reset();
 	rdv_captcha_reset();
 	rdv_image_reset();
@@ -137,9 +137,9 @@ rdv_reset(httpsrv_client_t* hcl) {
 }
 
 static void
-rdv_gen_request_aux(httpsrv_client_t* hcl, const char *server, bool secure);
+rdv_gen_request_aux(httpsrv_client_t *hcl, const char *server, bool secure);
 static void
-rdv_gen_request_aux(httpsrv_client_t* hcl, const char *server, bool secure) {
+rdv_gen_request_aux(httpsrv_client_t *hcl, const char *server, bool secure) {
 	const char	*path = NULL;
 	char		*request = NULL;
 	bf_params_t	*params =  NULL;
@@ -181,9 +181,9 @@ rdv_gen_request_aux(httpsrv_client_t* hcl, const char *server, bool secure) {
 }
 
 static void
-rdv_gen_request(httpsrv_client_t* hcl);
+rdv_gen_request(httpsrv_client_t *hcl);
 static void
-rdv_gen_request(httpsrv_client_t* hcl) {
+rdv_gen_request(httpsrv_client_t *hcl) {
 	json_error_t	error;
 	json_t		*root;
 	const char	*server = NULL;
@@ -273,9 +273,9 @@ rdv_make_image_response(const char *path, int onion_type) {
 }
 
 static void
-rdv_image(httpsrv_client_t*  hcl);
+rdv_image(httpsrv_client_t *hcl);
 static void
-rdv_image(httpsrv_client_t*  hcl) {
+rdv_image(httpsrv_client_t *hcl) {
 	const char	*response = NULL;
 	char		*image_path = NULL,
 			*image_dir = NULL,
@@ -382,9 +382,9 @@ rdv_image(httpsrv_client_t*  hcl) {
 }
 
 static const char *
-rdv_make_peel_response(const char* info, const char* status);
+rdv_make_peel_response(const char *info, const char *status);
 static const char *
-rdv_make_peel_response(const char* info, const char* status) {
+rdv_make_peel_response(const char *info, const char *status) {
 	unsigned int onion_type = ONION_TYPE(l_current_onion);
 
 	return (aprintf("{ \"info\": \"%s\", "
@@ -417,7 +417,7 @@ rdv_peel_base(void) {
 	/* Just in case */
 	fassert(ONION_TYPE(l_current_onion) == BASE);
 
-	nep = (char*)ONION_DATA(l_current_onion);
+	nep = (char *)ONION_DATA(l_current_onion);
 
 	log_dbg("nep = %s", nep);
 
@@ -454,9 +454,9 @@ rdv_pow_worker(void UNUSED *arg) {
 	char	*data = ONION_DATA(l_current_onion);
 	size_t	data_len = ONION_DATA_SIZE(l_current_onion);
 
-	l_pow_inner_onion = defiant_pow_aux((uchar*)hash, hash_len,
-					   (uchar*)secret, secret_len,
-					   (uchar*)data, data_len,
+	l_pow_inner_onion = defiant_pow_aux((uchar *)hash, hash_len,
+					   (uchar *)secret, secret_len,
+					   (uchar *)data, data_len,
 					   &l_pow_thread_progress);
 
 	log_dbg("pow_inner_onion = %p : %s %s",
@@ -765,9 +765,9 @@ rdv_peel(httpsrv_client_t *hcl) {
 }
 
 static void
-rdv_file(httpsrv_client_t* hcl, const char *file);
+rdv_file(httpsrv_client_t *hcl, const char *file);
 static void
-rdv_file(httpsrv_client_t* hcl, const char *file) {
+rdv_file(httpsrv_client_t *hcl, const char *file) {
 	/* Only serve random outguess_embed files */
 	log_dbg("file = %s", file);
 
