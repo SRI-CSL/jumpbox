@@ -3,12 +3,12 @@ Maintainer: Jeroen Massar <massar@fsi.io>
 Section: web
 Priority: extra
 Standards-Version: 3.9.2
-Build-Depends: debhelper (>= 8.0.0~), libc6-dev, libc6-dev-i386 [amd64] | libc6-dev-amd64 [i386], libgmp-dev, libjansson-dev, libpbc-dev, zlib1g-dev, libssl-dev
+Build-Depends: debhelper (>= 8.0.0~), libc6-dev, libc6-dev-i386 [amd64] | libc6-dev-amd64 [i386], libgmp-dev, libjansson-dev, libpbc-dev (= 0.5.14), zlib1g-dev, libssl-dev
 Homepage: http://www.safdef.org
 
 Package: saferdefiance-jumpbox-daemon
 Architecture: any
-Depends: adduser, openssl, libgmp10, libjansson4, libpbc0, zlib1g, ${shlibs:Depends}, ${misc:Depends}
+Depends: adduser, openssl, libgmp10, libjansson4, libpbc0 (= 0.5.14), zlib1g, ${shlibs:Depends}, ${misc:Depends}
 Description: SAFER DEFIANCE JumpBox Daemon
  SAFER DEFIANCE JumpBox Daemon
 
@@ -21,7 +21,7 @@ Description: SAFER DEFIANCE Chromium Plugin
 Package: saferdefiance-jumpbox-daemon-dbg
 Architecture: any
 Section: debug
-Depends: adduser, openssl, libgmp10, libjansson4, libpbc0, zlib1g, ${shlibs:Depends}, ${misc:Depends}
+Depends: adduser, openssl, libgmp10, libjansson4, libpbc0 (= 0.5.14), zlib1g, ${shlibs:Depends}, ${misc:Depends}
 Description: debugging symbols for djb
  SAFER DEFIANCE JumpBox Daemon
  .
