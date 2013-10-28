@@ -431,7 +431,7 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		httpsrv_answer(hcl, HTTPSRV_HTTP_OK, HTTPSRV_CTYPE_HTML);
 
 		/* A message as a body (Content-Length is arranged by conn) */
-		conn_printf(&hcl->conn, "Interal Push Proxy successful\r\n");
+		conn_printf(&hcl->conn, "Internal Push Proxy successful\r\n");
 
 		/* Request is done */
 		httpsrv_done(hcl);
