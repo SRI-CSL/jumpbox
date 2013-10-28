@@ -273,6 +273,7 @@ intro:
 endif
 	@echo "Version   : $(PROJECT_VERSION)"
 	@echo "Git Origin: $(PROJECT_GIT_ORIG)"
+	@echo "Git Branch: $(PROJECT_GIT_BRCH)"
 	@echo "Git Hash  : $(PROJECT_GIT_HASH)"
 	@echo "Git Time  : $(PROJECT_GIT_TIME)"
 	@echo "Target OS : $(OS_NAME) $(OS_BITS)-bits ($(OS_PROC))"
