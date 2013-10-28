@@ -10,6 +10,9 @@
  *	"initial"	: "192.0.1.25",
  *	"passphrase"	: "8b42c8971567e309c5fe7865"
  * }
+ *
+ * The "when" field is optional and contains a ISO8601 Interval
+ * for when the NET is valid.
  */
 
 /* The HTTP Server */
@@ -562,6 +565,70 @@ acs_initial(void) {
 }
 
 static bool
+acs_when(void);
+static bool
+acs_when(void) {
+	json_t		*when_j;
+	const char	*when;
+	uint64_t	now, start, end;
+
+	log_dbg("..");
+
+	/* Get the "when" from the NET */
+	when_j = json_object_get(l_net, "when");
+
+	if (when_j == NULL) {
+		acs_status(DJB_OK, "No NET 'when' thus NET is always valid");
+		return (true);
+	}
+
+	if (!json_is_string(when_j)) {
+		acs_status(DJB_ERR, "NET 'when' is not a string, thus invalid");
+		acs_sitdown();
+		return (false);
+	}
+
+	when = json_string_value(when_j);
+	fassert(when);
+
+	log_dbg("NET when: %s", when);
+
+	/* Parse the interval */
+	if (!parse_iso8601_interval(when, &start, &end)) {
+		acs_status(DJB_ERR, "NET when (%s) format is invalid", when);
+		acs_sitdown();
+		return (false);
+	}
+
+	/* Current time */
+	now = time(NULL);
+
+	if (now < start) {
+		acs_status(DJB_ERR,
+			   "NET when (%s) makes Discovery Provisioning "
+			   "not valid yet",
+			   when);
+		acs_sitdown();
+		return (false);
+	}
+
+	if (now >= end) {
+		acs_status(DJB_ERR,
+			   "NET when (%s) notes that "
+			   "Discovery Provisioning expired",
+			   when);
+		acs_sitdown();
+		return (false);
+	}
+
+	acs_status(DJB_OK,
+		   "NET 'when' (%s) indicates it is currently valid",
+		   when);
+
+	return (true);
+}
+
+static bool
 acs_progress(httpsrv_client_t *hcl);
 static bool
 acs_progress(httpsrv_client_t *hcl) {
@@ -585,10 +652,14 @@ acs_progress(httpsrv_client_t *hcl) {
 			mutex_unlock(l_status_mutex);
 			mutex_unlock(l_dancing_mutex);
 
-			acs_status(DJB_OK, "Starting to dance...");
+			/* Check time validity */
+			if (acs_when()) {
+				/* Time valid thus go on */
+				acs_status(DJB_OK, "Starting to dance...");
 
-			/* Queue ACS Initial */
-			acs_initial();
+				/* Queue ACS Initial */
+				acs_initial();
+			}
 		}
 
 		/* Lock it up again */
