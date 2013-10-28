@@ -1066,7 +1066,7 @@ djb_handle_proxy(httpsrv_client_t *hcl) {
 
 		/* Duplicate it as it might be gone soon */
 		if (h != NULL) {
-			l_exit_hostname = strdup(h);
+			l_exit_hostname = mstrdup(h, "exit_hostname");
 		}
 	}
 
@@ -1500,7 +1500,7 @@ main(int argc, const char *argv[]) {
 	log_dbg("It's all over... (%d)", ret);
 
 	if (l_exit_hostname != NULL) {
-		free(l_exit_hostname);
+		mfreestrdup(l_exit_hostname, "exit_hostname");
 	}
 
 	thread_exit();
