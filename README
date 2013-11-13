@@ -13,6 +13,8 @@ These code libraries have to be placed in ../libfutil and ../rendezvous respecti
 
 === Mac OSX ===
 
+Use "xcode-select --install" to ensure the XCode Command Line Tools (CLT) are installed.
+
 For Rendezvous one needs the "pbc" library from Stanford's Crypto department:
  http://crypto.stanford.edu/pbc/
 and also the libjansson library
