@@ -83,7 +83,7 @@ by the preceeding /gen_request/. The actual onion must be extracted onion out of
 generated and stored, again in the  preceeding /gen_request/.
 
 This onion is signed, and so this signature must be verified.  It returns json, which akin to a 
-/peel/  request contains the local URL of the image to served by mod_freedom, as well as
+/peel/ request contains the local URL of the image to served by mod_freedom, as well as
 the results of the verification process.
 
 ==== /peel/ ====
@@ -95,7 +95,6 @@ The incoming json should include any necessary solution to puzzle.
 The outgoing json should include the current state, the type of the next layer
 if appropriate, and any additional info, for example the local url of a CAPTCHA
 or the progress if a POW search. More specifically:
-
  
 json from jumbox to plugin:   
 
@@ -113,6 +112,18 @@ json from plugin to jumbox:  {} or { action: "either the answer or a query" }
 Eventually the result of n *successful* /peel/ requests should return a net (part
 of the additional info).  This net is then submitted to the ACS dance described in
 more detail below.
+
+==== /file/ ====
+
+The File API is used to retrieve a file from the temporary directory.
+This is typically used to retrieve the captchas.
+
+URLs are typically of the format /file/tmp/outguess_embed?????????
+
+=== Preferences ===
+
+To communicate the preferences set in the plugin to djb we do a POST /preferences/.
+DJB then parses the provided JSON and updates its settings.
 
 === ACS ===
 
@@ -182,4 +193,6 @@ djb reports errors using standard HTTP errorcodes, As a reference, some are list
       The plugin can retry the request at a later point.
 
 504 = Parameter missing
+
+555 = Request not Made; used by the JumpBox plugin to report that a request was not made by the browser.
 
