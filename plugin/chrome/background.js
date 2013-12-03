@@ -57,7 +57,7 @@ Debug = {
     log : function (msg) { if (Debug.debug) { console.log(msg); }  }
 };
 
-/* added for the demo to darpa royalty so their fingers remain unsoiled.  REMOVE WHEN DONE */
+/* added for the demo to darpa royalty so their fingers remain unsoiled.  REMOVE WHEN DONE
 DemoWare = {
     hard_coded_defaults: {
         server_name:           "mfd",
@@ -74,6 +74,7 @@ DemoWare = {
     }
 };
 
+*/
 
 /* the stegotorus address is in the headers of the jb_pull_url response */
 JumpBox = {
@@ -95,9 +96,10 @@ JumpBox = {
     init : function () {
         var port, debug_mode, ccs, cc = 1;
 
-        /* Demoware hack :-( -- Remove after darpa demo */
-        DemoWare.set_hard_coded_options();
-
+        /* Demoware hack :-( -- Remove after darpa demo
+           DemoWare.set_hard_coded_options();
+        */
+        
 	/* Retrieve settings from LocalStorage */
         port = localStorage.jumpbox_port;
         debug_mode = localStorage.debug_mode;
