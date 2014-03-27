@@ -114,6 +114,11 @@ Circuitous = {
 	jb_pull_request = new XMLHttpRequest();
         jb_pull_request.onreadystatechange = function () { Circuitous.handle_jb_pull_response(jb_pull_request, circuit_id); };
         jb_pull_request.open('GET', Circuit.jb_pull_url + circuit_id + '/' + Circuit.cnt_requests_out + '/' + d.getTime());
+
+        /* if we get an image we better be ready for it */
+        jb_pull_request.responseType = 'blob'
+
+
         jb_pull_request.send(null);
 	Circuit.addRequestOut();
     },
@@ -173,12 +178,22 @@ Circuitous = {
 
 
 Translator = {
+    
+    response_is_image: function ( content_type ){
+        if( content_type == 'image/jpeg' ){
+            return true;
+        } else {
+            return false;
+        }
+    },
+
+
     /* XHR 1 -> 2
      * prepares the request from the jb response to XHR 1.; 
      * returns the content (i.e. the argument to send)  
      */
     jb_response2request : function (response, request) {
-        var djb_cookie, djb_uri, djb_method,  djb_seqno, djb_contents, djb_content_type;
+        var djb_cookie, djb_uri, djb_method,  djb_seqno, djb_contents, content_type, content_length;
 
         // the request should be an X according to the DJB-Method header
         // the request URI should be in the DJB-URI header, note that this means
@@ -189,6 +204,7 @@ Translator = {
         // field that need to be repacked
         // if X is a GET then only the DJB-Cookie needs to be repacked.
 
+
         djb_uri = response.getResponseHeader('DJB-URI');
         djb_method = response.getResponseHeader('DJB-Method');
         djb_seqno = response.getResponseHeader('DJB-SeqNo');
@@ -198,6 +214,7 @@ Translator = {
         Circuit.log('DJB-URI: ' + djb_uri);
         Circuit.log('DJB_SeqNo: ' + djb_seqno);
         Circuit.log('Content-Length: ' + response.getResponseHeader('Content-Length'));
+        Circuit.log('Content-Type: ' + response.getResponseHeader('Content-Type'));
 
         if ((djb_method !== 'GET') && (djb_method !== 'POST')) {
             throw 'Bad value of DJB-Method: ' + djb_method;
@@ -221,19 +238,28 @@ Translator = {
             request.setRequestHeader('DJB-Cookie', djb_cookie);
         }
 
-        if (djb_method === 'POST') {
-            djb_content_type = response.getResponseHeader('DJB-Content-Type');
-            if (typeof djb_content_type === 'string') {
-                request.setRequestHeader('Content-Type', djb_content_type);
-            }
-            djb_contents = response.response;
-        }
+        /* Ian added this, it does fix pdf bloat, but maybe we should be more discerning */
+        request.responseType = 'blob'
 
+        if (djb_method === 'POST') {
+            content_type = response.getResponseHeader('Content-Type');
+            if (typeof content_type === 'string') {
+                request.setRequestHeader('Content-Type', content_type);
+                if(Translator.response_is_image(content_type)){
+                    /* images need to be handled with kid gloves */
+                    request.responseType = 'blob';
+                    djb_contents = new Blob([response.response], {type: 'image/jpeg'}); 
+                } else {
+                    /* treat it as text */
+                    djb_contents = response.response;
+                }
+            } else {
+                throw 'No value for Content-Type';
+            }
+        }
+        
         /* Keep the SeqNo */
         request.djb_seqno = djb_seqno;
-
-        /* Ian added this, it does fix pdf bloat, but maybe we should be more discerning */
-        request.responseType = 'blob';
 
         return djb_contents;
     },
@@ -243,15 +269,20 @@ Translator = {
      * returns the content (i.e. the argument to send)  
      */
     ss_response2request : function (response, request, circuit_id) {
-        var djb_set_cookie, djb_content_type, httpcode, httptext, d;
+        var djb_contents, djb_uri, djb_set_cookie, djb_content_type, httpcode, httptext, d;
 
 	d = new Date();
+
+        djb_contents = response.response;
+
+
+        djb_uri = Circuit.jb_push_url + circuit_id + '/' + Circuit.cnt_requests_out + '/' + d.getTime();
 
         /*
          * The response should be converted into a POST
          * no DJB headers will be in the response
          */
-        request.open('POST', Circuit.jb_push_url + circuit_id + '/' + Circuit.cnt_requests_out + '/' + d.getTime());
+        request.open('POST',  djb_uri);
 
 	/* When it failed, report 555 back to jumpbox
 	 * this allows the client to do a new request
@@ -282,12 +313,21 @@ Translator = {
             request.setRequestHeader('DJB-Set-Cookie', djb_set_cookie);
         }
 
+        /* Ian added this */
+        request.responseType = 'blob'
+
         djb_content_type = response.getResponseHeader('Content-Type');
         if (typeof djb_content_type === 'string') {
             Circuit.log('ss_push_response: content-type = ' + djb_content_type);
             request.setRequestHeader('Content-Type', djb_content_type);
+            if(Translator.response_is_image(djb_content_type)){
+                /* images need to be handled with kid gloves */
+                request.responseType = 'blob';
+                djb_contents = new Blob([response.response], {type: 'image/jpeg'}); 
+            }
         }
-        return response.response;
+
+        return djb_contents;
     }
 };
 
