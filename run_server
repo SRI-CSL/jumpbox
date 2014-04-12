@@ -4,7 +4,10 @@
 export DJB_FORCED_HOSTNAME=127.0.0.1:8081
 
 export SAFDEF_LOG_LEVEL=info;
-# emerg alert crit err warning notice info debug
+#emerg alert crit err warning notice info debug
+
+#XXX: ratpac request (need to incorporate this into packaging and deploying)
+export DEFIANCE_PUBLIC_KEY_PATH=../rendezvous/client/data/defiant_public.pem
 
 
 VALGRIND=$1

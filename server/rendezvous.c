@@ -648,33 +648,48 @@ static const char *
 rdv_peel_signed(void);
 static const char *
 rdv_peel_signed(void) {
-	int 		errcode;
-	const char	*r;
+  int 		errcode;
+  const char	*r;
+  const char	*dpkp;
+  FILE            *public_key_fp;
+  log_dbg("...");
+  dpkp = getenv("DEFIANCE_PUBLIC_KEY_PATH");
+  if (dpkp  == NULL) {
+    r = "The server needs to know the DEFIANCE_PUBLIC_KEY_PATH, so  "
+      "that the signature can be VERIFIED!";
+  } else {
+          
+    public_key_fp = fopen(dpkp, "r");
+    
+    if(public_key_fp == NULL){
+      log_wrn("Could not open public key file %s: %s\n",  dpkp, strerror(errno));
+      r = "The server can't open the DEFIANCE_PUBLIC_KEY_PATH, so  "
+        "that the signature can be VERIFIED!";
+    } else {
+      errcode = verify_onion(public_key_fp, l_current_onion);
 
-	log_dbg("...");
+      if (errcode == DEFIANT_OK) {
+        onion_t inner_onion = NULL;
+        errcode = peel_signed_onion(l_current_onion, &inner_onion);
 
-	errcode = verify_onion(l_current_onion);
+        if (errcode == DEFIANT_OK) {
+          free_onion(l_current_onion);
 
-	if (errcode == DEFIANT_OK) {
-		onion_t inner_onion = NULL;
-		errcode = peel_signed_onion(l_current_onion, &inner_onion);
+          l_current_onion = inner_onion;
 
-		if (errcode == DEFIANT_OK) {
-			free_onion(l_current_onion);
+          r = "The server returned an onion whose "
+            "signature we VERIFIED!";
+        } else {
+          r = "Peeling it went wrong, very odd.";
+        }
+      } else {
+        r = "The server returned an onion whose signature "
+          "we COULD NOT verify -- try again?";
+      }
+    }
+  }
 
-			l_current_onion = inner_onion;
-
-			r = "The server returned an onion whose "
-			    "signature we VERIFIED!";
-		} else {
-			r = "Peeling it went wrong, very odd.";
-		}
-	} else {
-		r = "The server returned an onion whose signature "
-		    "we COULD NOT verify -- try again?";
-	}
-
-	return (rdv_make_peel_response("", r));
+  return (rdv_make_peel_response("", r));
 }
 
 static void
