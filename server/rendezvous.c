@@ -667,7 +667,7 @@ rdv_peel_signed(void) {
         "that the signature can be VERIFIED!";
     } else {
       errcode = verify_onion(public_key_fp, l_current_onion);
-
+      fclose(public_key_fp);
       if (errcode == DEFIANT_OK) {
         onion_t inner_onion = NULL;
         errcode = peel_signed_onion(l_current_onion, &inner_onion);
