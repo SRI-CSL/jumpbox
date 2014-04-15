@@ -244,7 +244,8 @@ DJB_OBJS	+=	rendezvous.o				\
 			$(LIBDEFIANTCLIENT)crc.o		\
 			$(LIBDEFIANTCLIENT)utils.o		\
 			$(LIBDEFIANTCLIENT)onion.o		\
-			$(LIBDEFIANTCLIENT)outguess.o		\
+			$(LIBDEFIANTCLIENT)makeargv.o		\
+			$(LIBDEFIANTCLIENT)jpeg_steg.o		\
 			$(LIBDEFIANTCLIENT)defianterrors.o	\
 			$(LIBDEFIANTCLIENT)defiantrequest.o
 endif

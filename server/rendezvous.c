@@ -7,7 +7,7 @@
 #include "defianterrors.h"
 
 #include "onion.h"
-#include "outguess.h"
+#include "jpeg_steg.h"
 
 #include <openssl/sha.h>
 
@@ -783,11 +783,10 @@ static void
 rdv_file(httpsrv_client_t *hcl, const char *file);
 static void
 rdv_file(httpsrv_client_t *hcl, const char *file) {
-	/* Only serve random outguess_embed files */
+  const char prefix[]  = "/tmp/jpeg_steg_embed";
+	/* Only serve random jpeg_steg_embed files */
 	log_dbg("file = %s", file);
-
-	/*                     1234567890123456789 */
-	if (strncmp(file, "/tmp/outguess_embed", 19) == 0) {
+	if (strncmp(file, prefix, sizeof(prefix) - 1) == 0) {
 		httpsrv_sendfile(hcl, file);
 		httpsrv_expire(hcl, HTTPSRV_EXPIRE_SHORT);
 
