@@ -201,7 +201,7 @@ acs_net_string(const char *var, const char *desc) {
 	/* Get the string from the NET */
 	str_j = json_object_get(l_net, var);
 
-	if (!json_is_string(str_j)) {
+	if (str_j == NULL || !json_is_string(str_j)) {
 		log_dbg("%s (%s): not found", desc, var);
 		acs_status(DJB_ERR, "No %s in NET", desc);
 		acs_sitdown();
@@ -385,6 +385,7 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 			log_dbg("redirect_answer requires length");
 			acs_status(DJB_ERR,
 				   "ACS Redirect failed: no length");
+			acs_sitdown();
 			return (true);
 		}
 
@@ -392,6 +393,7 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 			log_dbg("httpsrv_readbody_alloc() failed");
 			acs_status(DJB_ERR,
 				   "ACS Redirect failed: no memory");
+			acs_sitdown();
 			return (true);
 		}
 
@@ -405,6 +407,7 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 			 &ans, &ans_len)) {
 		acs_status(DJB_ERR,
 			   "ACS Redirect failed: desteg failed");
+		acs_sitdown();
 		return (true);
 	}
 
@@ -413,7 +416,7 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 
 	log_dbg("Bridge Details: %s", ans);
 
-	ok = prf_parse_bridge_details(ans);
+	ok = prf_set_bridge_access_list(ans);
 
 	/* Free it up */
 	steg_free(ans, ans_len, NULL, 0);
@@ -432,7 +435,7 @@ acs_redirect_answer(httpsrv_client_t *shcl, httpsrv_client_t *hcl) {
 			   "JumpBox/DGW");
 	} else {
 		acs_status(DJB_ERR,
-			   "Unable to parse ACS received Bridge Details");
+			   "Unable to parse ACS received Bridge Access List");
 	}
 
 	/* Done dancing */
@@ -537,22 +540,13 @@ static void
 acs_initial(void);
 static void
 acs_initial(void) {
-	json_t			*initial_j;
-	const char		*initial;
+	const char	*initial;
 
 	log_dbg("..");
 
-	/* Get the Initial Gateway from the NET */
-	initial_j = json_object_get(l_net, "initial");
-
-	if (initial_j == NULL || !json_is_string(initial_j)) {
-		acs_status(DJB_ERR, "No ACS Initial Gateway in NET");
-		acs_sitdown();
+	initial = acs_net_string("initial", "Initial Gateway");
+	if (initial == NULL)
 		return;
-	}
-
-	initial = json_string_value(initial_j);
-	fassert(initial);
 
 	log_dbg("Initial Gateway: %s", initial);
 
@@ -574,7 +568,6 @@ acs_when(void) {
 
 	log_dbg("..");
 
-	/* Get the "when" from the NET */
 	when_j = json_object_get(l_net, "when");
 
 	if (when_j == NULL) {
