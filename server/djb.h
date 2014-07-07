@@ -70,7 +70,7 @@ enum prf_v {
 void prf_init(void);
 void prf_exit(void);
 void prf_handle(httpsrv_client_t *hcl);
-bool prf_parse_bridge_details(const char *br);
+bool prf_set_bridge_access_list(const char *br);
 int prf_get_argv(char **argv[]);
 void prf_free_argv(unsigned int argc, char *argv[]);
 const char *prf_get_value(enum prf_v i);

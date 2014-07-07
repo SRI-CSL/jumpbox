@@ -7,9 +7,10 @@
 
 static mutex_t	l_mutex;
 static char	*l_current_preferences = NULL;
+static json_t	*l_bridge_access_list = NULL;
 
 /* keep these ALL the same length (number_of_keys) */
-static const char *l_keys[] =  {
+static const char *l_keys[PRF_MAX] =  {
 	"stegotorus_circuit_count", 
 	"stegotorus_executable", 
 	"stegotorus_log_level", 
@@ -23,7 +24,7 @@ static const char *l_keys[] =  {
 
 static char *l_values[PRF_MAX];
 
-static const char *l_defaults[] = {
+static const char *l_defaults[PRF_MAX] = {
 	"1", 
 	"/usr/sbin/stegotorus", 
 	"warn", 
@@ -218,59 +219,64 @@ prf_free_argv(unsigned int argc, char *argv[]) {
 }
 
 /*
-	Bridge Details:
+	The Bridge Details one gets back from DGW (without comments :) :
 
+	// JSON Object
 	{
-		"BR_Access":
-		{
-			"br_expiration":1000,
-			"br_identity":"IDENTITY",
-			"br_secret":"SECRET"
-		},
-		"Camouflage":
-		{
-			"method":"http",
-			"scheme":"steg",
-			"key":"XXX:ticket:46"
-		},
-		"Contact":
-		{
-			"IP_address":"10.42.20.221",
-			"Encapsulations":
-			[
+		"BR_Access_List":
+		[
+			// First Bridge
+			{
+				"BR_Access":
 				{
-					"IP_subheader":6,
-					"Discriminator":80
+					"br_expiration":1000,
+					"br_identity":"IDENTITY",
+					"br_secret":"SECRET"
+				},
+				"Camouflage":
+				{
+					"method":"http",
+					"scheme":"steg",
+					"key":"XXX:ticket:46"
+				},
+				"Contact":
+				{
+					"IP_address":"10.42.20.221",
+					"Encapsulations":
+					[
+						{
+							"IP_subheader":6,
+							"Discriminator":80
+						}
+					]
 				}
-			]
-		}
+			},
+
+			// Second Bridge
+			{
+				"BR_Access":
+				...
+			}
+		]
 	}
 */
 
 bool
-prf_parse_bridge_details(const char *br) {
-	json_error_t	jerr;
-	json_t		*root,
-			*camouflage, *method,
+prf_parse_bridge_details(json_t *bridge);
+bool
+prf_parse_bridge_details(json_t *bridge) {
+	json_t		*camouflage, *method,
 			*contact, *ip_address;
 	bool		ok = false;
 
-	root = json_loads(br, 0, &jerr);
-	if (root == NULL) {
-		log_err("Could not JSON load Bridge Details"
-			"line %u, column %u: %s",
-			jerr.line, jerr.column, jerr.text);
-
-		return (false);
-	}
-
 	while (true) {
-		if (!json_is_object(root)) {
+		if (bridge == NULL || !json_is_object(bridge)) {
 			log_err("JSON Root is not a JSON Object");
+			ok = false;
 			break;
 		}
 
-		camouflage = json_object_get(root, "Camouflage");
+		camouflage = json_object_get(bridge, "Camouflage");
 		if (camouflage == NULL || !json_is_object(camouflage)) {
 			log_err("BR Camouflage not found");
 			break;
@@ -282,7 +288,7 @@ prf_parse_bridge_details(const char *br) {
 			break;
 		}
 
-		contact = json_object_get(root, "Contact");
+		contact = json_object_get(bridge, "Contact");
 		if (contact == NULL || !json_is_object(contact)) {
 			log_err("BR Contact not found");
 			break;
@@ -306,10 +312,135 @@ prf_parse_bridge_details(const char *br) {
 		break;
 	}
 
-	/* Done */
-	json_decref(root);
-
 	return (ok);
+}
+
+void
+prf_br_list(httpsrv_client_t *hcl);
+void
+prf_br_list(httpsrv_client_t *hcl) {
+	json_t		*obj, *arr,
+			*list, *bridge,
+			*camouflage, *method, *scheme;
+	const char	*j;
+	bool		fail = false;
+	size_t		i;
+
+	if (l_bridge_access_list == NULL) {
+		djb_result(hcl, DJB_ERR,
+			   "No Bridge List set yet, perform ACS first");
+		return;
+	}
+
+	if (!json_is_object(l_bridge_access_list)) {
+		djb_result(hcl, DJB_ERR,
+			   "Bridge List is not a valid JSON Object");
+		return;
+	}
+
+	list = json_object_get(l_bridge_access_list, "BR_Access_List");
+	if (list == NULL || !json_is_array(list)) {
+		djb_result(hcl, DJB_ERR,
+			   "Bridge Access List array missing");
+		return;
+	}
+
+	arr = json_array();
+	if (arr == NULL) {
+		djb_result(hcl, DJB_ERR,
+			   "Could not create a JSON array");
+		return;
+	}
+
+	for (i = 0; !fail && i < json_array_size(list); i++) {
+		bridge = json_array_get(list, i);
+		if (bridge == NULL || !json_is_object(bridge)) {
+			djb_result(hcl, DJB_ERR,
+				  "Bridge missing in list");
+			fail = true;
+			return;
+		}
+
+		camouflage = json_object_get(bridge, "Camouflage");
+		if (camouflage == NULL || !json_is_object(camouflage)) {
+			djb_result(hcl, DJB_ERR, "BR Camouflage not found");
+			fail = true;
+			break;
+		}
+
+		method = json_object_get(camouflage, "method");
+		if (method == NULL || !json_is_string(method)) {
+			djb_result(hcl, DJB_ERR,
+				   "BR Camouflage method not found");
+			fail = true;
+			break;
+		}
+
+		scheme = json_object_get(camouflage, "scheme");
+		if (scheme == NULL || !json_is_string(scheme)) {
+			djb_result(hcl, DJB_ERR,
+				   "BR Camouflage scheme not found");
+			fail = true;
+			break;
+		}
+
+		/* Add them to the array */
+		json_array_append_new(arr, json_pack(
+			"{s:s, s:s}",
+			"method", method,
+			"scheme", scheme));
+
+		/* continue */
+	}
+
+	if (fail) {
+		/* Error reported already, just clean up and get out */
+		json_decref(arr);
+		return;
+	}
+
+	/* arr becomes part of this hence no decref */
+	obj = json_pack("{s:o}", "bridges", arr);
+	if (obj == NULL) {
+		djb_result(hcl, DJB_ERR, "Could not pack JSON");
+		json_decref(arr);
+		return;
+	}
+
+	j = json_dumps(obj, JSON_COMPACT | JSON_ENSURE_ASCII);
+	if (j == NULL) {
+		djb_result(hcl, DJB_ERR, "Could not dump JSON");
+	} else {
+		/* Return the object */
+		djb_result(hcl, DJB_OK, j);
+	}
+
+	/* Done with it */
+	json_decref(obj);
+
+	return;
+}
+
+bool
+prf_set_bridge_access_list(const char *br) {
+	json_error_t	jerr;
+
+	if (l_bridge_access_list != NULL) {
+		/* Remove the last reference that keeps it open */
+		json_decref(l_bridge_access_list);
+	}
+
+	/* Load the new one */
+	l_bridge_access_list = json_loads(br, 0, &jerr);
+	if (l_bridge_access_list == NULL) {
+		log_err("Could not JSON load Bridge Access List"
+			"line %u, column %u: %s",
+			jerr.line, jerr.column, jerr.text);
+
+		return (false);
+	}
+
+	return (true);
 }
 
 static bool
@@ -359,11 +490,15 @@ prf_parse_preferences(void) {
 	return (true);
 }
 
-void
-prf_handle(httpsrv_client_t *hcl) {
+static void
+prf_set(httpsrv_client_t *hcl);
+static void
+prf_set(httpsrv_client_t *hcl) {
+
 	if (hcl->readbody == NULL) {
 		if (hcl->headers.content_length == 0) {
-			djb_error(hcl, 400, "prf_handle requires length");
+			djb_error(hcl, 400,
+				  "Setting preferences requires a length");
 			return;
 		}
 
@@ -411,6 +546,26 @@ prf_handle(httpsrv_client_t *hcl) {
 	}
 
 	mutex_unlock(l_mutex);
+}
+
+void
+prf_handle(httpsrv_client_t *hcl) {
+	/* Skip the /preferences/ portion */
+	const char *uri = &hcl->headers.uri[12];
+
+	log_dbg("URI: %s", uri);
+
+	if (strcasecmp(uri, "/set/") == 0) {
+		prf_set(hcl);
+		return;
+
+	} else if (strcasecmp(uri, "/bridge/list/") == 0) {
+		prf_br_list(hcl);
+		return;
+	}
+
+	/* Not a valid API request */
+	djb_error(hcl, 404, "No such DJB API request (Preferences)");
 }
 
 void
