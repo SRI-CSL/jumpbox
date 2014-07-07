@@ -456,6 +456,12 @@ djb_push(httpsrv_client_t *hcl, djb_headers_t *dh) {
 		return (true);
 	}
 
+	/* Force handling */
+	if (pr->hcl->conn.connset_l != &pr->hcl->conn.connset->handling)
+	{
+		connset_handling_setup(&pr->hcl->conn);
+	}
+
 	/* We got an answer, send back what we have already */
 	httpsrv_answer(pr->hcl, atoi(dh->httpcode), dh->httptext, NULL);
 
