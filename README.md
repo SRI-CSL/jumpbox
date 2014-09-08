@@ -10,20 +10,25 @@ Installation Notes
 
 This code requires libfutil and optionally (but default on) also rendezvous.
 
-These code libraries have to be placed in ../libfutil and ../rendezvous respectively.
-(thus a 'for i in jumpbox rendezvous libfutil; do git clone https://git.safdef.org/git/$i; done' does the trick)
+These code libraries have to be placed in `../libfutil` and `../rendezvous` respectively.
 
 ### Mac OSX
 
-Use "xcode-select --install" to ensure the XCode Command Line Tools (CLT) are installed.
+Use the following command
+<blockquote>
+ xcode-select --install
+</blockquote>
+to ensure the XCode Command Line Tools (CLT) are installed.
 
 For Rendezvous one needs the "pbc" library from Stanford's Crypto department:
  http://crypto.stanford.edu/pbc/
 and also the libjansson library
 
 Fortunately, these are available in Homebrew:
+<blockquote>
  brew install pbc
  brew install jansson
+</blockquote>
 
 Environment Variables
 ---------------------
@@ -56,7 +61,7 @@ Running with StegoTorus
 Testing JumpBox with StegoTorus can be achieved by the following steps.
 
 In Chrome/Chromium open the extensions page:
- chrome://extensions
+ `chrome://extensions`
 Then select 'unpack and load' and select the JumpBox plugin directory (plugin/chrome/)
 or if already correctly installed, hit "Reload" to update to the current version.
 
@@ -109,7 +114,8 @@ bin/tor -f etc/tor/torrc
 
 That should make things move.
 
-== Running with StegoTorus (debug) ==
+Running with StegoTorus (debug)
+-------------------------------
 
 Connections will get lost and lldb does not like those SIGPIPEs, to make it continue use:
 <blockquote>
