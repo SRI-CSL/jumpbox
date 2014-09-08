@@ -33,26 +33,26 @@ Fortunately, these are available in Homebrew:
 Environment Variables
 ---------------------
 
-The following DJB_FORCED_* environment variables override either the preferences
+The following `DJB_FORCED_*` environment variables override either the preferences
 as they are configured or the result retrieved from ACS and thus allows easier
 testing by bypassing various components.
 
-* DJB_FORCED_HOSTNAME
+* `DJB_FORCED_HOSTNAME`
 	defines the hostname that we force connections to (DJB-URI)
 
-* DJB_FORCED_JUMPBOXADDRESS
+* `DJB_FORCED_JUMPBOXADDRESS`
 	defines the 'JumpBox Address' to be used for StegoTorus
 	this can be used to bypass the DJB Proxy while being able to start from DJB.
 
-* DJB_FORCED_STEGMETHOD
+* `DJB_FORCED_STEGMETHOD`
 	defines the Steg Method (json|http) to be used for StegoTorus
 
-* DJB_FORCED_SHAREDSECRET
+* `DJB_FORCED_SHAREDSECRET`
 	defines the Shared Secret to be used for StegoTorus
 
 Generic (libfutil):
 
-* SAFDEF_LOG_LEVEL
+* `SAFDEF_LOG_LEVEL`
 	defines the logging level (debug is very verbose).
 
 Running with StegoTorus
@@ -84,11 +84,11 @@ That lets StegoTorus be a SOCKS server on 127.0.0.1:1080 while connecting to Jum
 
 Then start the Stegotorus server in non-persist mode (this typically runs behind DGW):
 <blockquote>
-./stegotorus --log-min-severity=warn chop server --trace-packets 64.62.249.222:443 127.0.0.1:8080 json
+./stegotorus --log-min-severity=warn chop server --trace-packets 192.0.2.1:443 127.0.0.1:8080 json
 </blockquote>
 
-That lets ST accept HTP at 127.0.0.1:8080 (matching DJB_FORCED_HOSTNAME above) and makes
-it use 64.62.249.222:443 as a Tor Bridge
+That lets ST accept HTP at 127.0.0.1:8080 (matching `DJB_FORCED_HOSTNAME` above) and makes
+it use 192.0.2.1:443 as a Tor Bridge
 
 Configure the Tor client with:
 <blockquote>
