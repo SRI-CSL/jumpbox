@@ -5,25 +5,30 @@ Welcome to JumpBox
 
 For details about this project, please see the [doc](doc/) directory which contains
 the original [Design specification](doc/DESIGN.txt) and also the SECURECOMM 2014
-[doc/doc/SECURECOMM2014-JumpBox.pdf](paper) and the related presentation in
-[doc/SECURECOMM2014-JumpBox-pres.pdf](PDF) and [doc/SECURECOMM2014-JumpBox-pres.pptp](PowerPoint) formats.
+[paper](doc/doc/SECURECOMM2014-JumpBox.pdf) and the related presentation in
+[PDF](doc/SECURECOMM2014-JumpBox-pres.pdf) and [PowerPoint](doc/SECURECOMM2014-JumpBox-pres.pptx) formats.
 
 Installation Notes
 ------------------
 
 ### libfutil / rendezvous
 
-This code requires libfutil and optionally (default off) also rendezvous.
+This code requires [libfutil](https://github.com/SRI-CSL/libfutil/) and optionally (default off) also SRI's rendezvous library.
 
 These code libraries have to be placed in `../libfutil` and `../rendezvous` respectively.
+
+### Debian
+
+A Debian makefile is included which depends on all the proper dependencies.
+Creating the package thus automatically fetches these.
 
 ### Mac OSX
 
 For Rendezvous one needs the "pbc" library from
 [Stanford's Crypto department](http://crypto.stanford.edu/pbc/)
-and also the libjansson library
+and also the [libjansson](www.digip.org/jansson/) library.
 
-Fortunately, these are available in [http://brew.sh](Homebrew):
+Fortunately, these are available in [Homebrew](http://brew.sh):
 ```
 brew install pbc
 brew install jansson
@@ -33,7 +38,7 @@ Use the following command, which should have been also performed by homebrew ins
 ```
 xcode-select --install
 ```
-to ensure the XCode Command Line Tools (CLT) are installed.
+to ensure the Apple XCode Command Line Tools (CLT) are installed.
 
 Environment Variables
 ---------------------
