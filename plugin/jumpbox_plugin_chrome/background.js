@@ -76,16 +76,14 @@ DemoWare = {
 };
 
 
-/* the stegotorus address is in the headers of the jb_pull_url response */
+/* the stegotorus address is in the headers of the jb_next_url response */
 JumpBox = {
     jb_server           : 'http://127.0.0.1',
     jb_port             : 6543,
-    jb_pull_path        : '/pull/',
-    jb_push_path        : '/push/',
+    jb_next_path        : '/next/',
     jb_preferences_path : '/preferences/',
     jb_host             : '',
-    jb_pull_url         : '',
-    jb_push_url         : '',
+    jb_next_url         : '',
     jb_preferences_url  : '',
     jb_ext_id           : chrome.i18n.getMessage("@@extension_id"),
     circuit_count	: 1,
@@ -122,11 +120,10 @@ JumpBox = {
         Debug.log("circuit_count: " + JumpBox.circuit_count); 
 
         JumpBox.jb_host = JumpBox.jb_server + ':' + JumpBox.jb_port;
-        JumpBox.jb_pull_url = JumpBox.jb_host + JumpBox.jb_pull_path;
-        JumpBox.jb_push_url = JumpBox.jb_host + JumpBox.jb_push_path;
+        JumpBox.jb_next_url = JumpBox.jb_host + JumpBox.jb_next_path;
         JumpBox.jb_preferences_url = JumpBox.jb_host + JumpBox.jb_preferences_path;
 
-        Debug.log('JumpBox::init pull: ' + JumpBox.jb_pull_url);
+        Debug.log('JumpBox::init next: ' + JumpBox.jb_next_url);
 
 	/* Notify the JumpBox Daemon of this settings update */
         try {

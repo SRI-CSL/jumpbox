@@ -2,8 +2,8 @@
 {
 
   "name": "JumpBox",
-  "description": "This extension is the Stegotorus client's conduit to the Stegotorus server and provides Rendezvous and ACS support from inside the browser.",
-  "version": "1.0",
+  "description": "This extension performs JumpBoxing of HTTP requests for instance for HTTP Tor Pluggable Transports like Stegotorus client or Meek. It also provides Rendezvous and ACS support from inside the browser.",
+  "version": "1.1",
   "manifest_version": 2,
 
   "options_page": "preferences.html",
