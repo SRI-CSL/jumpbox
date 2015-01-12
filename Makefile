@@ -47,7 +47,8 @@ CFLAGS += -DDEBUG
 CFLAGS += -DDEBUG_STACKDUMPS
 
 # Rendezvous modules?
-CFLAGS += -DDJB_RENDEZVOUS
+# (Default enabled as rendezvous is not published yet)
+#CFLAGS += -DDJB_RENDEZVOUS
 
 #########################################################
 export PROJECT_NAME
